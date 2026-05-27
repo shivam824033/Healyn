@@ -1,0 +1,21 @@
+spring:
+  jpa:
+    properties:
+      hibernate:
+        format_sql: true
+  flyway:
+    placeholders:
+      env: local
+
+springdoc:
+  swagger-ui:
+    enabled: true
+  api-docs:
+    enabled: true
+
+logging:
+  level:
+    root: INFO
+    com.healyn: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.springframework.security: INFO

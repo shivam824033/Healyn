@@ -1,0 +1,53 @@
+# ------------------------------------------------------------
+# Healyn .gitignore — repo root
+# ------------------------------------------------------------
+
+# Environment / secrets — never commit real credentials
+.env
+.env.*
+!.env.example
+secrets/
+*.pem
+*.key
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.iml
+*.swp
+*.swo
+
+# ------------------------------------------------------------
+# Backend (Gradle / Java)
+# ------------------------------------------------------------
+backend/.gradle/
+backend/build/
+backend/out/
+backend/bin/
+backend/**/build/
+backend/**/.gradle/
+backend/*.log
+backend/hs_err_pid*
+
+# ------------------------------------------------------------
+# Mobile (Flutter / Dart) — scaffolded later
+# ------------------------------------------------------------
+mobile/.dart_tool/
+mobile/.flutter-plugins
+mobile/.flutter-plugins-dependencies
+mobile/.packages
+mobile/build/
+mobile/.pub-cache/
+mobile/.pub/
+mobile/ios/Pods/
+mobile/android/.gradle/
+mobile/android/local.properties
+
+# ------------------------------------------------------------
+# Infra
+# ------------------------------------------------------------
+infra/.terraform/
+infra/*.tfstate
+infra/*.tfstate.backup

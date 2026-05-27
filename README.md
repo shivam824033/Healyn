@@ -92,6 +92,8 @@ Module breakdown: [docs/SYSTEM_ARCHITECTURE.md §3](./docs/SYSTEM_ARCHITECTURE.m
 
 ## 5. First-Time Setup
 
+Healyn expects you already run PostgreSQL 16, Redis 7, and MinIO locally (any container or native install works). The defaults below match the standard dev stack — override via `.env` if your setup differs.
+
 ```bash
 # 1. Clone
 git clone <repo-url>
@@ -99,19 +101,27 @@ cd Healyn
 
 # 2. Configure environment
 cp .env.example .env
-# Edit .env: set HEALYN_PASSWORD_PEPPER, JWT key paths, S3 creds, FCM service account
+# Edit .env if your local PG/Redis/MinIO ports or credentials differ from the defaults.
+# At minimum set HEALYN_PASSWORD_PEPPER and the JWT key paths before Phase B (auth).
 
-# 3. Start local dependencies
-docker compose up -d
-#  ↳ PostgreSQL on :5432, Redis on :6379, MinIO on :9000 (console :9001)
+# 3. Make sure your local services are reachable
+#    Expected defaults (override via .env):
+#      PostgreSQL : localhost:5432   user=postgres   pass=postgres
+#      Redis      : localhost:6379   (no auth)
+#      MinIO      : localhost:9000   minioadmin / minioadmin
 
-# 4. Run migrations & start backend
+# 4. Create the Healyn database and MinIO bucket (one-time)
+psql -h localhost -U postgres -c "CREATE DATABASE healyn"
+mc alias set local http://localhost:9000 minioadmin minioadmin
+mc mb --ignore-existing local/healyn-files-dev
+
+# 5. Build & run the backend
 cd backend
-./gradlew flywayMigrate
 ./gradlew bootRun
-#  ↳ API on http://localhost:8080
+#  ↳ Flyway runs migrations automatically on startup.
+#  ↳ API on http://localhost:8080  ·  Health: http://localhost:8080/actuator/health
 
-# 5. Run mobile app (in a new terminal)
+# 6. (Later) Run the mobile app
 cd mobile
 flutter pub get
 flutter run
