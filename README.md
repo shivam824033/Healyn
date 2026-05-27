@@ -1,0 +1,234 @@
+# Healyn
+
+> A premium, mobile-first patient management application for a single physiotherapist running a single clinic.
+
+Healyn replaces the WhatsApp + paper + memory workflow of a busy clinic with a calm, secure, healthcare-grade application that patients and the physiotherapist both find easy to use. The patient books an appointment in under 30 seconds. The physiotherapist starts each workday knowing exactly who is coming, why, and what was discussed last time — without opening five tools.
+
+This repository contains:
+
+- The **Spring Boot** backend (Java 21).
+- The **Flutter** mobile application (Android-first, Riverpod 2.x).
+- The PostgreSQL schema, migrations, infrastructure scripts, and all architecture documentation.
+
+---
+
+## 1. Quick Links
+
+| | |
+|---|---|
+| Product vision & scope | [docs/PROJECT_CONTEXT.md](./docs/PROJECT_CONTEXT.md) |
+| What ships when | [docs/FEATURE_ROADMAP.md](./docs/FEATURE_ROADMAP.md) |
+| System architecture | [docs/SYSTEM_ARCHITECTURE.md](./docs/SYSTEM_ARCHITECTURE.md) |
+| Database schema | [docs/DATABASE_SCHEMA.md](./docs/DATABASE_SCHEMA.md) |
+| API contract | [docs/API_STANDARDS.md](./docs/API_STANDARDS.md) |
+| Security posture | [docs/SECURITY_GUIDELINES.md](./docs/SECURITY_GUIDELINES.md) |
+| UI / UX system | [docs/UI_UX_GUIDELINES.md](./docs/UI_UX_GUIDELINES.md) |
+| Engineering rules | [docs/DEVELOPMENT_RULES.md](./docs/DEVELOPMENT_RULES.md) |
+| Live module status | [docs/MODULE_STATUS_TRACKER.md](./docs/MODULE_STATUS_TRACKER.md) |
+| Claude Code conventions for this repo | [CLAUDE.md](./CLAUDE.md) |
+
+A complete list of architecture documents lives in [docs/](./docs/).
+
+---
+
+## 2. Tech Stack
+
+| Layer | Choice |
+|---|---|
+| Mobile | Flutter (Android first, web/iOS later), **Riverpod 2.x**, Dio, Hive |
+| Backend | Spring Boot 3.x on **Java 21** |
+| Database | **PostgreSQL 16** with btree_gist, pg_trgm, citext |
+| Cache / sessions | Redis 7 |
+| File storage | **S3-compatible** (AWS S3 / Cloudflare R2 / MinIO) with presigned URLs |
+| Auth | JWT (RS256) + refresh rotation, Argon2id passwords |
+| Push notifications | Firebase Cloud Messaging |
+| Migrations | Flyway |
+| CI | GitHub Actions |
+
+See [docs/SYSTEM_ARCHITECTURE.md](./docs/SYSTEM_ARCHITECTURE.md) for the full topology.
+
+---
+
+## 3. Repository Layout
+
+```
+Healyn/
+├── README.md                ← this file
+├── CLAUDE.md                ← Claude Code conventions for this repo
+├── docs/                    ← architecture documentation (15 files)
+├── backend/                 ← Spring Boot service
+│   ├── src/main/java/com/healyn/
+│   ├── src/main/resources/db/migration/
+│   ├── src/test/
+│   └── build.gradle.kts
+├── mobile/                  ← Flutter app
+│   ├── lib/
+│   │   ├── app/
+│   │   ├── features/
+│   │   └── main.dart
+│   ├── test/
+│   ├── integration_test/
+│   └── pubspec.yaml
+├── infra/                   ← IaC + deploy scripts
+└── .github/workflows/       ← CI definitions
+```
+
+Module breakdown: [docs/SYSTEM_ARCHITECTURE.md §3](./docs/SYSTEM_ARCHITECTURE.md#3-module-breakdown).
+
+---
+
+## 4. Prerequisites
+
+| Tool | Version |
+|---|---|
+| JDK | **21** |
+| Gradle | Provided via wrapper |
+| Docker + Docker Compose | latest |
+| Flutter | latest stable |
+| PostgreSQL client | 16 (`psql`) |
+| Node.js | 20+ (tooling only) |
+
+---
+
+## 5. First-Time Setup
+
+```bash
+# 1. Clone
+git clone <repo-url>
+cd Healyn
+
+# 2. Configure environment
+cp .env.example .env
+# Edit .env: set HEALYN_PASSWORD_PEPPER, JWT key paths, S3 creds, FCM service account
+
+# 3. Start local dependencies
+docker compose up -d
+#  ↳ PostgreSQL on :5432, Redis on :6379, MinIO on :9000 (console :9001)
+
+# 4. Run migrations & start backend
+cd backend
+./gradlew flywayMigrate
+./gradlew bootRun
+#  ↳ API on http://localhost:8080
+
+# 5. Run mobile app (in a new terminal)
+cd mobile
+flutter pub get
+flutter run
+#  ↳ requires an Android emulator or connected device
+```
+
+Once running, the backend exposes `/actuator/health` and the API is documented per [docs/API_STANDARDS.md](./docs/API_STANDARDS.md).
+
+---
+
+## 6. Day-to-Day Development
+
+| Action | Command |
+|---|---|
+| Run backend with hot reload | `cd backend && ./gradlew bootRun --continuous` |
+| Run backend tests | `cd backend && ./gradlew test` |
+| Run mobile app | `cd mobile && flutter run` |
+| Run mobile tests | `cd mobile && flutter test` |
+| Run integration tests (mobile) | `cd mobile && flutter test integration_test` |
+| Generate freezed / json models | `cd mobile && dart run build_runner build --delete-conflicting-outputs` |
+| Apply DB migrations | `cd backend && ./gradlew flywayMigrate` |
+| Reset local DB | `docker compose down -v && docker compose up -d` |
+| Lint backend | `cd backend && ./gradlew spotlessCheck` |
+| Lint mobile | `cd mobile && dart analyze` |
+| Format backend | `cd backend && ./gradlew spotlessApply` |
+| Format mobile | `cd mobile && dart format .` |
+
+---
+
+## 7. Development Workflow
+
+1. Pick a task from [docs/MODULE_STATUS_TRACKER.md](./docs/MODULE_STATUS_TRACKER.md) or an issue.
+2. Branch from `develop`: `feat/<short-slug>`, `fix/<short-slug>`, etc. — see [docs/DEVELOPMENT_RULES.md §3](./docs/DEVELOPMENT_RULES.md#3-branching-strategy).
+3. Implement + test locally. Conform to [docs/DEVELOPMENT_RULES.md §2](./docs/DEVELOPMENT_RULES.md#2-coding-standards) and [docs/UI_UX_GUIDELINES.md](./docs/UI_UX_GUIDELINES.md).
+4. Update relevant docs in the same PR (drift is bug).
+5. Open a PR against `develop`. Fill the [PR checklist](./docs/DEVELOPMENT_RULES.md#5-pull-request-checklist).
+6. After review and green CI, squash-merge.
+7. Move your row in [docs/MODULE_STATUS_TRACKER.md](./docs/MODULE_STATUS_TRACKER.md).
+
+---
+
+## 8. Testing
+
+Coverage targets and tooling: [docs/DEVELOPMENT_RULES.md §7](./docs/DEVELOPMENT_RULES.md#7-testing-expectations).
+
+Quick reference:
+
+| Layer | Tool |
+|---|---|
+| Backend unit | JUnit 5 + AssertJ + Mockito |
+| Backend integration | Spring Boot Test + Testcontainers (PG, Redis, MinIO) |
+| Mobile unit / widget | `flutter_test` |
+| Mobile golden | `golden_toolkit` |
+| Mobile integration | `integration_test` |
+
+---
+
+## 9. Environments
+
+| Env | Purpose | Data |
+|---|---|---|
+| `local` | Developer laptop | Docker Compose, seeded fakes |
+| `dev` | Shared dev | Real cloud infra, fake data |
+| `staging` | Pre-prod | Mirrors prod sizing; anonymized prod snapshot weekly |
+| `prod` | Live clinic | Real PHI; manual approval gate before deploy |
+
+CI / deploy pipeline: [docs/DEVELOPMENT_RULES.md §8](./docs/DEVELOPMENT_RULES.md#8-ci--cd).
+
+---
+
+## 10. Security
+
+Healyn handles Protected Health Information. The security posture is non-negotiable:
+
+- Argon2id passwords with per-user salt and environment-side pepper.
+- RS256 JWTs (15-minute access) + single-use refresh rotation.
+- Presigned S3 URLs with 5-minute TTL; buckets are private.
+- All PHI access audited to an append-only schema.
+
+Full standard: [docs/SECURITY_GUIDELINES.md](./docs/SECURITY_GUIDELINES.md). Every PR runs through the security checklist there.
+
+---
+
+## 11. Documentation Index
+
+All documents are in [docs/](./docs/):
+
+1. [PROJECT_CONTEXT.md](./docs/PROJECT_CONTEXT.md) — vision, scope, vocabulary
+2. [SYSTEM_ARCHITECTURE.md](./docs/SYSTEM_ARCHITECTURE.md) — modules and topology
+3. [FEATURE_ROADMAP.md](./docs/FEATURE_ROADMAP.md) — phases and priorities
+4. [MODULE_STATUS_TRACKER.md](./docs/MODULE_STATUS_TRACKER.md) — live status matrix
+5. [DATABASE_SCHEMA.md](./docs/DATABASE_SCHEMA.md) — PostgreSQL schema
+6. [SECURITY_GUIDELINES.md](./docs/SECURITY_GUIDELINES.md) — security posture
+7. [API_STANDARDS.md](./docs/API_STANDARDS.md) — REST conventions + endpoint catalogue
+8. [UI_UX_GUIDELINES.md](./docs/UI_UX_GUIDELINES.md) — design system
+9. [DEVELOPMENT_RULES.md](./docs/DEVELOPMENT_RULES.md) — engineering process
+10. [FILE_STORAGE_GUIDELINES.md](./docs/FILE_STORAGE_GUIDELINES.md) — file handling
+11. [APPOINTMENT_FLOW.md](./docs/APPOINTMENT_FLOW.md) — booking lifecycle
+12. [PATIENT_RELATIONSHIP_MODEL.md](./docs/PATIENT_RELATIONSHIP_MODEL.md) — account / patient model
+13. [DISCUSSION_SYSTEM_DESIGN.md](./docs/DISCUSSION_SYSTEM_DESIGN.md) — appointment-scoped messaging
+
+Plus [CLAUDE.md](./CLAUDE.md) at the repo root: conventions for AI-assisted contributions.
+
+---
+
+## 12. Contributing
+
+This is a single-tenant production product, not an open-source project. Contributions are limited to the project team.
+
+When you contribute:
+
+- Read [docs/DEVELOPMENT_RULES.md](./docs/DEVELOPMENT_RULES.md) before your first PR.
+- Read [docs/SECURITY_GUIDELINES.md](./docs/SECURITY_GUIDELINES.md) before touching anything in `auth/`, `patients/`, `files/`, or anything that handles PHI.
+- Update [docs/MODULE_STATUS_TRACKER.md](./docs/MODULE_STATUS_TRACKER.md) when your work changes module status.
+
+---
+
+## 13. License
+
+Proprietary. All rights reserved.
