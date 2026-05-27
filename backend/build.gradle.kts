@@ -37,6 +37,7 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-security")
     implementation("org.springframework.boot:spring-boot-starter-oauth2-resource-server")
     implementation("com.nimbusds:nimbus-jose-jwt:${property("nimbusJoseVersion")}")
+    implementation("org.bouncycastle:bcprov-jdk18on:1.78.1")
 
     // Observability
     implementation("org.springframework.boot:spring-boot-starter-actuator")
@@ -71,4 +72,22 @@ tasks.withType<Test> {
 
 springBoot {
     mainClass.set("com.healyn.HealynApplication")
+}
+
+// Load repo-root `.env` into `bootRun` so local dev picks up HEALYN_* without
+// the developer having to export them. Production runs supply env vars through
+// the deployment platform, so this only affects the dev task.
+tasks.named<org.springframework.boot.gradle.tasks.run.BootRun>("bootRun") {
+    val envFile = rootProject.file("../.env")
+    if (envFile.exists()) {
+        envFile.readLines()
+            .map { it.trim() }
+            .filter { it.isNotEmpty() && !it.startsWith("#") && it.contains("=") }
+            .forEach {
+                val idx = it.indexOf('=')
+                val key = it.substring(0, idx).trim()
+                val value = it.substring(idx + 1).trim().removeSurrounding("\"").removeSurrounding("'")
+                environment(key, value)
+            }
+    }
 }
