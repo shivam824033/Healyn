@@ -241,13 +241,16 @@ GET /api/v1/appointments?cursor=eyJpZCI6Ii4uLiJ9&limit=20
 
 | Method | Path | Purpose |
 |---|---|---|
-| `GET` | `/api/v1/availability?from=...&to=...` | Computed bookable slots |
+| `GET` | `/api/v1/availability?physiotherapistId=...&from=YYYY-MM-DD&to=YYYY-MM-DD` | Computed bookable slots. `physiotherapistId` is optional in Phase 1 (resolves to the lone `ROLE_PHYSIO` account); `to - from` must be < 31 days. Open to any authenticated account. |
 | `GET` | `/api/v1/availability/rules` | (Physio) List own rules |
-| `POST` | `/api/v1/availability/rules` | (Physio) Create rule |
-| `PATCH` | `/api/v1/availability/rules/{id}` | (Physio) Update rule |
-| `DELETE` | `/api/v1/availability/rules/{id}` | (Physio) Archive rule |
-| `POST` | `/api/v1/availability/blackouts` | (Physio) Add blackout |
-| `DELETE` | `/api/v1/availability/blackouts/{id}` | (Physio) Remove blackout |
+| `POST` | `/api/v1/availability/rules` | (Physio) Create rule. Body: `{day_of_week (0–6, 0=Sun), start_time, end_time, slot_minutes (5–240), timezone (IANA), effective_from, effective_to?}`. `start_time`/`end_time` must align on `slot_minutes` boundaries from `00:00`. |
+| `PATCH` | `/api/v1/availability/rules/{id}` | (Physio) Update rule (partial) |
+| `DELETE` | `/api/v1/availability/rules/{id}` | (Physio) Archive rule — sets `effective_to = today` in the rule's own timezone. |
+| `GET` | `/api/v1/availability/blackouts` | (Physio) List own blackouts |
+| `POST` | `/api/v1/availability/blackouts` | (Physio) Add blackout. Body: `{starts_at (TIMESTAMPTZ), ends_at (TIMESTAMPTZ), reason?}`. Overlapping windows for the same physio → 409 `availability.blackout_overlap`. |
+| `DELETE` | `/api/v1/availability/blackouts/{id}` | (Physio) Remove blackout (hard delete) |
+
+> **Note** — the `/api/v1` URL prefix is documented here for the eventual production deployment. Spring Boot controllers in the repo currently use the bare paths (e.g. `/availability`, `/availability/rules`). The mismatch will be reconciled either by introducing `server.servlet.context-path=/api/v1` or by dropping the prefix from the docs; tracked in `MODULE_STATUS_TRACKER.md` cross-cutting tasks.
 
 ### 9.4 Appointments
 

@@ -16,5 +16,11 @@ public final class ErrorCode {
     public static final String PATIENTS_RELATIONSHIP_EXISTS = "patients.relationship_exists";
     public static final String PATIENTS_NOT_FOUND = "patients.not_found";
 
+    public static final String AVAILABILITY_RULE_NOT_FOUND = "availability.rule_not_found";
+    public static final String AVAILABILITY_BLACKOUT_NOT_FOUND = "availability.blackout_not_found";
+    public static final String AVAILABILITY_INVALID_TIMEZONE = "availability.invalid_timezone";
+    public static final String AVAILABILITY_INVALID_RANGE = "availability.invalid_range";
+    public static final String AVAILABILITY_BLACKOUT_OVERLAP = "availability.blackout_overlap";
+
     private ErrorCode() {}
 }

@@ -9,7 +9,7 @@
 
 1. **Layered, not entangled.** Mobile → API gateway → service layer → repository → DB. No layer skips downward; no layer reaches sideways.
 2. **Feature-first on mobile.** Each feature is a self-contained Flutter folder with its own data/domain/presentation layers.
-3. **Domain-driven on backend.** Each bounded context (`auth`, `patients`, `appointments`, `discussion`, `files`, `notifications`, `treatment-notes`, `audit`) is a top-level package with its own controller / service / repository / domain model.
+3. **Domain-driven on backend.** Each bounded context (`auth`, `patients`, `availability`, `appointments`, `discussion`, `files`, `notifications`, `treatment-notes`, `audit`) is a top-level package with its own controller / service / repository / domain model.
 4. **Ports & adapters at the edges.** External systems (S3, FCM, SMS/email OTP) are accessed through interfaces. The implementation is swappable; the call site is not.
 5. **Stateless application servers.** All state lives in PostgreSQL, S3, or Redis (cache + token blacklist). Any application instance can serve any request.
 6. **Single source of truth for time.** All timestamps are stored as `TIMESTAMPTZ` in UTC. Clients render in the user's local timezone.
@@ -66,7 +66,8 @@ Each module is a top-level Java package: `com.healyn.<module>`.
 |---|---|---|---|
 | `auth` | Registration, login, OTP, JWT issue/refresh, device sessions | `Account`, `DeviceSession`, `OtpChallenge` | Redis (token blacklist), SMS/email OTP adapter |
 | `patients` | Patient CRUD, account↔patient links, relationships | `Patient`, `AccountPatient` | `auth` (account context) |
-| `appointments` | Slot availability, booking, lifecycle transitions | `Appointment`, `AvailabilityRule`, `BlackoutWindow` | `patients`, `discussion`, `notifications` |
+| `availability` | Physiotherapist availability rules, blackout windows, slot expansion (pure-function `SlotExpansionService` consumed by `appointments`) | `AvailabilityRule`, `BlackoutWindow` | `auth` (physio account) |
+| `appointments` | Booking, lifecycle transitions, slot validation | `Appointment` | `patients`, `availability` (slot expansion), `discussion`, `notifications` |
 | `discussion` | Appointment-scoped messages, read receipts | `DiscussionMessage`, `MessageReadReceipt` | `appointments`, `files`, `notifications` |
 | `files` | Presigned upload/download URLs, file validation | `FileObject` | S3 adapter, `discussion`, `treatment-notes` |
 | `treatment-notes` | Physiotherapist's clinical notes per appointment | `TreatmentNote` | `appointments`, `files` |

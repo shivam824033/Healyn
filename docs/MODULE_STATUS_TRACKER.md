@@ -33,8 +33,8 @@ Layers tracked:
 |---|---|---|---|---|---|---|
 | **auth**                       | 🟩 | 🟩 | 🟩 | ⬜ | 🟩 | V3 migration; register/login/refresh/sessions/password-reset; integration + unit tests. |
 | **patients**                   | 🟩 | 🟩 | 🟩 | ⬜ | 🟩 | V4 migration; primary patient auto-created at registration; `PatientAccessPolicy` exposed for other modules. |
-| **availability**               | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | Slot expansion service is critical-path. |
-| **appointments**               | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | EXCLUDE constraint validated in migration test. |
+| **availability**               | 🟩 | 🟩 | 🟩 | ⬜ | 🟩 | V5 migration; rules + blackouts CRUD; `SlotExpansionService` pure function; blackout EXCLUDE-GIST overlap guard. |
+| **appointments**               | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | Will consume `SlotExpansionService` and pass `bookedRanges`. EXCLUDE constraint validated in migration test. |
 | **discussion**                 | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |  |
 | **files**                      | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | Requires S3/MinIO local dev wiring. |
 | **treatment_notes**            | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |  |
@@ -50,7 +50,7 @@ Layers tracked:
 |---|---|---|
 | CI pipeline (backend test, mobile test, lint) | ⬜ |  |
 | Dockerized local dev (PG + Redis + MinIO) | ⬜ |  |
-| Flyway baseline migrations V1–V8 | 🟦 | V1 extensions, V2 enums, V3 auth, V4 patients applied. V5–V8 pending. |
+| Flyway baseline migrations V1–V8 | 🟦 | V1 extensions, V2 enums, V3 auth, V4 patients, V5 availability applied. V6–V8 pending. |
 | Design tokens implemented in Flutter | ⬜ | See [UI_UX_GUIDELINES.md §12](./UI_UX_GUIDELINES.md#12-implementation-notes-flutter--riverpod) |
 | Network layer (Dio + interceptors) | ⬜ |  |
 | Auth token storage (`flutter_secure_storage`) | ⬜ |  |

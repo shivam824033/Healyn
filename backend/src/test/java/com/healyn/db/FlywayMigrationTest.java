@@ -30,14 +30,18 @@ class FlywayMigrationTest {
         flyway.migrate();
 
         MigrationInfo current = flyway.info().current();
-        assertThat(current.getVersion().getVersion()).isEqualTo("4");
-        assertThat(flyway.info().applied()).hasSizeGreaterThanOrEqualTo(4);
+        assertThat(current.getVersion().getVersion()).isEqualTo("5");
+        assertThat(flyway.info().applied()).hasSizeGreaterThanOrEqualTo(5);
 
         DataSource ds = flyway.getConfiguration().getDataSource();
         try (Connection c = ds.getConnection(); Statement st = c.createStatement()) {
             try (ResultSet rs = st.executeQuery(
                     "select 1 from pg_indexes where indexname = 'idx_account_one_primary'")) {
                 assertThat(rs.next()).as("partial unique index for primary patient").isTrue();
+            }
+            try (ResultSet rs = st.executeQuery(
+                    "select 1 from pg_constraint where conname = 'blackout_windows_no_overlap' and contype = 'x'")) {
+                assertThat(rs.next()).as("blackout EXCLUDE constraint").isTrue();
             }
         }
     }

@@ -3,6 +3,8 @@ package com.healyn;
 import com.healyn.auth.repository.AccountRepository;
 import com.healyn.auth.repository.DeviceSessionRepository;
 import com.healyn.auth.repository.OtpChallengeRepository;
+import com.healyn.availability.repository.AvailabilityRuleRepository;
+import com.healyn.availability.repository.BlackoutWindowRepository;
 import com.healyn.patients.repository.AccountPatientRepository;
 import com.healyn.patients.repository.PatientRepository;
 import org.junit.jupiter.api.Test;
@@ -28,6 +30,8 @@ class ApplicationBootSmokeTest {
     @MockBean OtpChallengeRepository otpChallengeRepository;
     @MockBean PatientRepository patientRepository;
     @MockBean AccountPatientRepository accountPatientRepository;
+    @MockBean AvailabilityRuleRepository availabilityRuleRepository;
+    @MockBean BlackoutWindowRepository blackoutWindowRepository;
     @MockBean StringRedisTemplate stringRedisTemplate;
 
     @Test
