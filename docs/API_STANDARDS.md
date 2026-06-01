@@ -254,13 +254,40 @@ GET /api/v1/appointments?cursor=eyJpZCI6Ii4uLiJ9&limit=20
 
 ### 9.4 Appointments
 
+> Note: paths below are written with the `/api/v1` prefix for forward-compatibility, but the running
+> backend currently serves them unprefixed (`/appointments`) to match `/auth`, `/patients`, `/availability`.
+> A project-wide `server.servlet.context-path` decision is an open follow-up.
+
 | Method | Path | Purpose |
 |---|---|---|
-| `GET`  | `/api/v1/appointments?patient_id=...&status=...&from=...&to=...` | List |
-| `POST` | `/api/v1/appointments` | Book (requires `Idempotency-Key`) |
-| `GET`  | `/api/v1/appointments/{id}` | Get |
-| `POST` | `/api/v1/appointments/{id}/transitions` | Move status (see [APPOINTMENT_FLOW.md](./APPOINTMENT_FLOW.md)) |
-| `POST` | `/api/v1/appointments/{id}/reschedule` | Reschedule (creates new) |
+| `GET`  | `/appointments?patientId=&status=&from=&to=&cursor=&limit=` | List (cursor pagination, `limit ≤ 50`, default 20) |
+| `POST` | `/appointments` | Book (requires `Idempotency-Key` header) |
+| `GET`  | `/appointments/{id}` | Get |
+| `POST` | `/appointments/{id}/transitions` | Move status — body: `{to, cancelReason?, cancelNote?}` (see [APPOINTMENT_FLOW.md](./APPOINTMENT_FLOW.md)) |
+| `POST` | `/appointments/{id}/reschedule` | Reschedule — body: `{scheduledAt, durationMinutes, reason?}`; creates new `REQUESTED` row, old → `RESCHEDULED` |
+
+`POST /appointments` body:
+
+```json
+{
+  "patientId": "uuid",
+  "scheduledAt": "2026-06-15T09:00:00+05:30",
+  "durationMinutes": 30,
+  "reason": "Lower-back follow-up"
+}
+```
+
+`GET /appointments` response envelope:
+
+```json
+{
+  "items": [ { "...AppointmentView" } ],
+  "nextCursor": "opaque-base64-or-null"
+}
+```
+
+Status values: `REQUESTED`, `CONFIRMED`, `IN_PROGRESS`, `COMPLETED`, `CANCELLED`, `NO_SHOW`, `RESCHEDULED`.
+Cancel reasons: `PATIENT_CANCELLED`, `PHYSIO_CANCELLED`, `CLINIC_CLOSED`, `OTHER`.
 
 ### 9.5 Discussion
 
