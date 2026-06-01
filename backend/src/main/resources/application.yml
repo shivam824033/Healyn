@@ -58,6 +58,18 @@ management:
         enabled: true
       show-details: never
 
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operationsSorter: method
+    tagsSorter: alpha
+    tryItOutEnabled: true
+    persistAuthorization: true
+    displayRequestDuration: true
+  show-actuator: false
+
 healyn:
   s3:
     endpoint: ${HEALYN_S3_ENDPOINT:http://localhost:9000}
