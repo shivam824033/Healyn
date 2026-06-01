@@ -1,13 +1,16 @@
 package com.healyn.auth.web;
 
+import com.healyn.patients.domain.PatientSex;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Past;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
@@ -31,11 +34,17 @@ public final class AuthDtos {
 
     public record RegisterStartRequest(@Valid @NotNull TargetRequest target) {}
 
+    public record PrimaryPatientProfileRequest(
+            @NotBlank @Size(max = 160) String fullName,
+            @NotNull @Past LocalDate dateOfBirth,
+            PatientSex sex) {}
+
     public record RegisterCompleteRequest(
             @NotNull UUID challengeId,
             @NotBlank @Pattern(regexp = "^\\d{6}$", message = "OTP_FORMAT") String code,
             @NotBlank @Size(min = 10, max = 128) String password,
-            @Valid @NotNull DeviceRequest device) {}
+            @Valid @NotNull DeviceRequest device,
+            @Valid @NotNull PrimaryPatientProfileRequest profile) {}
 
     public record LoginRequest(
             @NotBlank @Size(max = 254) String emailOrPhone,

@@ -9,6 +9,7 @@ import com.healyn.common.error.ErrorCode;
 import com.healyn.common.error.LockedException;
 import com.healyn.common.error.UnauthorizedException;
 import com.healyn.common.error.UnprocessableException;
+import com.healyn.patients.service.NewPatientProfile;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -50,9 +51,14 @@ public class AuthController {
     @PostMapping("/register/complete")
     public AuthDtos.TokenResponse registerComplete(@Valid @RequestBody AuthDtos.RegisterCompleteRequest body,
                                                    HttpServletRequest http) {
+        AuthDtos.PrimaryPatientProfileRequest p = body.profile();
+        NewPatientProfile primaryProfile = new NewPatientProfile(
+                p.fullName(), p.dateOfBirth(), p.sex(),
+                null, null, null, null, null);
         IssuedSession s = registration.complete(
                 body.challengeId(), body.code(), body.password(),
-                HttpClientInfo.enrich(body.device(), http));
+                HttpClientInfo.enrich(body.device(), http),
+                primaryProfile);
         return toToken(s);
     }
 

@@ -31,16 +31,16 @@ Layers tracked:
 
 | Module | DB | Backend | API | Mobile | Tests | Notes |
 |---|---|---|---|---|---|---|
-| **auth**                       | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |  |
-| **patients**                   | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |  |
+| **auth**                       | 🟩 | 🟩 | 🟩 | ⬜ | 🟩 | V3 migration; register/login/refresh/sessions/password-reset; integration + unit tests. |
+| **patients**                   | 🟩 | 🟩 | 🟩 | ⬜ | 🟩 | V4 migration; primary patient auto-created at registration; `PatientAccessPolicy` exposed for other modules. |
 | **availability**               | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | Slot expansion service is critical-path. |
 | **appointments**               | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | EXCLUDE constraint validated in migration test. |
 | **discussion**                 | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |  |
 | **files**                      | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | Requires S3/MinIO local dev wiring. |
 | **treatment_notes**            | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |  |
 | **notifications**              | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | FCM credentials provisioned in dev env. |
-| **audit**                      | ⬜ | ⬜ | — | — | ⬜ | API not exposed; service-level only. |
-| **common (infra)**             | — | ⬜ | — | ⬜ | ⬜ | Error envelope, validation, logging. |
+| **audit**                      | ⬜ | ⬜ | — | — | ⬜ | API not exposed; service-level only. Future seam: `PatientAccessPolicy` already isolates access checks. |
+| **common (infra)**             | — | 🟩 | — | ⬜ | 🟩 | Error envelope, validation, logging, ID gen, base entity, JWT security in place. |
 
 ---
 
@@ -50,7 +50,7 @@ Layers tracked:
 |---|---|---|
 | CI pipeline (backend test, mobile test, lint) | ⬜ |  |
 | Dockerized local dev (PG + Redis + MinIO) | ⬜ |  |
-| Flyway baseline migrations V1–V8 | ⬜ | See [DATABASE_SCHEMA.md §7](./DATABASE_SCHEMA.md#7-migration-workflow) |
+| Flyway baseline migrations V1–V8 | 🟦 | V1 extensions, V2 enums, V3 auth, V4 patients applied. V5–V8 pending. |
 | Design tokens implemented in Flutter | ⬜ | See [UI_UX_GUIDELINES.md §12](./UI_UX_GUIDELINES.md#12-implementation-notes-flutter--riverpod) |
 | Network layer (Dio + interceptors) | ⬜ |  |
 | Auth token storage (`flutter_secure_storage`) | ⬜ |  |

@@ -192,8 +192,24 @@ class AuthIntegrationTest {
                                 "challengeId", startResp.get("challengeId"),
                                 "code", "000000",
                                 "password", "valid-password-3",
-                                "device", deviceBody()))))
+                                "device", deviceBody(),
+                                "profile", profileBody()))))
                 .andExpect(status().isUnprocessableEntity());
+    }
+
+    @Test
+    void register_creates_primary_patient_for_account() throws Exception {
+        String email = "frank+" + UUID.randomUUID() + "@example.com";
+        Map<String, Object> tokens = registerAndComplete(email, "valid-password-4");
+
+        String access = (String) tokens.get("accessToken");
+        mvc.perform(get("/patients").header("Authorization", "Bearer " + access))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.patients").isArray())
+                .andExpect(jsonPath("$.patients.length()").value(1))
+                .andExpect(jsonPath("$.patients[0].relationship").value("SELF"))
+                .andExpect(jsonPath("$.patients[0].primary").value(true))
+                .andExpect(jsonPath("$.patients[0].fullName").value("Test Person"));
     }
 
     private Map<String, Object> registerAndComplete(String email, String password) throws Exception {
@@ -210,6 +226,7 @@ class AuthIntegrationTest {
         body.put("code", code);
         body.put("password", password);
         body.put("device", deviceBody());
+        body.put("profile", profileBody());
 
         return body(mvc.perform(post("/auth/register/complete")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -220,6 +237,13 @@ class AuthIntegrationTest {
 
     private static Map<String, Object> deviceBody() {
         return Map.of("deviceId", "dev-1", "deviceLabel", "Test Phone");
+    }
+
+    private static Map<String, Object> profileBody() {
+        return Map.of(
+                "fullName", "Test Person",
+                "dateOfBirth", "1990-01-15",
+                "sex", "UNDISCLOSED");
     }
 
     private Map<String, Object> body(MvcResult result) throws Exception {

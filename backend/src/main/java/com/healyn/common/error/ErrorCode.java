@@ -12,5 +12,9 @@ public final class ErrorCode {
     public static final String INTERNAL = "common.internal";
     public static final String IDEMPOTENCY_CONFLICT = "common.idempotency_conflict";
 
+    public static final String PATIENTS_PRIMARY_REQUIRED = "patients.primary_required";
+    public static final String PATIENTS_RELATIONSHIP_EXISTS = "patients.relationship_exists";
+    public static final String PATIENTS_NOT_FOUND = "patients.not_found";
+
     private ErrorCode() {}
 }

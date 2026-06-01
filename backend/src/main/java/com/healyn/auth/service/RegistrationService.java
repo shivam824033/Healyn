@@ -10,6 +10,8 @@ import com.healyn.common.error.ConflictException;
 import com.healyn.common.error.ErrorCode;
 import com.healyn.common.error.UnprocessableException;
 import com.healyn.common.id.UuidV7;
+import com.healyn.patients.service.NewPatientProfile;
+import com.healyn.patients.service.PatientService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,13 +24,16 @@ public class RegistrationService {
     private final OtpService otp;
     private final PasswordHasher passwordHasher;
     private final DeviceSessionService sessions;
+    private final PatientService patients;
 
     public RegistrationService(AccountRepository accounts, OtpService otp,
-                               PasswordHasher passwordHasher, DeviceSessionService sessions) {
+                               PasswordHasher passwordHasher, DeviceSessionService sessions,
+                               PatientService patients) {
         this.accounts = accounts;
         this.otp = otp;
         this.passwordHasher = passwordHasher;
         this.sessions = sessions;
+        this.patients = patients;
     }
 
     @Transactional
@@ -39,7 +44,8 @@ public class RegistrationService {
     }
 
     @Transactional
-    public IssuedSession complete(UUID challengeId, String code, String rawPassword, DeviceMeta device) {
+    public IssuedSession complete(UUID challengeId, String code, String rawPassword,
+                                  DeviceMeta device, NewPatientProfile primaryProfile) {
         OtpChallenge challenge = otp.verify(challengeId, code, OtpPurpose.REGISTRATION);
         boolean isEmail = challenge.getChannel() == OtpChannel.EMAIL;
         String target = challenge.getTarget();
@@ -61,6 +67,7 @@ public class RegistrationService {
                 hashed.salt(),
                 AccountRole.ROLE_ACCOUNT);
         accounts.save(account);
+        patients.createPrimaryFor(account, primaryProfile);
         return sessions.issue(account, device);
     }
 
