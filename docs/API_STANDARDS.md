@@ -140,8 +140,12 @@ Every non-2xx response uses this shape:
 | `appointments.slot_unavailable` | 409 | Slot taken or outside availability |
 | `appointments.invalid_transition` | 409 | Status transition not allowed |
 | `appointments.in_past` | 422 | Cannot book in the past |
-| `discussion.appointment_terminal` | 403 | Appointment is cancelled/no-show |
+| `discussion.appointment_terminal` | 403 | Appointment is cancelled/no-show — patient side may not write |
 | `discussion.edit_window_expired` | 409 | 5-minute edit window passed |
+| `discussion.not_sender` | 403 | Only the original sender may edit/delete |
+| `discussion.message_not_found` | 404 | Message not found in this appointment |
+| `discussion.empty_message` | 422 | Body required (or attachments, once supported) |
+| `discussion.body_too_long` | 422 | Body exceeds 2,000 characters |
 | `files.upload_too_large` | 400 | File exceeds size limit |
 | `files.unsupported_type` | 400 | MIME type not supported |
 | `files.not_available` | 409 | File still pending upload |
@@ -291,14 +295,30 @@ Cancel reasons: `PATIENT_CANCELLED`, `PHYSIO_CANCELLED`, `CLINIC_CLOSED`, `OTHER
 
 ### 9.5 Discussion
 
-| Method | Path | Purpose |
-|---|---|---|
-| `GET`  | `/api/v1/appointments/{id}/messages` | List messages |
-| `POST` | `/api/v1/appointments/{id}/messages` | Create |
-| `PATCH` | `/api/v1/appointments/{id}/messages/{msg_id}` | Edit (≤ 5 min) |
-| `DELETE` | `/api/v1/appointments/{id}/messages/{msg_id}` | Soft-delete (≤ 5 min) |
-| `POST` | `/api/v1/appointments/{id}/messages/read` | Mark read |
-| `GET`  | `/api/v1/appointments/{id}/messages/unread_count` | Count |
+> Paths are unprefixed (no `/api/v1`) — see the open follow-up in §9.4. Attachments (`file_ids[]`) are deferred to the files PR; today's POST/PATCH accept body-only messages.
+
+| Method | Path | Purpose | Body |
+|---|---|---|---|
+| `GET`    | `/appointments/{id}/messages?cursor=&limit=` | List messages (cursor, default 20, max 50) | — |
+| `POST`   | `/appointments/{id}/messages` | Create | `{ messageType: "QUESTION"\|"REPLY"\|"INSTRUCTION", body: string }` |
+| `PATCH`  | `/appointments/{id}/messages/{msgId}` | Edit (≤ 5 min, original sender only) | `{ body: string }` |
+| `DELETE` | `/appointments/{id}/messages/{msgId}` | Soft-delete (≤ 5 min, original sender only) | — |
+| `POST`   | `/appointments/{id}/messages/read` | Advance the caller's last-read marker | `{ messageId: uuid }` |
+| `GET`    | `/appointments/{id}/messages/unread-count` | Count unread (excludes own messages) | — |
+
+List response envelope:
+```json
+{ "items": [ { "id": "…", "appointmentId": "…", "senderAccountId": "…",
+               "senderRole": "PATIENT_SIDE", "messageType": "REPLY",
+               "body": "…", "createdAt": "…", "editedAt": null } ],
+  "nextCursor": "…or null" }
+```
+
+Rules:
+- `INSTRUCTION` is rejected for non-physio callers.
+- For patient-side callers, write is rejected on `CANCELLED` / `NO_SHOW` appointments (`discussion.appointment_terminal`).
+- Body is required for `QUESTION` / `REPLY` / `INSTRUCTION` (max 2,000 chars). `ATTACHMENT_ONLY` is reserved for the files PR.
+- Edit/delete beyond 5 minutes returns `discussion.edit_window_expired`. Non-sender returns `discussion.not_sender`.
 
 ### 9.6 Files
 

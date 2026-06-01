@@ -6,6 +6,8 @@ import com.healyn.auth.repository.OtpChallengeRepository;
 import com.healyn.appointments.repository.AppointmentRepository;
 import com.healyn.availability.repository.AvailabilityRuleRepository;
 import com.healyn.availability.repository.BlackoutWindowRepository;
+import com.healyn.discussion.repository.DiscussionMessageRepository;
+import com.healyn.discussion.repository.DiscussionReadMarkerRepository;
 import com.healyn.patients.repository.AccountPatientRepository;
 import com.healyn.patients.repository.PatientRepository;
 import org.junit.jupiter.api.Test;
@@ -34,6 +36,8 @@ class ApplicationBootSmokeTest {
     @MockBean AvailabilityRuleRepository availabilityRuleRepository;
     @MockBean BlackoutWindowRepository blackoutWindowRepository;
     @MockBean AppointmentRepository appointmentRepository;
+    @MockBean DiscussionMessageRepository discussionMessageRepository;
+    @MockBean DiscussionReadMarkerRepository discussionReadMarkerRepository;
     @MockBean StringRedisTemplate stringRedisTemplate;
 
     @Test

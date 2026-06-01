@@ -31,5 +31,12 @@ public final class ErrorCode {
     public static final String COMMON_IDEMPOTENCY_KEY_REQUIRED = "common.idempotency_key_required";
     public static final String COMMON_INVALID_CURSOR = "common.invalid_cursor";
 
+    public static final String DISCUSSION_MESSAGE_NOT_FOUND = "discussion.message_not_found";
+    public static final String DISCUSSION_APPOINTMENT_TERMINAL = "discussion.appointment_terminal";
+    public static final String DISCUSSION_EDIT_WINDOW_EXPIRED = "discussion.edit_window_expired";
+    public static final String DISCUSSION_NOT_SENDER = "discussion.not_sender";
+    public static final String DISCUSSION_EMPTY_MESSAGE = "discussion.empty_message";
+    public static final String DISCUSSION_BODY_TOO_LONG = "discussion.body_too_long";
+
     private ErrorCode() {}
 }

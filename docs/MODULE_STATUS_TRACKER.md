@@ -35,7 +35,7 @@ Layers tracked:
 | **patients**                   | 🟩 | 🟩 | 🟩 | ⬜ | 🟩 | V4 migration; primary patient auto-created at registration; `PatientAccessPolicy` exposed for other modules. |
 | **availability**               | 🟩 | 🟩 | 🟩 | ⬜ | 🟩 | V5 migration; rules + blackouts CRUD; `SlotExpansionService` pure function; blackout EXCLUDE-GIST overlap guard. |
 | **appointments**               | 🟩 | 🟩 | 🟩 | ⬜ | 🟩 | V6 migration; booking validates via `SlotExpansionService`; state machine + cursor list + reschedule + idempotency; EXCLUDE constraint enforced + asserted. |
-| **discussion**                 | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |  |
+| **discussion**                 | 🟩 | 🟩 | 🟩 | ⬜ | 🟩 | V7 migration; body-only messages (text + read markers); 5-min edit/delete window; cursor list; INSTRUCTION restricted to physio; access blocked on CANCELLED/NO_SHOW for patient side. Attachments deferred to `files` PR. |
 | **files**                      | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | Requires S3/MinIO local dev wiring. |
 | **treatment_notes**            | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |  |
 | **notifications**              | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | FCM credentials provisioned in dev env. |
@@ -50,7 +50,7 @@ Layers tracked:
 |---|---|---|
 | CI pipeline (backend test, mobile test, lint) | ⬜ |  |
 | Dockerized local dev (PG + Redis + MinIO) | ⬜ |  |
-| Flyway baseline migrations V1–V8 | 🟦 | V1 extensions, V2 enums, V3 auth, V4 patients, V5 availability, V6 appointments applied. V7–V8 pending. |
+| Flyway baseline migrations V1–V8 | 🟦 | V1 extensions, V2 enums, V3 auth, V4 patients, V5 availability, V6 appointments, V7 discussion (messages + read markers) applied. V8 pending; attachments table deferred to the files PR. |
 | Design tokens implemented in Flutter | ⬜ | See [UI_UX_GUIDELINES.md §12](./UI_UX_GUIDELINES.md#12-implementation-notes-flutter--riverpod) |
 | Network layer (Dio + interceptors) | ⬜ |  |
 | Auth token storage (`flutter_secure_storage`) | ⬜ |  |
