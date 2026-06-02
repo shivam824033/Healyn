@@ -2,6 +2,9 @@ package com.healyn.files.service;
 
 import com.healyn.appointments.domain.Appointment;
 import com.healyn.appointments.repository.AppointmentRepository;
+import com.healyn.audit.domain.AuditAction;
+import com.healyn.audit.domain.AuditResource;
+import com.healyn.audit.service.AuditLogger;
 import com.healyn.auth.domain.AccountRole;
 import com.healyn.common.error.ConflictException;
 import com.healyn.common.error.ErrorCode;
@@ -25,6 +28,7 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.HexFormat;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -39,6 +43,7 @@ public class FileService {
     private final FileAccessPolicy access;
     private final FileStorePort store;
     private final FileReferenceGuard referenceGuard;
+    private final AuditLogger audit;
     private final Duration presignTtl;
     private final Clock clock;
 
@@ -47,6 +52,7 @@ public class FileService {
                        FileAccessPolicy access,
                        FileStorePort store,
                        FileReferenceGuard referenceGuard,
+                       AuditLogger audit,
                        HealynS3Properties s3,
                        Clock clock) {
         this.files = files;
@@ -54,6 +60,7 @@ public class FileService {
         this.access = access;
         this.store = store;
         this.referenceGuard = referenceGuard;
+        this.audit = audit;
         this.presignTtl = Duration.ofSeconds(s3.presignTtlSeconds());
         this.clock = clock;
     }
@@ -136,7 +143,8 @@ public class FileService {
                     "File is not available for download (status=" + file.getStatus() + ")");
         }
         String url = store.presignGet(file.getStorageKey(), file.getOriginalFilename(), presignTtl);
-        // TODO audit(DOWNLOAD) — wired in the audit PR.
+        audit.record(AuditAction.DOWNLOAD, actorId, role, AuditResource.FILE, fileId,
+                Map.of("patientId", file.getPatientId().toString()));
         return new DownloadResult(url, presignTtl.toSeconds());
     }
 
@@ -157,6 +165,8 @@ public class FileService {
                     "File is referenced by a discussion message and cannot be deleted");
         }
         file.softDelete(Instant.now(clock));
+        audit.record(AuditAction.SOFT_DELETE, actorId, role, AuditResource.FILE, fileId,
+                Map.of("patientId", file.getPatientId().toString()));
         // TODO move S3 object to cold storage (tombstone).
     }
 

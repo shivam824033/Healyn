@@ -72,7 +72,7 @@ Each module is a top-level Java package: `com.healyn.<module>`.
 | `files` | Presigned upload/download URLs, file validation | `FileObject` | S3 adapter, `discussion`, `treatment-notes` |
 | `treatment-notes` | Physiotherapist's clinical notes per appointment | `TreatmentNote` | `appointments`, `files` |
 | `notifications` | Outbound notification dispatch (FCM in Phase 1) | `NotificationOutbox`, `FcmToken` | FCM adapter, all modules (via events) |
-| `audit` | Clinical access audit log (append-only) | `AuditLogEntry` | All modules (via aspect) |
+| `audit` | Clinical access audit log (append-only) | `AuditLogEntry` | Called explicitly by modules via `AuditLogger` (REQUIRES_NEW); a web interceptor for READ paths is a later add |
 | `common` | Shared types, exception mapper, JSON config, validation | (cross-cutting) | — |
 
 ### 3.2 Mobile Modules (Flutter features)

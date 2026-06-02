@@ -4,6 +4,9 @@ import com.healyn.appointments.domain.Appointment;
 import com.healyn.appointments.domain.AppointmentStatus;
 import com.healyn.appointments.policy.AppointmentAccessPolicy;
 import com.healyn.appointments.repository.AppointmentRepository;
+import com.healyn.audit.domain.AuditAction;
+import com.healyn.audit.domain.AuditResource;
+import com.healyn.audit.service.AuditLogger;
 import com.healyn.auth.domain.AccountRole;
 import com.healyn.auth.repository.AccountRepository;
 import com.healyn.availability.service.Slot;
@@ -61,6 +64,7 @@ public class AppointmentService {
     private final AppointmentAccessPolicy access;
     private final IdempotencyGuard idempotency;
     private final NotificationPublisher notifications;
+    private final AuditLogger audit;
     private final Clock clock;
 
     public AppointmentService(AppointmentRepository appointments,
@@ -70,6 +74,7 @@ public class AppointmentService {
                               AppointmentAccessPolicy access,
                               IdempotencyGuard idempotency,
                               NotificationPublisher notifications,
+                              AuditLogger audit,
                               Clock clock) {
         this.appointments = appointments;
         this.accounts = accounts;
@@ -78,6 +83,7 @@ public class AppointmentService {
         this.access = access;
         this.idempotency = idempotency;
         this.notifications = notifications;
+        this.audit = audit;
         this.clock = clock;
     }
 
@@ -112,6 +118,8 @@ public class AppointmentService {
         idempotency.store(actorId, idempotencyKey, saved.getId());
         notifications.enqueueToAccount(NotificationKind.BOOKING_REQUESTED, saved.getPhysiotherapistId(),
                 Map.of("appointmentId", saved.getId().toString()), saved.getId());
+        audit.record(AuditAction.CREATE, actorId, role, AuditResource.APPOINTMENT, saved.getId(),
+                Map.of("patientId", saved.getPatientId().toString()));
         return saved;
     }
 
@@ -189,6 +197,8 @@ public class AppointmentService {
             throw e;
         }
         notifyTransition(result, role, req.to());
+        audit.record(AuditAction.UPDATE, actorId, role, AuditResource.APPOINTMENT, result.getId(),
+                Map.of("status", req.to().name()));
         return result;
     }
 
@@ -233,6 +243,10 @@ public class AppointmentService {
                 old.getId());
         Appointment saved = appointments.save(fresh);
         old.markRescheduled();
+        audit.record(AuditAction.CREATE, actorId, role, AuditResource.APPOINTMENT, saved.getId(),
+                Map.of("rescheduledFromId", old.getId().toString()));
+        audit.record(AuditAction.UPDATE, actorId, role, AuditResource.APPOINTMENT, old.getId(),
+                Map.of("status", AppointmentStatus.RESCHEDULED.name()));
         return saved;
     }
 

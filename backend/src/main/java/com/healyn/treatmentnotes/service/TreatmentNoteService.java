@@ -3,6 +3,9 @@ package com.healyn.treatmentnotes.service;
 import com.healyn.appointments.domain.Appointment;
 import com.healyn.appointments.domain.AppointmentStatus;
 import com.healyn.appointments.repository.AppointmentRepository;
+import com.healyn.audit.domain.AuditAction;
+import com.healyn.audit.domain.AuditResource;
+import com.healyn.audit.service.AuditLogger;
 import com.healyn.auth.domain.AccountRole;
 import com.healyn.common.error.ConflictException;
 import com.healyn.common.error.ErrorCode;
@@ -23,6 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -34,15 +38,18 @@ public class TreatmentNoteService {
     private final AppointmentRepository appointments;
     private final TreatmentNoteAccessPolicy access;
     private final NotificationPublisher notifications;
+    private final AuditLogger audit;
 
     public TreatmentNoteService(TreatmentNoteRepository notes,
                                 AppointmentRepository appointments,
                                 TreatmentNoteAccessPolicy access,
-                                NotificationPublisher notifications) {
+                                NotificationPublisher notifications,
+                                AuditLogger audit) {
         this.notes = notes;
         this.appointments = appointments;
         this.access = access;
         this.notifications = notifications;
+        this.audit = audit;
     }
 
     /** Create or replace the single treatment note for a completed appointment. Physio only. */
@@ -57,23 +64,29 @@ public class TreatmentNoteService {
         }
         validate(req);
 
-        TreatmentNote note = notes.findByAppointmentIdAndDeletedAtIsNull(appointmentId)
-                .map(existing -> {
-                    existing.revise(req.diagnosis(), req.notes(),
-                            req.recoveryInstructions(), req.nextReviewAt());
-                    return existing;
-                })
-                .orElseGet(() -> notes.save(new TreatmentNote(
-                        UuidV7.generate(),
-                        appointmentId,
-                        appt.getPatientId(),
-                        actorId,
-                        req.diagnosis(),
-                        req.notes(),
-                        req.recoveryInstructions(),
-                        req.nextReviewAt())));
+        Optional<TreatmentNote> existing = notes.findByAppointmentIdAndDeletedAtIsNull(appointmentId);
+        TreatmentNote note;
+        AuditAction auditAction;
+        if (existing.isPresent()) {
+            note = existing.get();
+            note.revise(req.diagnosis(), req.notes(), req.recoveryInstructions(), req.nextReviewAt());
+            auditAction = AuditAction.UPDATE;
+        } else {
+            note = notes.save(new TreatmentNote(
+                    UuidV7.generate(),
+                    appointmentId,
+                    appt.getPatientId(),
+                    actorId,
+                    req.diagnosis(),
+                    req.notes(),
+                    req.recoveryInstructions(),
+                    req.nextReviewAt()));
+            auditAction = AuditAction.CREATE;
+        }
         notifications.enqueueToPatientManagers(NotificationKind.TREATMENT_NOTE_ADDED, appt.getPatientId(),
                 Map.of("appointmentId", appointmentId.toString(), "noteId", note.getId().toString()), note.getId());
+        audit.record(auditAction, actorId, role, AuditResource.TREATMENT_NOTE, note.getId(),
+                Map.of("appointmentId", appointmentId.toString(), "patientId", appt.getPatientId().toString()));
         return note;
     }
 

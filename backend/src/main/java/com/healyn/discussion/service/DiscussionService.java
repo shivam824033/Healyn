@@ -2,6 +2,9 @@ package com.healyn.discussion.service;
 
 import com.healyn.appointments.domain.Appointment;
 import com.healyn.appointments.repository.AppointmentRepository;
+import com.healyn.audit.domain.AuditAction;
+import com.healyn.audit.domain.AuditResource;
+import com.healyn.audit.service.AuditLogger;
 import com.healyn.auth.domain.AccountRole;
 import com.healyn.common.error.ConflictException;
 import com.healyn.common.error.ErrorCode;
@@ -57,6 +60,7 @@ public class DiscussionService {
     private final FileObjectRepository files;
     private final DiscussionAccessPolicy access;
     private final NotificationPublisher notifications;
+    private final AuditLogger audit;
     private final Clock clock;
 
     public DiscussionService(DiscussionMessageRepository messages,
@@ -66,6 +70,7 @@ public class DiscussionService {
                              FileObjectRepository files,
                              DiscussionAccessPolicy access,
                              NotificationPublisher notifications,
+                             AuditLogger audit,
                              Clock clock) {
         this.messages = messages;
         this.attachments = attachments;
@@ -74,6 +79,7 @@ public class DiscussionService {
         this.files = files;
         this.access = access;
         this.notifications = notifications;
+        this.audit = audit;
         this.clock = clock;
     }
 
@@ -108,6 +114,8 @@ public class DiscussionService {
             attachments.save(new DiscussionMessageAttachment(saved.getId(), file.getId()));
         }
         notifyNewMessage(appt, saved, senderRole);
+        audit.record(AuditAction.CREATE, actorId, role, AuditResource.DISCUSSION_MESSAGE, saved.getId(),
+                Map.of("appointmentId", appointmentId.toString()));
         return saved;
     }
 
@@ -187,6 +195,8 @@ public class DiscussionService {
                     "body exceeds " + MAX_BODY_LENGTH + " characters");
         }
         msg.edit(body, Instant.now(clock));
+        audit.record(AuditAction.UPDATE, actorId, role, AuditResource.DISCUSSION_MESSAGE, messageId,
+                Map.of("appointmentId", appointmentId.toString()));
         return msg;
     }
 
@@ -196,6 +206,8 @@ public class DiscussionService {
         requireSender(actorId, msg);
         requireWithinEditWindow(msg);
         msg.softDelete(Instant.now(clock));
+        audit.record(AuditAction.SOFT_DELETE, actorId, role, AuditResource.DISCUSSION_MESSAGE, messageId,
+                Map.of("appointmentId", appointmentId.toString()));
     }
 
     @Transactional(readOnly = true)

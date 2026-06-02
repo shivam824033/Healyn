@@ -499,9 +499,10 @@ V8__treatment_notes_schema.sql
 V9__file_objects_schema.sql      -- file metadata (bytes in S3)
 V10__discussion_message_attachments.sql  -- wires file_objects into discussion
 V11__notification_outbox.sql      -- transactional outbox (enqueue side)
+V12__audit_log.sql                -- audit schema + append-only audit_log
 ```
 
-Still pending: `audit.audit_log` (audit PR). `fcm_tokens` lands with the outbox dispatcher.
+Still pending: `fcm_tokens` lands with the outbox dispatcher.
 
 ---
 
