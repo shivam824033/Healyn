@@ -13,6 +13,7 @@ final class AppointmentMapper {
                 a.getBookedByAccountId(),
                 a.getPhysiotherapistId(),
                 a.getScheduledAt(),
+                a.getScheduledEndAt(),
                 a.getDurationMinutes(),
                 a.getStatus(),
                 a.getReason(),

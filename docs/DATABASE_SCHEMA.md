@@ -234,6 +234,7 @@ CREATE TABLE appointments (
     booked_by_account_id UUID NOT NULL REFERENCES accounts(id) ON DELETE RESTRICT,
     physiotherapist_id  UUID NOT NULL REFERENCES accounts(id) ON DELETE RESTRICT,
     scheduled_at        TIMESTAMPTZ NOT NULL,
+    scheduled_end_at    TIMESTAMPTZ NOT NULL,                -- stored, = scheduled_at + duration; keeps the EXCLUDE index expression IMMUTABLE
     duration_minutes    SMALLINT NOT NULL DEFAULT 30,
     status              appointment_status NOT NULL DEFAULT 'REQUESTED',
     reason              VARCHAR(280),                       -- "Lower back pain", etc.
@@ -248,18 +249,19 @@ CREATE TABLE appointments (
     updated_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     deleted_at          TIMESTAMPTZ,
 
-    CHECK (duration_minutes BETWEEN 5 AND 240)
+    CHECK (duration_minutes BETWEEN 5 AND 240),
+    CONSTRAINT appointments_end_after_start CHECK (scheduled_end_at > scheduled_at)
 );
 
 -- Conflict prevention: no two confirmed/in-progress appointments overlap for the same physio.
+-- The range is built from the two stored columns (both plain references are IMMUTABLE);
+-- timestamptz arithmetic is only STABLE and cannot appear directly in an index/EXCLUDE expression.
 CREATE EXTENSION IF NOT EXISTS btree_gist;
 ALTER TABLE appointments
-    ADD CONSTRAINT excl_physio_overlap
+    ADD CONSTRAINT appointments_no_physio_overlap
     EXCLUDE USING gist (
         physiotherapist_id WITH =,
-        tstzrange(scheduled_at,
-                  scheduled_at + (duration_minutes || ' minutes')::interval,
-                  '[)') WITH &&
+        tstzrange(scheduled_at, scheduled_end_at, '[)') WITH &&
     )
     WHERE (status IN ('CONFIRMED', 'IN_PROGRESS'));
 

@@ -10,6 +10,7 @@ import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.UUID;
 
 @Entity
@@ -27,6 +28,9 @@ public class Appointment extends BaseEntity {
 
     @Column(name = "scheduled_at", nullable = false)
     private Instant scheduledAt;
+
+    @Column(name = "scheduled_end_at", nullable = false)
+    private Instant scheduledEndAt;
 
     @Column(name = "duration_minutes", nullable = false)
     private short durationMinutes;
@@ -80,6 +84,7 @@ public class Appointment extends BaseEntity {
         this.bookedByAccountId = bookedByAccountId;
         this.physiotherapistId = physiotherapistId;
         this.scheduledAt = scheduledAt;
+        this.scheduledEndAt = scheduledAt.plus(durationMinutes, ChronoUnit.MINUTES);
         this.durationMinutes = durationMinutes;
         this.reason = reason;
         this.rescheduledFromId = rescheduledFromId;
@@ -90,6 +95,7 @@ public class Appointment extends BaseEntity {
     public UUID getBookedByAccountId() { return bookedByAccountId; }
     public UUID getPhysiotherapistId() { return physiotherapistId; }
     public Instant getScheduledAt() { return scheduledAt; }
+    public Instant getScheduledEndAt() { return scheduledEndAt; }
     public short getDurationMinutes() { return durationMinutes; }
     public AppointmentStatus getStatus() { return status; }
     public String getReason() { return reason; }

@@ -37,6 +37,7 @@ public final class AppointmentDtos {
             UUID bookedByAccountId,
             UUID physiotherapistId,
             Instant scheduledAt,
+            Instant scheduledEndAt,
             short durationMinutes,
             AppointmentStatus status,
             String reason,
