@@ -344,7 +344,7 @@ CREATE TABLE file_objects (
     owner_account_id    UUID NOT NULL REFERENCES accounts(id),
     patient_id          UUID NOT NULL REFERENCES patients(id),
     kind                file_kind NOT NULL,
-    mime_type           file_mime NOT NULL,
+    mime_type           VARCHAR(64) NOT NULL,                 -- value set mirrors the file_mime enum (see note)
     original_filename   VARCHAR(255) NOT NULL,
     storage_key         VARCHAR(512) NOT NULL UNIQUE,         -- S3 key
     size_bytes          BIGINT NOT NULL,
@@ -354,12 +354,22 @@ CREATE TABLE file_objects (
     available_at        TIMESTAMPTZ,
     deleted_at          TIMESTAMPTZ,
 
-    CHECK (size_bytes > 0 AND size_bytes <= 20 * 1024 * 1024)
+    CHECK (size_bytes > 0 AND size_bytes <= 20 * 1024 * 1024),
+    CONSTRAINT file_mime_whitelist
+        CHECK (mime_type IN ('application/pdf', 'image/jpeg', 'image/png'))
 );
 
 CREATE INDEX idx_file_patient ON file_objects(patient_id) WHERE deleted_at IS NULL;
 CREATE INDEX idx_file_status ON file_objects(status) WHERE status = 'PENDING_UPLOAD';
+CREATE INDEX idx_file_owner_created ON file_objects(owner_account_id, created_at);  -- daily upload-cap count
 ```
+
+> **`mime_type` storage note (V9).** The `file_mime` enum's labels contain `/`
+> (`application/pdf`, …), which cannot map to a Hibernate `@JdbcTypeCode(NAMED_ENUM)`
+> Java enum the way every other enum in this schema does. Rather than add a global
+> `stringtype=unspecified` JDBC setting for one column, `mime_type` is `VARCHAR(64)`
+> constrained by `file_mime_whitelist` to exactly the `file_mime` value set, which
+> remains the documented source of truth for allowed types.
 
 See [FILE_STORAGE_GUIDELINES.md](./FILE_STORAGE_GUIDELINES.md).
 
@@ -484,11 +494,12 @@ V3__auth_schema.sql
 V4__patients_schema.sql
 V5__availability_schema.sql
 V6__appointments_schema.sql
-V7__discussion_schema.sql        -- messages + read markers (attachments deferred to files PR)
+V7__discussion_schema.sql        -- messages + read markers (attachments deferred)
 V8__treatment_notes_schema.sql
+V9__file_objects_schema.sql      -- file metadata (bytes in S3)
 ```
 
-Still pending: `file_objects` + `discussion_message_attachments` (files PR), and
+Still pending: `discussion_message_attachments` (wires files into discussion),
 `notification_outbox` + `audit.audit_log` (notifications / audit PRs).
 
 ---

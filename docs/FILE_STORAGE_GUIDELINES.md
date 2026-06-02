@@ -116,6 +116,12 @@ The client must send the exact headers listed. Header mismatch causes the S3 PUT
 
 ### 4.3 Async Validation
 
+> **Phase 1 implementation.** The "client signals upload completion" path is a synchronous
+> `POST /files/{id}/complete` call. It runs steps 1, 2, 4–6 below inline (`HEAD` for
+> size match, magic-byte verify, SHA-256, promote to `AVAILABLE` or `QUARANTINED`).
+> AV scanning (step 3) and the S3-event-driven async variant are deferred; the
+> endpoint contract does not change when they land.
+
 After the client signals upload completion (or via S3 event), an async validator:
 
 1. `HEAD` the object — confirm presence and size match.

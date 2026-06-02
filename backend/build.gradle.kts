@@ -46,6 +46,9 @@ dependencies {
     // OpenAPI
     implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:${property("springdocVersion")}")
 
+    // Object storage (S3-compatible: MinIO local, AWS S3 / R2 in prod) — Apache 2.0
+    implementation("io.minio:minio:8.5.14")
+
     // Test
     testImplementation("org.springframework.boot:spring-boot-starter-test") {
         exclude(group = "org.junit.vintage", module = "junit-vintage-engine")

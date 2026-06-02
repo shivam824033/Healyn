@@ -36,7 +36,7 @@ Layers tracked:
 | **availability**               | 🟩 | 🟩 | 🟩 | ⬜ | 🟩 | V5 migration; rules + blackouts CRUD; `SlotExpansionService` pure function; blackout EXCLUDE-GIST overlap guard. |
 | **appointments**               | 🟩 | 🟩 | 🟩 | ⬜ | 🟩 | V6 migration; booking validates via `SlotExpansionService`; state machine + cursor list + reschedule + idempotency; EXCLUDE constraint enforced + asserted. |
 | **discussion**                 | 🟩 | 🟩 | 🟩 | ⬜ | 🟩 | V7 migration; body-only messages (text + read markers); 5-min edit/delete window; cursor list; INSTRUCTION restricted to physio; access blocked on CANCELLED/NO_SHOW for patient side. Attachments deferred to `files` PR. |
-| **files**                      | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | Requires S3/MinIO local dev wiring. |
+| **files**                      | 🟨 | 🟨 | 🟨 | ⬜ | 🟨 | V9 migration; presigned PUT/GET via `FileStorePort` (MinIO adapter, `io.minio` 8.5.14); presign→complete flow with server-side magic-byte + size verification (QUARANTINE on fail); per-mime size caps; daily cap; soft delete. Storage edge behind a port (tests use in-memory fake). `FileValidationTest` green; integration tests + real MinIO adapter test pending Docker. Attachment linking into discussion deferred. |
 | **treatment_notes**            | 🟨 | 🟨 | 🟨 | ⬜ | 🟨 | V8 migration; one note per appointment (UNIQUE `appointment_id`); PUT-upsert gated on `COMPLETED`; physio-only write, patient read; cursor patient-timeline. Integration tests written; run pending Docker (unavailable in authoring session). |
 | **notifications**              | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | FCM credentials provisioned in dev env. |
 | **audit**                      | ⬜ | ⬜ | — | — | ⬜ | API not exposed; service-level only. Future seam: `PatientAccessPolicy` already isolates access checks. |
@@ -50,7 +50,7 @@ Layers tracked:
 |---|---|---|
 | CI pipeline (backend test, mobile test, lint) | ⬜ |  |
 | Dockerized local dev (PG + Redis + MinIO) | ⬜ |  |
-| Flyway baseline migrations V1–V8 | 🟦 | V1 extensions, V2 enums, V3 auth, V4 patients, V5 availability, V6 appointments, V7 discussion (messages + read markers), V8 treatment_notes applied. `file_objects` + attachments tables deferred to the files PR. |
+| Flyway baseline migrations V1–V9 | 🟦 | V1 extensions, V2 enums, V3 auth, V4 patients, V5 availability, V6 appointments, V7 discussion (messages + read markers), V8 treatment_notes, V9 file_objects applied. `discussion_message_attachments`, `notification_outbox`, and `audit.audit_log` still pending. |
 | Design tokens implemented in Flutter | ⬜ | See [UI_UX_GUIDELINES.md §12](./UI_UX_GUIDELINES.md#12-implementation-notes-flutter--riverpod) |
 | Network layer (Dio + interceptors) | ⬜ |  |
 | Auth token storage (`flutter_secure_storage`) | ⬜ |  |

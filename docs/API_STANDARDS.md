@@ -322,12 +322,25 @@ Rules:
 
 ### 9.6 Files
 
-| Method | Path | Purpose |
-|---|---|---|
-| `POST` | `/api/v1/files/presign` | Get presigned PUT URL |
-| `GET`  | `/api/v1/files/{id}/download` | Get short-lived presigned GET URL |
-| `GET`  | `/api/v1/files/{id}` | File metadata |
-| `DELETE` | `/api/v1/files/{id}` | Soft-delete (only if not referenced) |
+| Method | Path | Purpose | Body |
+|---|---|---|---|
+| `POST` | `/api/v1/files/presign` | Create a `PENDING_UPLOAD` record + presigned PUT URL | `{ patientId, appointmentId, kind, mimeType, sizeBytes, originalFilename }` |
+| `POST` | `/api/v1/files/{id}/complete` | Client signals upload done; server verifies size + magic bytes, promotes to `AVAILABLE` | — |
+| `GET`  | `/api/v1/files/{id}/download` | Short-lived presigned GET URL (TTL ≤ 5 min, `Content-Disposition` set) | — |
+| `GET`  | `/api/v1/files/{id}` | File metadata | — |
+| `DELETE` | `/api/v1/files/{id}` | Soft-delete (only if not referenced) | — |
+
+Presign response (bare, consistent with the rest of the API):
+```json
+{ "fileId": "…",
+  "upload": { "method": "PUT", "url": "https://…", "headers": { "Content-Type": "application/pdf" }, "expiresInSeconds": 300 } }
+```
+
+Rules:
+- `mimeType` whitelist: `application/pdf`, `image/jpeg`, `image/png` (`files.unsupported_mime`, 422). Per-type size caps: PDF 20 MB, JPEG/PNG 10 MB (`files.too_large`, 422).
+- Write (presign / complete / delete) needs write access to `patientId`; `appointmentId` is required in Phase 1 and must belong to that patient (`files.appointment_required` / `files.patient_mismatch`, 422). Per-account cap 100 files/day (`files.daily_cap_exceeded`, 409).
+- `complete` requires `PENDING_UPLOAD` (`files.invalid_state`, 409) and the uploaded object present (`files.object_missing`, 409). Size/magic-byte mismatch moves the file to `QUARANTINED` and returns `files.magic_byte_mismatch` (422). Download requires `AVAILABLE`.
+- The server never streams bytes: upload is direct-to-S3 via the presigned PUT, download via the presigned GET. Keys are UUID-based; user filenames are display-only.
 
 ### 9.7 Treatment Notes
 
