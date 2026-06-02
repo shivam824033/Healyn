@@ -44,7 +44,8 @@ public class FileObject {
     @Column(name = "size_bytes", nullable = false, updatable = false)
     private long sizeBytes;
 
-    @Column(name = "sha256_hex")
+    @JdbcTypeCode(SqlTypes.CHAR)
+    @Column(name = "sha256_hex", length = 64)
     private String sha256Hex;
 
     @Enumerated(EnumType.STRING)

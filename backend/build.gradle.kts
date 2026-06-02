@@ -17,7 +17,12 @@ repositories {
     mavenCentral()
 }
 
-extra["testcontainersVersion"] = "1.20.3"
+extra["testcontainersVersion"] = "1.20.6"
+// Override the Spring Boot BOM's managed Testcontainers version (1.19.8). That
+// version ships docker-java 3.3.6 (Engine API 1.43), which Docker Engine 28+
+// rejects after the minimum API version was raised to 1.44. 1.20.6 carries a
+// docker-java that negotiates a supported API version.
+extra["testcontainers.version"] = "1.20.6"
 extra["springdocVersion"] = "2.6.0"
 extra["nimbusJoseVersion"] = "9.41.2"
 
@@ -70,6 +75,17 @@ tasks.withType<Test> {
     testLogging {
         events("passed", "skipped", "failed")
         showStandardStreams = false
+    }
+    // Testcontainers/docker-java picks an Engine API version that the Docker
+    // Desktop for Windows npipe/TCP proxy reports as higher than the daemon
+    // actually serves, so the daemon rejects /info with HTTP 400 and discovery
+    // fails. Pin a broadly-supported version on Windows only; Linux CI keeps
+    // auto-negotiation. An exported DOCKER_API_VERSION still wins.
+    val pinnedApiVersion = System.getenv("DOCKER_API_VERSION")
+        ?: "1.44".takeIf { System.getProperty("os.name").startsWith("Windows", ignoreCase = true) }
+    pinnedApiVersion?.let {
+        environment("DOCKER_API_VERSION", it)
+        systemProperty("api.version", it)
     }
 }
 

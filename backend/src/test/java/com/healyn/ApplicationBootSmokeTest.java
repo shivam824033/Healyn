@@ -4,12 +4,17 @@ import com.healyn.auth.repository.AccountRepository;
 import com.healyn.auth.repository.DeviceSessionRepository;
 import com.healyn.auth.repository.OtpChallengeRepository;
 import com.healyn.appointments.repository.AppointmentRepository;
+import com.healyn.audit.repository.AuditLogRepository;
 import com.healyn.availability.repository.AvailabilityRuleRepository;
 import com.healyn.availability.repository.BlackoutWindowRepository;
+import com.healyn.discussion.repository.DiscussionMessageAttachmentRepository;
 import com.healyn.discussion.repository.DiscussionMessageRepository;
 import com.healyn.discussion.repository.DiscussionReadMarkerRepository;
+import com.healyn.files.repository.FileObjectRepository;
+import com.healyn.notifications.repository.NotificationOutboxRepository;
 import com.healyn.patients.repository.AccountPatientRepository;
 import com.healyn.patients.repository.PatientRepository;
+import com.healyn.treatmentnotes.repository.TreatmentNoteRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -38,6 +43,11 @@ class ApplicationBootSmokeTest {
     @MockBean AppointmentRepository appointmentRepository;
     @MockBean DiscussionMessageRepository discussionMessageRepository;
     @MockBean DiscussionReadMarkerRepository discussionReadMarkerRepository;
+    @MockBean DiscussionMessageAttachmentRepository discussionMessageAttachmentRepository;
+    @MockBean FileObjectRepository fileObjectRepository;
+    @MockBean TreatmentNoteRepository treatmentNoteRepository;
+    @MockBean NotificationOutboxRepository notificationOutboxRepository;
+    @MockBean AuditLogRepository auditLogRepository;
     @MockBean StringRedisTemplate stringRedisTemplate;
 
     @Test

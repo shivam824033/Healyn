@@ -30,8 +30,8 @@ class FlywayMigrationTest {
         flyway.migrate();
 
         MigrationInfo current = flyway.info().current();
-        assertThat(current.getVersion().getVersion()).isEqualTo("7");
-        assertThat(flyway.info().applied()).hasSizeGreaterThanOrEqualTo(7);
+        assertThat(current.getVersion().getVersion()).isEqualTo("12");
+        assertThat(flyway.info().applied()).hasSizeGreaterThanOrEqualTo(12);
 
         DataSource ds = flyway.getConfiguration().getDataSource();
         try (Connection c = ds.getConnection(); Statement st = c.createStatement()) {
