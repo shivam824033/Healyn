@@ -38,5 +38,10 @@ public final class ErrorCode {
     public static final String DISCUSSION_EMPTY_MESSAGE = "discussion.empty_message";
     public static final String DISCUSSION_BODY_TOO_LONG = "discussion.body_too_long";
 
+    public static final String TREATMENT_NOTE_NOT_FOUND = "treatment_notes.not_found";
+    public static final String TREATMENT_NOTE_APPOINTMENT_NOT_COMPLETED = "treatment_notes.appointment_not_completed";
+    public static final String TREATMENT_NOTE_EMPTY = "treatment_notes.empty";
+    public static final String TREATMENT_NOTE_FIELD_TOO_LONG = "treatment_notes.field_too_long";
+
     private ErrorCode() {}
 }

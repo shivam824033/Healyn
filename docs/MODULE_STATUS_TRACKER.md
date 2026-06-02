@@ -37,7 +37,7 @@ Layers tracked:
 | **appointments**               | 🟩 | 🟩 | 🟩 | ⬜ | 🟩 | V6 migration; booking validates via `SlotExpansionService`; state machine + cursor list + reschedule + idempotency; EXCLUDE constraint enforced + asserted. |
 | **discussion**                 | 🟩 | 🟩 | 🟩 | ⬜ | 🟩 | V7 migration; body-only messages (text + read markers); 5-min edit/delete window; cursor list; INSTRUCTION restricted to physio; access blocked on CANCELLED/NO_SHOW for patient side. Attachments deferred to `files` PR. |
 | **files**                      | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | Requires S3/MinIO local dev wiring. |
-| **treatment_notes**            | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ |  |
+| **treatment_notes**            | 🟨 | 🟨 | 🟨 | ⬜ | 🟨 | V8 migration; one note per appointment (UNIQUE `appointment_id`); PUT-upsert gated on `COMPLETED`; physio-only write, patient read; cursor patient-timeline. Integration tests written; run pending Docker (unavailable in authoring session). |
 | **notifications**              | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | FCM credentials provisioned in dev env. |
 | **audit**                      | ⬜ | ⬜ | — | — | ⬜ | API not exposed; service-level only. Future seam: `PatientAccessPolicy` already isolates access checks. |
 | **common (infra)**             | — | 🟩 | — | ⬜ | 🟩 | Error envelope, validation, logging, ID gen, base entity, JWT security in place. |
@@ -50,7 +50,7 @@ Layers tracked:
 |---|---|---|
 | CI pipeline (backend test, mobile test, lint) | ⬜ |  |
 | Dockerized local dev (PG + Redis + MinIO) | ⬜ |  |
-| Flyway baseline migrations V1–V8 | 🟦 | V1 extensions, V2 enums, V3 auth, V4 patients, V5 availability, V6 appointments, V7 discussion (messages + read markers) applied. V8 pending; attachments table deferred to the files PR. |
+| Flyway baseline migrations V1–V8 | 🟦 | V1 extensions, V2 enums, V3 auth, V4 patients, V5 availability, V6 appointments, V7 discussion (messages + read markers), V8 treatment_notes applied. `file_objects` + attachments tables deferred to the files PR. |
 | Design tokens implemented in Flutter | ⬜ | See [UI_UX_GUIDELINES.md §12](./UI_UX_GUIDELINES.md#12-implementation-notes-flutter--riverpod) |
 | Network layer (Dio + interceptors) | ⬜ |  |
 | Auth token storage (`flutter_secure_storage`) | ⬜ |  |

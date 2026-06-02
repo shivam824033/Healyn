@@ -331,11 +331,17 @@ Rules:
 
 ### 9.7 Treatment Notes
 
-| Method | Path | Purpose |
-|---|---|---|
-| `GET`  | `/api/v1/appointments/{id}/treatment_note` | Get note |
-| `PUT`  | `/api/v1/appointments/{id}/treatment_note` | Create/replace (physio only) |
-| `GET`  | `/api/v1/patients/{id}/treatment_notes` | Patient timeline |
+| Method | Path | Purpose | Body |
+|---|---|---|---|
+| `GET`  | `/api/v1/appointments/{id}/treatment_note` | Get the note for an appointment | — |
+| `PUT`  | `/api/v1/appointments/{id}/treatment_note` | Create / replace (physio only) | `{ diagnosis?, notes?, recoveryInstructions?, nextReviewAt? }` |
+| `GET`  | `/api/v1/patients/{id}/treatment_notes?cursor=&limit=` | Patient timeline (cursor, default 20, max 50) | — |
+
+Rules:
+- Exactly one note per appointment (`PUT` is an idempotent upsert; replacing keeps the same `id`).
+- Write is physio-only and is gated on the appointment being `COMPLETED` (`treatment_notes.appointment_not_completed`, 409). Completing the appointment unlocks the note — see [APPOINTMENT_FLOW.md §3.1](./APPOINTMENT_FLOW.md#31-allowed-transitions).
+- At least one of `diagnosis` / `notes` / `recoveryInstructions` must be non-blank (`treatment_notes.empty`, 422); each field ≤ 8,000 chars (`treatment_notes.field_too_long`, 422).
+- Read is allowed to the physio and to patient-side accounts with read access to the patient; `GET` on an appointment with no note returns `treatment_notes.not_found` (404).
 
 ### 9.8 Notifications
 

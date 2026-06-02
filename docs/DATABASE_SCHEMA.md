@@ -474,18 +474,22 @@ Phase 1 ships as plain tables. Migrations to partitioned layout are scripted but
 - Every migration must be **idempotent** where possible (`CREATE TABLE IF NOT EXISTS`, `ALTER TABLE ... ADD COLUMN IF NOT EXISTS`).
 - Destructive changes (`DROP COLUMN`, `DROP TABLE`) are forbidden in Phase 1.
 
-Bootstrap migrations (V1 → V8 approx):
+Bootstrap migrations as applied (one bounded context per file; the early plan's
+combined files were split as modules landed):
 
 ```
 V1__enable_extensions.sql        -- citext, btree_gist, pg_trgm, pgcrypto
 V2__create_enums.sql
-V3__create_accounts_and_auth.sql
-V4__create_patients.sql
-V5__create_availability_and_appointments.sql
-V6__create_files_and_attachments.sql
-V7__create_discussion.sql
-V8__create_notifications_and_audit.sql
+V3__auth_schema.sql
+V4__patients_schema.sql
+V5__availability_schema.sql
+V6__appointments_schema.sql
+V7__discussion_schema.sql        -- messages + read markers (attachments deferred to files PR)
+V8__treatment_notes_schema.sql
 ```
+
+Still pending: `file_objects` + `discussion_message_attachments` (files PR), and
+`notification_outbox` + `audit.audit_log` (notifications / audit PRs).
 
 ---
 
