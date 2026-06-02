@@ -44,7 +44,7 @@ public class AppointmentController {
     @GetMapping
     public AppointmentDtos.AppointmentPage list(
             @AuthenticationPrincipal Jwt jwt,
-            @RequestParam(value = "patientId", required = false) UUID patientId,
+            @RequestParam(value = "patient_id", required = false) UUID patientId,
             @RequestParam(value = "status", required = false) String statusCsv,
             @RequestParam(value = "from", required = false)
                 @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant from,

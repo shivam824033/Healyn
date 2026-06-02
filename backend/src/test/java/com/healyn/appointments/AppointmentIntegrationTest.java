@@ -273,7 +273,44 @@ class AppointmentIntegrationTest {
         assertThat(cursor).isNull();
     }
 
+    @Test
+    void physio_list_filters_to_a_single_patient_via_patient_id_param() throws Exception {
+        Session physio = seedPhysio();
+        Session a = registerPatient("ida");
+        Session b = registerPatient("ivy");
+        UUID patientA = primaryPatientId(a);
+        UUID patientB = primaryPatientId(b);
+
+        seedAppointment(patientA, physio.id, accountIdOf(a), 1);
+        seedAppointment(patientB, physio.id, accountIdOf(b), 2);
+
+        MvcResult res = mvc.perform(get("/appointments")
+                        .header("Authorization", "Bearer " + physio.access)
+                        .param("patient_id", patientA.toString())
+                        .param("limit", "50"))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        JsonNode items = json.readTree(res.getResponse().getContentAsByteArray()).get("items");
+        assertThat(items.size()).isGreaterThan(0);
+        for (JsonNode item : items) {
+            assertThat(item.get("patient_id").asText()).isEqualTo(patientA.toString());
+        }
+    }
+
     // ---- helpers ----
+
+    private void seedAppointment(UUID patientId, UUID physioId, UUID bookedBy, int dayOffset) {
+        appointments.save(new Appointment(
+                UuidV7.generate(),
+                patientId,
+                bookedBy,
+                physioId,
+                ZonedDateTime.now(KOLKATA).plusDays(dayOffset).toInstant(),
+                (short) 30,
+                "seed",
+                null));
+    }
 
     private UUID bookOk(Session actor, UUID patientId, String scheduledAt, String key) throws Exception {
         MvcResult res = mvc.perform(post("/appointments")
