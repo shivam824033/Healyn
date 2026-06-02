@@ -108,5 +108,32 @@ public class NotificationOutbox {
     public UUID getCorrelationId() { return correlationId; }
     public Instant getCreatedAt() { return createdAt; }
 
-    // Dispatch-side lifecycle (markSent / retry / DEAD) lands with the outbox poller.
+    /** Delivered (or terminally not deliverable, e.g. no live tokens). */
+    public void markSent(Instant now, String resolvedToken) {
+        this.attempts = (short) (this.attempts + 1);
+        this.status = NotificationStatus.SENT;
+        this.sentAt = now;
+        this.targetFcmToken = resolvedToken;
+        this.lastError = null;
+    }
+
+    /** Transient failure with retries remaining: stay PENDING, back off to {@code nextAttemptAt}. */
+    public void reschedule(Instant nextAttemptAt, String error) {
+        this.attempts = (short) (this.attempts + 1);
+        this.status = NotificationStatus.PENDING;
+        this.nextAttemptAt = nextAttemptAt;
+        this.lastError = truncate(error);
+    }
+
+    /** Retries exhausted: give up. */
+    public void markDead(String error) {
+        this.attempts = (short) (this.attempts + 1);
+        this.status = NotificationStatus.DEAD;
+        this.lastError = truncate(error);
+    }
+
+    private static String truncate(String s) {
+        if (s == null) return null;
+        return s.length() <= 1000 ? s : s.substring(0, 1000);
+    }
 }
