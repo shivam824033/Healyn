@@ -35,6 +35,14 @@ public interface AccountPatientRepository extends JpaRepository<AccountPatient, 
     long countLinksForPatient(@Param("patientId") UUID patientId);
 
     @Query("""
+            select ap.id.accountId
+            from AccountPatient ap
+            where ap.id.patientId = :patientId
+              and ap.canManage = true
+            """)
+    List<UUID> findManagerAccountIds(@Param("patientId") UUID patientId);
+
+    @Query("""
             select case when count(ap) > 0 then true else false end
             from AccountPatient ap
             where ap.id.accountId = :accountId

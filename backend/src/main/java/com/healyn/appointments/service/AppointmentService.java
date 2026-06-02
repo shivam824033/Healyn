@@ -16,6 +16,8 @@ import com.healyn.common.error.UnprocessableException;
 import com.healyn.common.id.UuidV7;
 import com.healyn.common.pagination.Cursor;
 import com.healyn.common.pagination.CursorPage;
+import com.healyn.notifications.domain.NotificationKind;
+import com.healyn.notifications.service.NotificationPublisher;
 import com.healyn.patients.repository.AccountPatientRepository;
 import org.postgresql.util.PSQLException;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -33,6 +35,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -57,6 +60,7 @@ public class AppointmentService {
     private final SlotExpansionService slots;
     private final AppointmentAccessPolicy access;
     private final IdempotencyGuard idempotency;
+    private final NotificationPublisher notifications;
     private final Clock clock;
 
     public AppointmentService(AppointmentRepository appointments,
@@ -65,6 +69,7 @@ public class AppointmentService {
                               SlotExpansionService slots,
                               AppointmentAccessPolicy access,
                               IdempotencyGuard idempotency,
+                              NotificationPublisher notifications,
                               Clock clock) {
         this.appointments = appointments;
         this.accounts = accounts;
@@ -72,6 +77,7 @@ public class AppointmentService {
         this.slots = slots;
         this.access = access;
         this.idempotency = idempotency;
+        this.notifications = notifications;
         this.clock = clock;
     }
 
@@ -104,7 +110,8 @@ public class AppointmentService {
                 null);
         Appointment saved = appointments.save(appt);
         idempotency.store(actorId, idempotencyKey, saved.getId());
-        // TODO outbox(BOOKING_REQUESTED) — wired in the notifications PR.
+        notifications.enqueueToAccount(NotificationKind.BOOKING_REQUESTED, saved.getPhysiotherapistId(),
+                Map.of("appointmentId", saved.getId().toString()), saved.getId());
         return saved;
     }
 
@@ -171,8 +178,9 @@ public class AppointmentService {
                     "Cannot transition to " + req.to() + " via this endpoint");
         }
 
+        Appointment result;
         try {
-            return appointments.saveAndFlush(appt);
+            result = appointments.saveAndFlush(appt);
         } catch (DataIntegrityViolationException e) {
             if (isExclusionViolation(e)) {
                 throw new ConflictException(ErrorCode.APPOINTMENT_SLOT_UNAVAILABLE,
@@ -180,7 +188,27 @@ public class AppointmentService {
             }
             throw e;
         }
-        // TODO outbox(BOOKING_CONFIRMED / BOOKING_CANCELLED) — wired in the notifications PR.
+        notifyTransition(result, role, req.to());
+        return result;
+    }
+
+    private void notifyTransition(Appointment appt, AccountRole actorRole, AppointmentStatus to) {
+        Map<String, String> payload = Map.of("appointmentId", appt.getId().toString());
+        switch (to) {
+            case CONFIRMED -> notifications.enqueueToPatientManagers(
+                    NotificationKind.BOOKING_CONFIRMED, appt.getPatientId(), payload, appt.getId());
+            case CANCELLED -> {
+                // Notify the counterparty: physio's action reaches the patient side, and vice versa.
+                if (actorRole == AccountRole.ROLE_PHYSIO) {
+                    notifications.enqueueToPatientManagers(
+                            NotificationKind.BOOKING_CANCELLED, appt.getPatientId(), payload, appt.getId());
+                } else {
+                    notifications.enqueueToAccount(
+                            NotificationKind.BOOKING_CANCELLED, appt.getPhysiotherapistId(), payload, appt.getId());
+                }
+            }
+            default -> { /* IN_PROGRESS / COMPLETED / NO_SHOW have no push in Phase 1 */ }
+        }
     }
 
     @Transactional

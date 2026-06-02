@@ -498,9 +498,10 @@ V7__discussion_schema.sql        -- messages + read markers (attachments deferre
 V8__treatment_notes_schema.sql
 V9__file_objects_schema.sql      -- file metadata (bytes in S3)
 V10__discussion_message_attachments.sql  -- wires file_objects into discussion
+V11__notification_outbox.sql      -- transactional outbox (enqueue side)
 ```
 
-Still pending: `notification_outbox` + `audit.audit_log` (notifications / audit PRs).
+Still pending: `audit.audit_log` (audit PR). `fcm_tokens` lands with the outbox dispatcher.
 
 ---
 

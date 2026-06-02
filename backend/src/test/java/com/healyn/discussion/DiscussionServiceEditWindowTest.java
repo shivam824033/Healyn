@@ -15,6 +15,7 @@ import com.healyn.discussion.repository.DiscussionReadMarkerRepository;
 import com.healyn.discussion.service.DiscussionService;
 import com.healyn.files.repository.FileObjectRepository;
 import com.healyn.discussion.service.EditMessageRequest;
+import com.healyn.notifications.service.NotificationPublisher;
 import org.junit.jupiter.api.Test;
 
 import java.time.Clock;
@@ -36,6 +37,7 @@ class DiscussionServiceEditWindowTest {
     private final DiscussionReadMarkerRepository readMarkers = mock(DiscussionReadMarkerRepository.class);
     private final AppointmentRepository appointments = mock(AppointmentRepository.class);
     private final FileObjectRepository files = mock(FileObjectRepository.class);
+    private final NotificationPublisher notifications = mock(NotificationPublisher.class);
     private final DiscussionAccessPolicy access = mock(DiscussionAccessPolicy.class);
 
     private static final UUID SENDER = UUID.randomUUID();
@@ -114,6 +116,6 @@ class DiscussionServiceEditWindowTest {
 
     private DiscussionService newService(Instant now) {
         Clock fixed = Clock.fixed(now, ZoneOffset.UTC);
-        return new DiscussionService(messages, attachments, readMarkers, appointments, files, access, fixed);
+        return new DiscussionService(messages, attachments, readMarkers, appointments, files, access, notifications, fixed);
     }
 }

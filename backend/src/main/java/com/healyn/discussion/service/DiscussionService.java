@@ -23,6 +23,8 @@ import com.healyn.discussion.repository.DiscussionReadMarkerRepository;
 import com.healyn.files.domain.FileObject;
 import com.healyn.files.domain.FileStatus;
 import com.healyn.files.repository.FileObjectRepository;
+import com.healyn.notifications.domain.NotificationKind;
+import com.healyn.notifications.service.NotificationPublisher;
 import org.springframework.data.domain.Limit;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -54,6 +56,7 @@ public class DiscussionService {
     private final AppointmentRepository appointments;
     private final FileObjectRepository files;
     private final DiscussionAccessPolicy access;
+    private final NotificationPublisher notifications;
     private final Clock clock;
 
     public DiscussionService(DiscussionMessageRepository messages,
@@ -62,6 +65,7 @@ public class DiscussionService {
                              AppointmentRepository appointments,
                              FileObjectRepository files,
                              DiscussionAccessPolicy access,
+                             NotificationPublisher notifications,
                              Clock clock) {
         this.messages = messages;
         this.attachments = attachments;
@@ -69,6 +73,7 @@ public class DiscussionService {
         this.appointments = appointments;
         this.files = files;
         this.access = access;
+        this.notifications = notifications;
         this.clock = clock;
     }
 
@@ -102,7 +107,7 @@ public class DiscussionService {
         for (FileObject file : resolved) {
             attachments.save(new DiscussionMessageAttachment(saved.getId(), file.getId()));
         }
-        // TODO outbox(DISCUSSION_NEW_MESSAGE) — wired in the notifications PR.
+        notifyNewMessage(appt, saved, senderRole);
         return saved;
     }
 
@@ -124,6 +129,19 @@ public class DiscussionService {
             }
         }
         return result;
+    }
+
+    private void notifyNewMessage(Appointment appt, DiscussionMessage msg, DiscussionSenderRole senderRole) {
+        Map<String, String> payload = Map.of(
+                "appointmentId", appt.getId().toString(),
+                "messageId", msg.getId().toString());
+        if (senderRole == DiscussionSenderRole.PHYSIO) {
+            notifications.enqueueToPatientManagers(
+                    NotificationKind.DISCUSSION_NEW_MESSAGE, appt.getPatientId(), payload, msg.getId());
+        } else {
+            notifications.enqueueToAccount(
+                    NotificationKind.DISCUSSION_NEW_MESSAGE, appt.getPhysiotherapistId(), payload, msg.getId());
+        }
     }
 
     private List<FileObject> resolveAttachments(List<UUID> fileIds, UUID patientId) {

@@ -11,6 +11,8 @@ import com.healyn.common.error.UnprocessableException;
 import com.healyn.common.id.UuidV7;
 import com.healyn.common.pagination.Cursor;
 import com.healyn.common.pagination.CursorPage;
+import com.healyn.notifications.domain.NotificationKind;
+import com.healyn.notifications.service.NotificationPublisher;
 import com.healyn.treatmentnotes.domain.TreatmentNote;
 import com.healyn.treatmentnotes.policy.TreatmentNoteAccessPolicy;
 import com.healyn.treatmentnotes.repository.TreatmentNoteRepository;
@@ -20,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -30,13 +33,16 @@ public class TreatmentNoteService {
     private final TreatmentNoteRepository notes;
     private final AppointmentRepository appointments;
     private final TreatmentNoteAccessPolicy access;
+    private final NotificationPublisher notifications;
 
     public TreatmentNoteService(TreatmentNoteRepository notes,
                                 AppointmentRepository appointments,
-                                TreatmentNoteAccessPolicy access) {
+                                TreatmentNoteAccessPolicy access,
+                                NotificationPublisher notifications) {
         this.notes = notes;
         this.appointments = appointments;
         this.access = access;
+        this.notifications = notifications;
     }
 
     /** Create or replace the single treatment note for a completed appointment. Physio only. */
@@ -66,7 +72,8 @@ public class TreatmentNoteService {
                         req.notes(),
                         req.recoveryInstructions(),
                         req.nextReviewAt())));
-        // TODO outbox(TREATMENT_NOTE_ADDED) — wired in the notifications PR.
+        notifications.enqueueToPatientManagers(NotificationKind.TREATMENT_NOTE_ADDED, appt.getPatientId(),
+                Map.of("appointmentId", appointmentId.toString(), "noteId", note.getId().toString()), note.getId());
         return note;
     }
 

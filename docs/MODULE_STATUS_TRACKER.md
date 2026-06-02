@@ -38,7 +38,7 @@ Layers tracked:
 | **discussion**                 | 🟨 | 🟨 | 🟨 | ⬜ | 🟨 | V7 + V10 migrations; text messages (read markers, 5-min edit/delete window, cursor list, physio-only INSTRUCTION, CANCELLED/NO_SHOW read-only for patient side); V10 adds `discussion_message_attachments` — `ATTACHMENT_ONLY`/`fileIds[]` wired to `file_objects` with per-patient + `AVAILABLE` + ≤10 checks. Body-only paths 🟩; attachment paths code-complete, integration test (`DiscussionAttachmentIntegrationTest`) pending Docker. |
 | **files**                      | 🟨 | 🟨 | 🟨 | ⬜ | 🟨 | V9 migration; presigned PUT/GET via `FileStorePort` (MinIO adapter, `io.minio` 8.5.14); presign→complete flow with server-side magic-byte + size verification (QUARANTINE on fail); per-mime size caps; daily cap; soft delete blocked while referenced (`FileReferenceGuard` port, implemented by discussion). Storage edge behind a port (tests use in-memory fake). `FileValidationTest` green; integration tests + real MinIO adapter test pending Docker. |
 | **treatment_notes**            | 🟨 | 🟨 | 🟨 | ⬜ | 🟨 | V8 migration; one note per appointment (UNIQUE `appointment_id`); PUT-upsert gated on `COMPLETED`; physio-only write, patient read; cursor patient-timeline. Integration tests written; run pending Docker (unavailable in authoring session). |
-| **notifications**              | ⬜ | ⬜ | ⬜ | ⬜ | ⬜ | FCM credentials provisioned in dev env. |
+| **notifications**              | 🟨 | 🟨 | ⬜ | ⬜ | 🟨 | V11 `notification_outbox` (transactional outbox, one row per recipient, payload = IDs only per Hard Rule #4). `NotificationPublisher.enqueueToAccount` / `enqueueToPatientManagers` write rows in the caller's tx; wired into booking (REQUESTED/CONFIRMED/CANCELLED), discussion (NEW_MESSAGE), and treatment notes (NOTE_ADDED) — all `// TODO outbox(...)` seams now closed. `NotificationPublisherTest` green. **Dispatch side deferred**: outbox poller + `FcmDispatcher` adapter + `fcm_tokens` + device-token API are the next chunk (needs the FCM SDK dependency decision). FCM credentials provisioned in dev env. |
 | **audit**                      | ⬜ | ⬜ | — | — | ⬜ | API not exposed; service-level only. Future seam: `PatientAccessPolicy` already isolates access checks. |
 | **common (infra)**             | — | 🟩 | — | ⬜ | 🟩 | Error envelope, validation, logging, ID gen, base entity, JWT security in place. |
 
@@ -50,7 +50,7 @@ Layers tracked:
 |---|---|---|
 | CI pipeline (backend test, mobile test, lint) | ⬜ |  |
 | Dockerized local dev (PG + Redis + MinIO) | ⬜ |  |
-| Flyway baseline migrations V1–V10 | 🟦 | V1 extensions, V2 enums, V3 auth, V4 patients, V5 availability, V6 appointments, V7 discussion (messages + read markers), V8 treatment_notes, V9 file_objects, V10 discussion_message_attachments applied. `notification_outbox` and `audit.audit_log` still pending. |
+| Flyway baseline migrations V1–V11 | 🟦 | V1 extensions, V2 enums, V3 auth, V4 patients, V5 availability, V6 appointments, V7 discussion (messages + read markers), V8 treatment_notes, V9 file_objects, V10 discussion_message_attachments, V11 notification_outbox applied. `audit.audit_log` still pending. |
 | Design tokens implemented in Flutter | ⬜ | See [UI_UX_GUIDELINES.md §12](./UI_UX_GUIDELINES.md#12-implementation-notes-flutter--riverpod) |
 | Network layer (Dio + interceptors) | ⬜ |  |
 | Auth token storage (`flutter_secure_storage`) | ⬜ |  |
