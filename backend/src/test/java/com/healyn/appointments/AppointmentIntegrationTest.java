@@ -114,9 +114,9 @@ class AppointmentIntegrationTest {
                         .header("Idempotency-Key", "idem-b-1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(json.writeValueAsString(Map.of(
-                                "patientId", patientB.toString(),
-                                "scheduledAt", slot,
-                                "durationMinutes", 30))))
+                                "patient_id", patientB.toString(),
+                                "scheduled_at", slot,
+                                "duration_minutes", 30))))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.error.code").value("appointments.slot_unavailable"));
     }
@@ -135,9 +135,9 @@ class AppointmentIntegrationTest {
                         .header("Idempotency-Key", "idem-c-1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(json.writeValueAsString(Map.of(
-                                "patientId", patientA.toString(),
-                                "scheduledAt", offRule,
-                                "durationMinutes", 30))))
+                                "patient_id", patientA.toString(),
+                                "scheduled_at", offRule,
+                                "duration_minutes", 30))))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.error.code").value("appointments.slot_unavailable"));
     }
@@ -171,13 +171,13 @@ class AppointmentIntegrationTest {
                         .header("Authorization", "Bearer " + a.access)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(json.writeValueAsString(Map.of(
-                                "scheduledAt", nextMondayAt(10, 30),
-                                "durationMinutes", 30))))
+                                "scheduled_at", nextMondayAt(10, 30),
+                                "duration_minutes", 30))))
                 .andExpect(status().isCreated())
                 .andReturn();
         JsonNode body = json.readTree(res.getResponse().getContentAsByteArray());
         assertThat(body.get("status").asText()).isEqualTo("REQUESTED");
-        assertThat(body.get("rescheduledFromId").asText()).isEqualTo(oldId.toString());
+        assertThat(body.get("rescheduled_from_id").asText()).isEqualTo(oldId.toString());
 
         mvc.perform(get("/appointments/" + oldId)
                         .header("Authorization", "Bearer " + a.access))
@@ -211,9 +211,9 @@ class AppointmentIntegrationTest {
 
         String slot = nextMondayAt(11, 30);
         String body = json.writeValueAsString(Map.of(
-                "patientId", patientA.toString(),
-                "scheduledAt", slot,
-                "durationMinutes", 30));
+                "patient_id", patientA.toString(),
+                "scheduled_at", slot,
+                "duration_minutes", 30));
 
         MvcResult first = mvc.perform(post("/appointments")
                         .header("Authorization", "Bearer " + a.access)
@@ -265,7 +265,8 @@ class AppointmentIntegrationTest {
             MvcResult res = mvc.perform(req).andExpect(status().isOk()).andReturn();
             JsonNode node = json.readTree(res.getResponse().getContentAsByteArray());
             seen += node.get("items").size();
-            cursor = node.get("nextCursor").isNull() ? null : node.get("nextCursor").asText();
+            JsonNode cursorNode = node.get("next_cursor"); // omitted entirely on the last page
+            cursor = (cursorNode == null || cursorNode.isNull()) ? null : cursorNode.asText();
             if (cursor == null) break;
         }
         assertThat(seen).isEqualTo(25);
@@ -280,9 +281,9 @@ class AppointmentIntegrationTest {
                         .header("Idempotency-Key", key)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(json.writeValueAsString(Map.of(
-                                "patientId", patientId.toString(),
-                                "scheduledAt", scheduledAt,
-                                "durationMinutes", 30))))
+                                "patient_id", patientId.toString(),
+                                "scheduled_at", scheduledAt,
+                                "duration_minutes", 30))))
                 .andExpect(status().isCreated())
                 .andReturn();
         return UUID.fromString(json.readTree(res.getResponse().getContentAsByteArray()).get("id").asText());
@@ -294,12 +295,12 @@ class AppointmentIntegrationTest {
                         .header("Authorization", "Bearer " + physio.access)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(json.writeValueAsString(Map.of(
-                                "dayOfWeek", 1,
-                                "startTime", "09:00:00",
-                                "endTime", "13:00:00",
-                                "slotMinutes", 30,
+                                "day_of_week", 1,
+                                "start_time", "09:00:00",
+                                "end_time", "13:00:00",
+                                "slot_minutes", 30,
                                 "timezone", "Asia/Kolkata",
-                                "effectiveFrom", effectiveFrom))))
+                                "effective_from", effectiveFrom))))
                 .andExpect(status().isCreated());
     }
 
@@ -309,7 +310,7 @@ class AppointmentIntegrationTest {
         if (daysAhead == 0) daysAhead = 7;
         LocalDate monday = today.plusDays(daysAhead);
         return ZonedDateTime.of(monday, java.time.LocalTime.of(hour, minute), KOLKATA)
-                .toOffsetDateTime()
+                .toInstant()
                 .toString();
     }
 
@@ -332,18 +333,18 @@ class AppointmentIntegrationTest {
                 .andExpect(status().isAccepted())
                 .andReturn();
         String challengeId = json.readTree(startRes.getResponse().getContentAsByteArray())
-                .get("challengeId").asText();
+                .get("challenge_id").asText();
         String code = otpSender.latestByTarget.get(email);
         assertThat(code).isNotNull();
 
         Map<String, Object> body = new HashMap<>();
-        body.put("challengeId", challengeId);
+        body.put("challenge_id", challengeId);
         body.put("code", code);
         body.put("password", "valid-password-x");
-        body.put("device", Map.of("deviceId", "dev-" + UUID.randomUUID(), "deviceLabel", "Phone"));
+        body.put("device", Map.of("device_id", "dev-" + UUID.randomUUID(), "device_label", "Phone"));
         body.put("profile", Map.of(
-                "fullName", tag + " Person",
-                "dateOfBirth", "1991-05-20",
+                "full_name", tag + " Person",
+                "date_of_birth", "1991-05-20",
                 "sex", "UNDISCLOSED"));
 
         MvcResult tokensRes = mvc.perform(post("/auth/register/complete")
@@ -352,7 +353,7 @@ class AppointmentIntegrationTest {
                 .andExpect(status().isOk())
                 .andReturn();
         String access = json.readTree(tokensRes.getResponse().getContentAsByteArray())
-                .get("accessToken").asText();
+                .get("access_token").asText();
         return new Session(null, access);
     }
 

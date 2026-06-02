@@ -130,24 +130,24 @@ class DiscussionAttachmentIntegrationTest {
         UUID fileId = uploadAvailableFile(f.account, f.patientId, f.apptId, "application/pdf", 1024, "spine-mri.pdf");
 
         Map<String, Object> body = new HashMap<>();
-        body.put("messageType", "ATTACHMENT_ONLY");
-        body.put("fileIds", List.of(fileId.toString()));
+        body.put("message_type", "ATTACHMENT_ONLY");
+        body.put("file_ids", List.of(fileId.toString()));
         mvc.perform(post("/appointments/" + f.apptId + "/messages")
                         .header("Authorization", "Bearer " + f.account.access)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(json.writeValueAsString(body)))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.messageType").value("ATTACHMENT_ONLY"))
+                .andExpect(jsonPath("$.message_type").value("ATTACHMENT_ONLY"))
                 .andExpect(jsonPath("$.attachments.length()").value(1))
-                .andExpect(jsonPath("$.attachments[0].fileId").value(fileId.toString()))
-                .andExpect(jsonPath("$.attachments[0].originalFilename").value("spine-mri.pdf"));
+                .andExpect(jsonPath("$.attachments[0].file_id").value(fileId.toString()))
+                .andExpect(jsonPath("$.attachments[0].original_filename").value("spine-mri.pdf"));
 
         mvc.perform(get("/appointments/" + f.apptId + "/messages")
                         .header("Authorization", "Bearer " + f.account.access))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.items.length()").value(1))
-                .andExpect(jsonPath("$.items[0].attachments[0].fileId").value(fileId.toString()))
-                .andExpect(jsonPath("$.items[0].attachments[0].mimeType").value("application/pdf"));
+                .andExpect(jsonPath("$.items[0].attachments[0].file_id").value(fileId.toString()))
+                .andExpect(jsonPath("$.items[0].attachments[0].mime_type").value("application/pdf"));
     }
 
     @Test
@@ -156,7 +156,7 @@ class DiscussionAttachmentIntegrationTest {
         mvc.perform(post("/appointments/" + f.apptId + "/messages")
                         .header("Authorization", "Bearer " + f.account.access)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(json.writeValueAsString(Map.of("messageType", "ATTACHMENT_ONLY"))))
+                        .content(json.writeValueAsString(Map.of("message_type", "ATTACHMENT_ONLY"))))
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(jsonPath("$.error.code").value("discussion.empty_message"));
     }
@@ -168,9 +168,9 @@ class DiscussionAttachmentIntegrationTest {
         UUID fileId = presign(f.account, f.patientId, f.apptId, "application/pdf", 1024, "report.pdf");
 
         Map<String, Object> body = new HashMap<>();
-        body.put("messageType", "REPLY");
+        body.put("message_type", "REPLY");
         body.put("body", "see attached");
-        body.put("fileIds", List.of(fileId.toString()));
+        body.put("file_ids", List.of(fileId.toString()));
         mvc.perform(post("/appointments/" + f.apptId + "/messages")
                         .header("Authorization", "Bearer " + f.account.access)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -189,8 +189,8 @@ class DiscussionAttachmentIntegrationTest {
 
         // Physio (write access to any thread) tries to attach it to the owner's thread.
         Map<String, Object> body = new HashMap<>();
-        body.put("messageType", "ATTACHMENT_ONLY");
-        body.put("fileIds", List.of(strangerFile.toString()));
+        body.put("message_type", "ATTACHMENT_ONLY");
+        body.put("file_ids", List.of(strangerFile.toString()));
         mvc.perform(post("/appointments/" + owner.apptId + "/messages")
                         .header("Authorization", "Bearer " + owner.physio.access)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -205,8 +205,8 @@ class DiscussionAttachmentIntegrationTest {
         UUID fileId = uploadAvailableFile(f.account, f.patientId, f.apptId, "application/pdf", 1024, "x.pdf");
 
         Map<String, Object> body = new HashMap<>();
-        body.put("messageType", "ATTACHMENT_ONLY");
-        body.put("fileIds", List.of(fileId.toString()));
+        body.put("message_type", "ATTACHMENT_ONLY");
+        body.put("file_ids", List.of(fileId.toString()));
         mvc.perform(post("/appointments/" + f.apptId + "/messages")
                         .header("Authorization", "Bearer " + f.account.access)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -247,19 +247,19 @@ class DiscussionAttachmentIntegrationTest {
     private UUID presign(Session actor, UUID patientId, UUID apptId,
                          String mime, long size, String filename) throws Exception {
         Map<String, Object> body = new HashMap<>();
-        body.put("patientId", patientId.toString());
-        body.put("appointmentId", apptId.toString());
+        body.put("patient_id", patientId.toString());
+        body.put("appointment_id", apptId.toString());
         body.put("kind", "REPORT");
-        body.put("mimeType", mime);
-        body.put("sizeBytes", size);
-        body.put("originalFilename", filename);
+        body.put("mime_type", mime);
+        body.put("size_bytes", size);
+        body.put("original_filename", filename);
         MvcResult res = mvc.perform(post("/files/presign")
                         .header("Authorization", "Bearer " + actor.access)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(json.writeValueAsString(body)))
                 .andExpect(status().isOk())
                 .andReturn();
-        return UUID.fromString(json.readTree(res.getResponse().getContentAsByteArray()).get("fileId").asText());
+        return UUID.fromString(json.readTree(res.getResponse().getContentAsByteArray()).get("file_id").asText());
     }
 
     private static byte[] pdfBytes(int length) {
@@ -269,15 +269,25 @@ class DiscussionAttachmentIntegrationTest {
         return b;
     }
 
+    // Tests in this class share one Postgres container, so each booking must claim a distinct
+    // slot to avoid colliding with appointments left behind by earlier tests.
+    private static final java.util.concurrent.atomic.AtomicInteger SLOT_SEQ =
+            new java.util.concurrent.atomic.AtomicInteger();
+
+    private static String nextSlot() {
+        int minutes = SLOT_SEQ.getAndIncrement() * 30;
+        return nextMondayAt(9 + minutes / 60, minutes % 60);
+    }
+
     private UUID bookAppointment(Session actor, UUID patientId) throws Exception {
         MvcResult res = mvc.perform(post("/appointments")
                         .header("Authorization", "Bearer " + actor.access)
                         .header("Idempotency-Key", "att-" + UUID.randomUUID())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(json.writeValueAsString(Map.of(
-                                "patientId", patientId.toString(),
-                                "scheduledAt", nextMondayAt(9, 0),
-                                "durationMinutes", 30))))
+                                "patient_id", patientId.toString(),
+                                "scheduled_at", nextSlot(),
+                                "duration_minutes", 30))))
                 .andExpect(status().isCreated())
                 .andReturn();
         return UUID.fromString(json.readTree(res.getResponse().getContentAsByteArray()).get("id").asText());
@@ -289,12 +299,12 @@ class DiscussionAttachmentIntegrationTest {
                         .header("Authorization", "Bearer " + physio.access)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(json.writeValueAsString(Map.of(
-                                "dayOfWeek", 1,
-                                "startTime", "09:00:00",
-                                "endTime", "13:00:00",
-                                "slotMinutes", 30,
+                                "day_of_week", 1,
+                                "start_time", "09:00:00",
+                                "end_time", "17:00:00",
+                                "slot_minutes", 30,
                                 "timezone", "Asia/Kolkata",
-                                "effectiveFrom", effectiveFrom))))
+                                "effective_from", effectiveFrom))))
                 .andExpect(status().isCreated());
     }
 
@@ -303,7 +313,7 @@ class DiscussionAttachmentIntegrationTest {
         int daysAhead = (DayOfWeek.MONDAY.getValue() - today.getDayOfWeek().getValue() + 7) % 7;
         if (daysAhead == 0) daysAhead = 7;
         LocalDate monday = today.plusDays(daysAhead);
-        return ZonedDateTime.of(monday, LocalTime.of(hour, minute), KOLKATA).toOffsetDateTime().toString();
+        return ZonedDateTime.of(monday, LocalTime.of(hour, minute), KOLKATA).toInstant().toString();
     }
 
     private Session seedPhysio() {
@@ -325,18 +335,18 @@ class DiscussionAttachmentIntegrationTest {
                 .andExpect(status().isAccepted())
                 .andReturn();
         String challengeId = json.readTree(startRes.getResponse().getContentAsByteArray())
-                .get("challengeId").asText();
+                .get("challenge_id").asText();
         String code = otpSender.latestByTarget.get(email);
         assertThat(code).isNotNull();
 
         Map<String, Object> body = new HashMap<>();
-        body.put("challengeId", challengeId);
+        body.put("challenge_id", challengeId);
         body.put("code", code);
         body.put("password", "valid-password-x");
-        body.put("device", Map.of("deviceId", "dev-" + UUID.randomUUID(), "deviceLabel", "Phone"));
+        body.put("device", Map.of("device_id", "dev-" + UUID.randomUUID(), "device_label", "Phone"));
         body.put("profile", Map.of(
-                "fullName", tag + " Person",
-                "dateOfBirth", "1991-05-20",
+                "full_name", tag + " Person",
+                "date_of_birth", "1991-05-20",
                 "sex", "UNDISCLOSED"));
 
         MvcResult tokensRes = mvc.perform(post("/auth/register/complete")
@@ -345,7 +355,7 @@ class DiscussionAttachmentIntegrationTest {
                 .andExpect(status().isOk())
                 .andReturn();
         JsonNode tokenNode = json.readTree(tokensRes.getResponse().getContentAsByteArray());
-        String access = tokenNode.get("accessToken").asText();
+        String access = tokenNode.get("access_token").asText();
         return new Session(accountIdFromAccessToken(access), access);
     }
 

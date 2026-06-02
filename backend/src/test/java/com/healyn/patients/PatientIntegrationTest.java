@@ -102,8 +102,8 @@ class PatientIntegrationTest {
     void add_family_member_appears_in_list() throws Exception {
         Session s = register("bob");
         String body = json.writeValueAsString(Map.of(
-                "fullName", "Bob Jr",
-                "dateOfBirth", "2015-04-10",
+                "full_name", "Bob Jr",
+                "date_of_birth", "2015-04-10",
                 "sex", "MALE",
                 "relationship", "CHILD"));
 
@@ -129,10 +129,10 @@ class PatientIntegrationTest {
                         .header("Authorization", "Bearer " + s.access)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(json.writeValueAsString(Map.of(
-                                "fullName", "Carol Junior",
+                                "full_name", "Carol Junior",
                                 "allergies", "Peanuts"))))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.fullName").value("Carol Junior"))
+                .andExpect(jsonPath("$.full_name").value("Carol Junior"))
                 .andExpect(jsonPath("$.allergies").value("Peanuts"));
     }
 
@@ -187,8 +187,8 @@ class PatientIntegrationTest {
                         .header("Authorization", "Bearer " + s.access)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(json.writeValueAsString(Map.of(
-                                "fullName", name,
-                                "dateOfBirth", dob,
+                                "full_name", name,
+                                "date_of_birth", dob,
                                 "sex", sex,
                                 "relationship", rel))))
                 .andExpect(status().isCreated())
@@ -207,13 +207,13 @@ class PatientIntegrationTest {
         assertThat(code).isNotNull();
 
         Map<String, Object> body = new HashMap<>();
-        body.put("challengeId", startResp.get("challengeId"));
+        body.put("challenge_id", startResp.get("challenge_id"));
         body.put("code", code);
         body.put("password", "valid-password-x");
-        body.put("device", Map.of("deviceId", "dev-1", "deviceLabel", "Phone"));
+        body.put("device", Map.of("device_id", "dev-1", "device_label", "Phone"));
         body.put("profile", Map.of(
-                "fullName", prefix + " Person",
-                "dateOfBirth", "1991-05-20",
+                "full_name", prefix + " Person",
+                "date_of_birth", "1991-05-20",
                 "sex", "UNDISCLOSED"));
 
         Map<String, Object> tokens = body(mvc.perform(post("/auth/register/complete")
@@ -221,7 +221,7 @@ class PatientIntegrationTest {
                         .content(json.writeValueAsBytes(body)))
                 .andExpect(status().isOk())
                 .andReturn());
-        return new Session((String) tokens.get("accessToken"));
+        return new Session((String) tokens.get("access_token"));
     }
 
     private Map<String, Object> body(MvcResult result) throws Exception {

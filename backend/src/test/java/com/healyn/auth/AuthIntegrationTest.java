@@ -95,7 +95,7 @@ class AuthIntegrationTest {
         Map<String, Object> loginTokens = body(mvc.perform(post("/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(json.writeValueAsBytes(Map.of(
-                                "emailOrPhone", email,
+                                "email_or_phone", email,
                                 "password", "correct-horse-battery",
                                 "device", deviceBody()))))
                 .andExpect(status().isOk())
@@ -103,18 +103,18 @@ class AuthIntegrationTest {
 
         Map<String, Object> refreshed = body(mvc.perform(post("/auth/refresh")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(json.writeValueAsBytes(Map.of("refreshToken", loginTokens.get("refreshToken")))))
+                        .content(json.writeValueAsBytes(Map.of("refresh_token", loginTokens.get("refresh_token")))))
                 .andExpect(status().isOk())
                 .andReturn());
-        assertThat(refreshed.get("refreshToken")).isNotEqualTo(loginTokens.get("refreshToken"));
+        assertThat(refreshed.get("refresh_token")).isNotEqualTo(loginTokens.get("refresh_token"));
 
-        String access = (String) refreshed.get("accessToken");
+        String access = (String) refreshed.get("access_token");
         mvc.perform(get("/auth/sessions").header("Authorization", "Bearer " + access))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.sessions").isArray())
-                .andExpect(jsonPath("$.sessions[0].deviceId").value("dev-1"));
+                .andExpect(jsonPath("$.sessions[0].device_id").value("dev-1"));
 
-        String sessionId = (String) refreshed.get("sessionId");
+        String sessionId = (String) refreshed.get("session_id");
         mvc.perform(delete("/auth/sessions/" + sessionId).header("Authorization", "Bearer " + access))
                 .andExpect(status().isNoContent());
     }
@@ -128,7 +128,7 @@ class AuthIntegrationTest {
             mvc.perform(post("/auth/login")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(json.writeValueAsBytes(Map.of(
-                                    "emailOrPhone", email,
+                                    "email_or_phone", email,
                                     "password", "wrong-password",
                                     "device", deviceBody()))))
                     .andExpect(status().isUnauthorized());
@@ -137,7 +137,7 @@ class AuthIntegrationTest {
         mvc.perform(post("/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(json.writeValueAsBytes(Map.of(
-                                "emailOrPhone", email,
+                                "email_or_phone", email,
                                 "password", "valid-password-1",
                                 "device", deviceBody()))))
                 .andExpect(status().isLocked());
@@ -147,16 +147,16 @@ class AuthIntegrationTest {
     void refresh_token_replay_revokes_all_sessions_for_account() throws Exception {
         String email = "carol+" + UUID.randomUUID() + "@example.com";
         Map<String, Object> tokens = registerAndComplete(email, "valid-password-2");
-        String originalRefresh = (String) tokens.get("refreshToken");
+        String originalRefresh = (String) tokens.get("refresh_token");
 
         mvc.perform(post("/auth/refresh")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(json.writeValueAsBytes(Map.of("refreshToken", originalRefresh))))
+                        .content(json.writeValueAsBytes(Map.of("refresh_token", originalRefresh))))
                 .andExpect(status().isOk());
 
         mvc.perform(post("/auth/refresh")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(json.writeValueAsBytes(Map.of("refreshToken", originalRefresh))))
+                        .content(json.writeValueAsBytes(Map.of("refresh_token", originalRefresh))))
                 .andExpect(status().isUnauthorized());
     }
 
@@ -189,7 +189,7 @@ class AuthIntegrationTest {
         mvc.perform(post("/auth/register/complete")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(json.writeValueAsBytes(Map.of(
-                                "challengeId", startResp.get("challengeId"),
+                                "challenge_id", startResp.get("challenge_id"),
                                 "code", "000000",
                                 "password", "valid-password-3",
                                 "device", deviceBody(),
@@ -202,14 +202,14 @@ class AuthIntegrationTest {
         String email = "frank+" + UUID.randomUUID() + "@example.com";
         Map<String, Object> tokens = registerAndComplete(email, "valid-password-4");
 
-        String access = (String) tokens.get("accessToken");
+        String access = (String) tokens.get("access_token");
         mvc.perform(get("/patients").header("Authorization", "Bearer " + access))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.patients").isArray())
                 .andExpect(jsonPath("$.patients.length()").value(1))
                 .andExpect(jsonPath("$.patients[0].relationship").value("SELF"))
                 .andExpect(jsonPath("$.patients[0].primary").value(true))
-                .andExpect(jsonPath("$.patients[0].fullName").value("Test Person"));
+                .andExpect(jsonPath("$.patients[0].full_name").value("Test Person"));
     }
 
     private Map<String, Object> registerAndComplete(String email, String password) throws Exception {
@@ -222,7 +222,7 @@ class AuthIntegrationTest {
         assertThat(code).as("captured OTP for " + email).isNotNull();
 
         Map<String, Object> body = new HashMap<>();
-        body.put("challengeId", startResp.get("challengeId"));
+        body.put("challenge_id", startResp.get("challenge_id"));
         body.put("code", code);
         body.put("password", password);
         body.put("device", deviceBody());
@@ -236,13 +236,13 @@ class AuthIntegrationTest {
     }
 
     private static Map<String, Object> deviceBody() {
-        return Map.of("deviceId", "dev-1", "deviceLabel", "Test Phone");
+        return Map.of("device_id", "dev-1", "device_label", "Test Phone");
     }
 
     private static Map<String, Object> profileBody() {
         return Map.of(
-                "fullName", "Test Person",
-                "dateOfBirth", "1990-01-15",
+                "full_name", "Test Person",
+                "date_of_birth", "1990-01-15",
                 "sex", "UNDISCLOSED");
     }
 

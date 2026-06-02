@@ -105,10 +105,10 @@ class TreatmentNoteIntegrationTest {
                         .content(json.writeValueAsString(Map.of(
                                 "diagnosis", "Lumbar strain",
                                 "notes", "Tender at L4-L5",
-                                "recoveryInstructions", "Heat + stretches"))))
+                                "recovery_instructions", "Heat + stretches"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.diagnosis").value("Lumbar strain"))
-                .andExpect(jsonPath("$.authorAccountId").value(f.physio.id.toString()));
+                .andExpect(jsonPath("$.author_account_id").value(f.physio.id.toString()));
 
         mvc.perform(get("/appointments/" + f.apptId + "/treatment_note")
                         .header("Authorization", "Bearer " + f.account.access))
@@ -216,15 +216,25 @@ class TreatmentNoteIntegrationTest {
                 .andExpect(status().isOk());
     }
 
+    // Tests in this class share one Postgres container, so each booking must claim a distinct
+    // slot to avoid colliding with appointments left behind by earlier tests.
+    private static final java.util.concurrent.atomic.AtomicInteger SLOT_SEQ =
+            new java.util.concurrent.atomic.AtomicInteger();
+
+    private static String nextSlot() {
+        int minutes = SLOT_SEQ.getAndIncrement() * 30;
+        return nextMondayAt(9 + minutes / 60, minutes % 60);
+    }
+
     private UUID bookAppointment(Session actor, UUID patientId) throws Exception {
         MvcResult res = mvc.perform(post("/appointments")
                         .header("Authorization", "Bearer " + actor.access)
                         .header("Idempotency-Key", "tnote-" + UUID.randomUUID())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(json.writeValueAsString(Map.of(
-                                "patientId", patientId.toString(),
-                                "scheduledAt", nextMondayAt(9, 0),
-                                "durationMinutes", 30))))
+                                "patient_id", patientId.toString(),
+                                "scheduled_at", nextSlot(),
+                                "duration_minutes", 30))))
                 .andExpect(status().isCreated())
                 .andReturn();
         return UUID.fromString(json.readTree(res.getResponse().getContentAsByteArray()).get("id").asText());
@@ -236,12 +246,12 @@ class TreatmentNoteIntegrationTest {
                         .header("Authorization", "Bearer " + physio.access)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(json.writeValueAsString(Map.of(
-                                "dayOfWeek", 1,
-                                "startTime", "09:00:00",
-                                "endTime", "13:00:00",
-                                "slotMinutes", 30,
+                                "day_of_week", 1,
+                                "start_time", "09:00:00",
+                                "end_time", "17:00:00",
+                                "slot_minutes", 30,
                                 "timezone", "Asia/Kolkata",
-                                "effectiveFrom", effectiveFrom))))
+                                "effective_from", effectiveFrom))))
                 .andExpect(status().isCreated());
     }
 
@@ -251,7 +261,7 @@ class TreatmentNoteIntegrationTest {
         if (daysAhead == 0) daysAhead = 7;
         LocalDate monday = today.plusDays(daysAhead);
         return ZonedDateTime.of(monday, LocalTime.of(hour, minute), KOLKATA)
-                .toOffsetDateTime()
+                .toInstant()
                 .toString();
     }
 
@@ -274,18 +284,18 @@ class TreatmentNoteIntegrationTest {
                 .andExpect(status().isAccepted())
                 .andReturn();
         String challengeId = json.readTree(startRes.getResponse().getContentAsByteArray())
-                .get("challengeId").asText();
+                .get("challenge_id").asText();
         String code = otpSender.latestByTarget.get(email);
         assertThat(code).isNotNull();
 
         Map<String, Object> body = new HashMap<>();
-        body.put("challengeId", challengeId);
+        body.put("challenge_id", challengeId);
         body.put("code", code);
         body.put("password", "valid-password-x");
-        body.put("device", Map.of("deviceId", "dev-" + UUID.randomUUID(), "deviceLabel", "Phone"));
+        body.put("device", Map.of("device_id", "dev-" + UUID.randomUUID(), "device_label", "Phone"));
         body.put("profile", Map.of(
-                "fullName", tag + " Person",
-                "dateOfBirth", "1991-05-20",
+                "full_name", tag + " Person",
+                "date_of_birth", "1991-05-20",
                 "sex", "UNDISCLOSED"));
 
         MvcResult tokensRes = mvc.perform(post("/auth/register/complete")
@@ -294,7 +304,7 @@ class TreatmentNoteIntegrationTest {
                 .andExpect(status().isOk())
                 .andReturn();
         JsonNode tokenNode = json.readTree(tokensRes.getResponse().getContentAsByteArray());
-        String access = tokenNode.get("accessToken").asText();
+        String access = tokenNode.get("access_token").asText();
         return new Session(accountIdFromAccessToken(access), access);
     }
 

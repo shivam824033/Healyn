@@ -101,32 +101,32 @@ class AvailabilityIntegrationTest {
         Session patient = registerPatient("aria");
 
         UUID ruleId = createRule(physio, Map.of(
-                "dayOfWeek", 1,
-                "startTime", "09:00:00",
-                "endTime", "13:00:00",
-                "slotMinutes", 30,
+                "day_of_week", 1,
+                "start_time", "09:00:00",
+                "end_time", "13:00:00",
+                "slot_minutes", 30,
                 "timezone", "Asia/Kolkata",
-                "effectiveFrom", "2026-01-01"));
+                "effective_from", "2026-01-01"));
         assertThat(ruleId).isNotNull();
 
         mvc.perform(post("/availability/blackouts")
                         .header("Authorization", "Bearer " + physio.access)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(json.writeValueAsString(Map.of(
-                                "startsAt", "2026-06-15T10:00:00+05:30",
-                                "endsAt",   "2026-06-15T11:00:00+05:30",
+                                "starts_at", "2026-06-15T10:00:00+05:30",
+                                "ends_at",   "2026-06-15T11:00:00+05:30",
                                 "reason",   "Personal"))))
                 .andExpect(status().isCreated());
 
         mvc.perform(get("/availability")
-                        .param("physiotherapistId", physio.id.toString())
+                        .param("physiotherapist_id", physio.id.toString())
                         .param("from", "2026-06-15")
                         .param("to",   "2026-06-15")
                         .header("Authorization", "Bearer " + patient.access))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.physiotherapistId").value(physio.id.toString()))
+                .andExpect(jsonPath("$.physiotherapist_id").value(physio.id.toString()))
                 .andExpect(jsonPath("$.slots.length()").value(6))
-                .andExpect(jsonPath("$.slots[0].durationMinutes").value(30));
+                .andExpect(jsonPath("$.slots[0].duration_minutes").value(30));
     }
 
     @Test
@@ -145,8 +145,8 @@ class AvailabilityIntegrationTest {
         Session physio = seedPhysio("physio-b");
 
         Map<String, Object> first = Map.of(
-                "startsAt", "2026-07-01T09:00:00Z",
-                "endsAt",   "2026-07-01T11:00:00Z");
+                "starts_at", "2026-07-01T09:00:00Z",
+                "ends_at",   "2026-07-01T11:00:00Z");
         mvc.perform(post("/availability/blackouts")
                         .header("Authorization", "Bearer " + physio.access)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -154,8 +154,8 @@ class AvailabilityIntegrationTest {
                 .andExpect(status().isCreated());
 
         Map<String, Object> overlap = Map.of(
-                "startsAt", "2026-07-01T10:00:00Z",
-                "endsAt",   "2026-07-01T12:00:00Z");
+                "starts_at", "2026-07-01T10:00:00Z",
+                "ends_at",   "2026-07-01T12:00:00Z");
         mvc.perform(post("/availability/blackouts")
                         .header("Authorization", "Bearer " + physio.access)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -177,7 +177,7 @@ class AvailabilityIntegrationTest {
         LocalDate far = LocalDate.now().plusDays(20);
         LocalDate sameWeekMonday = far.with(java.time.DayOfWeek.MONDAY);
         mvc.perform(get("/availability")
-                        .param("physiotherapistId", physio.id.toString())
+                        .param("physiotherapist_id", physio.id.toString())
                         .param("from", sameWeekMonday.toString())
                         .param("to",   sameWeekMonday.toString())
                         .header("Authorization", "Bearer " + physio.access))
@@ -187,7 +187,7 @@ class AvailabilityIntegrationTest {
         mvc.perform(get("/availability/rules")
                         .header("Authorization", "Bearer " + physio.access))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.rules[0].effectiveTo").isNotEmpty());
+                .andExpect(jsonPath("$.rules[0].effective_to").isNotEmpty());
     }
 
     @Test
@@ -210,7 +210,7 @@ class AvailabilityIntegrationTest {
         Session physio = seedPhysio("physio-e");
 
         mvc.perform(get("/availability")
-                        .param("physiotherapistId", physio.id.toString())
+                        .param("physiotherapist_id", physio.id.toString())
                         .param("from", "2026-06-01")
                         .param("to",   "2026-08-01")
                         .header("Authorization", "Bearer " + physio.access))
@@ -230,12 +230,12 @@ class AvailabilityIntegrationTest {
 
     private static Map<String, Object> ruleBody() {
         return Map.of(
-                "dayOfWeek", 1,
-                "startTime", "09:00:00",
-                "endTime", "13:00:00",
-                "slotMinutes", 30,
+                "day_of_week", 1,
+                "start_time", "09:00:00",
+                "end_time", "13:00:00",
+                "slot_minutes", 30,
                 "timezone", "Asia/Kolkata",
-                "effectiveFrom", "2026-01-01");
+                "effective_from", "2026-01-01");
     }
 
     private Session seedPhysio(String tag) {
@@ -260,13 +260,13 @@ class AvailabilityIntegrationTest {
         assertThat(code).isNotNull();
 
         Map<String, Object> body = new HashMap<>();
-        body.put("challengeId", startResp.get("challengeId"));
+        body.put("challenge_id", startResp.get("challenge_id"));
         body.put("code", code);
         body.put("password", "valid-password-x");
-        body.put("device", Map.of("deviceId", "dev-1", "deviceLabel", "Phone"));
+        body.put("device", Map.of("device_id", "dev-1", "device_label", "Phone"));
         body.put("profile", Map.of(
-                "fullName", tag + " Person",
-                "dateOfBirth", "1991-05-20",
+                "full_name", tag + " Person",
+                "date_of_birth", "1991-05-20",
                 "sex", "UNDISCLOSED"));
 
         Map<String, Object> tokens = body(mvc.perform(post("/auth/register/complete")
@@ -274,7 +274,7 @@ class AvailabilityIntegrationTest {
                         .content(json.writeValueAsBytes(body)))
                 .andExpect(status().isOk())
                 .andReturn());
-        return new Session(null, (String) tokens.get("accessToken"));
+        return new Session(null, (String) tokens.get("access_token"));
     }
 
     private Map<String, Object> body(MvcResult result) throws Exception {
