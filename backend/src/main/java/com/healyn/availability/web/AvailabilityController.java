@@ -58,7 +58,7 @@ public class AvailabilityController {
     @GetMapping
     public AvailabilityDtos.SlotListResponse listSlots(
             @AuthenticationPrincipal Jwt jwt,
-            @RequestParam(value = "physiotherapistId", required = false) UUID physiotherapistIdParam,
+            @RequestParam(value = "physiotherapist_id", required = false) UUID physiotherapistIdParam,
             @RequestParam("from") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
             @RequestParam("to") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
         requireValidRange(from, to);

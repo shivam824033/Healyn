@@ -41,19 +41,23 @@ public interface DiscussionMessageRepository extends JpaRepository<DiscussionMes
             @Param("pivotId") UUID pivotId,
             Limit limit);
 
+    // `:hasMarker` toggles the read-marker filter instead of a standalone `:lastReadCreatedAt
+    // is null` test: Postgres cannot infer the type of a param used only in `is null`
+    // (SQLSTATE 42P18). When false, every message from the counterparty counts as unread.
     @Query("""
             select count(m)
             from DiscussionMessage m
             where m.appointmentId = :appointmentId
               and m.deletedAt is null
               and m.senderAccountId <> :accountId
-              and (:lastReadCreatedAt is null
+              and (:hasMarker = false
                    or m.createdAt > :lastReadCreatedAt
                    or (m.createdAt = :lastReadCreatedAt and m.id > :lastReadId))
             """)
     long countUnreadFor(
             @Param("appointmentId") UUID appointmentId,
             @Param("accountId") UUID accountId,
+            @Param("hasMarker") boolean hasMarker,
             @Param("lastReadCreatedAt") Instant lastReadCreatedAt,
             @Param("lastReadId") UUID lastReadId);
 }

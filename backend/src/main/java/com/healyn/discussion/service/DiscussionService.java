@@ -270,7 +270,7 @@ public class DiscussionService {
                 lastReadId = lastRead.getId();
             }
         }
-        return messages.countUnreadFor(appointmentId, actorId, lastReadAt, lastReadId);
+        return messages.countUnreadFor(appointmentId, actorId, lastReadAt != null, lastReadAt, lastReadId);
     }
 
     // ---- helpers ----

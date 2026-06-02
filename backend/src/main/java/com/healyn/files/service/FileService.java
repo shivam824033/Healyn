@@ -44,6 +44,7 @@ public class FileService {
     private final FileStorePort store;
     private final FileReferenceGuard referenceGuard;
     private final AuditLogger audit;
+    private final FileQuarantineService quarantineService;
     private final Duration presignTtl;
     private final Clock clock;
 
@@ -53,6 +54,7 @@ public class FileService {
                        FileStorePort store,
                        FileReferenceGuard referenceGuard,
                        AuditLogger audit,
+                       FileQuarantineService quarantineService,
                        HealynS3Properties s3,
                        Clock clock) {
         this.files = files;
@@ -61,6 +63,7 @@ public class FileService {
         this.store = store;
         this.referenceGuard = referenceGuard;
         this.audit = audit;
+        this.quarantineService = quarantineService;
         this.presignTtl = Duration.ofSeconds(s3.presignTtlSeconds());
         this.clock = clock;
     }
@@ -116,7 +119,8 @@ public class FileService {
                 .orElseThrow(() -> new ConflictException(ErrorCode.FILE_OBJECT_MISSING,
                         "No uploaded object found for this file"));
         if (actualSize != file.getSizeBytes()) {
-            file.quarantine();
+            // Commit the quarantine in its own transaction; throwing rolls back this one.
+            quarantineService.quarantine(fileId);
             throw new UnprocessableException(ErrorCode.FILE_MAGIC_BYTE_MISMATCH,
                     "Uploaded size does not match the declared size");
         }
@@ -124,7 +128,7 @@ public class FileService {
         byte[] head = store.read(file.getStorageKey(), MAGIC_PROBE_BYTES);
         FileMime mime = FileMime.fromMimeType(file.getMimeType()).orElseThrow();
         if (!mime.matchesMagic(head)) {
-            file.quarantine();
+            quarantineService.quarantine(fileId);
             throw new UnprocessableException(ErrorCode.FILE_MAGIC_BYTE_MISMATCH,
                     "File content does not match its declared type");
         }

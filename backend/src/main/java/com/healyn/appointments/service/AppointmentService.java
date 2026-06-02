@@ -56,6 +56,10 @@ public class AppointmentService {
             AppointmentStatus.REQUESTED,
             AppointmentStatus.CONFIRMED,
             AppointmentStatus.IN_PROGRESS);
+    // Never-matching placeholders bound to the IN lists when a filter is disabled.
+    private static final Collection<UUID> PATIENT_FILTER_SENTINEL = List.of(new UUID(0L, 0L));
+    private static final Collection<AppointmentStatus> STATUS_FILTER_SENTINEL =
+            List.of(AppointmentStatus.REQUESTED);
 
     private final AppointmentRepository appointments;
     private final AccountRepository accounts;
@@ -145,13 +149,26 @@ public class AppointmentService {
         Collection<AppointmentStatus> statusFilter =
                 (statuses == null || statuses.isEmpty()) ? null : statuses;
 
+        // Toggle each optional filter with a boolean flag; when a filter is off its companion
+        // param is bound to a harmless sentinel so the IN list stays valid SQL (see repository).
+        boolean filterPatients = patientIds != null;
+        Collection<UUID> patientParam = filterPatients ? patientIds : PATIENT_FILTER_SENTINEL;
+        boolean filterStatuses = statusFilter != null;
+        Collection<AppointmentStatus> statusParam = filterStatuses ? statusFilter : STATUS_FILTER_SENTINEL;
+        boolean filterFrom = from != null;
+        boolean filterTo = to != null;
+
         Limit lim = Limit.of(limit + 1);
         List<Appointment> rows;
         if (cursorToken == null || cursorToken.isBlank()) {
-            rows = appointments.listFirstPage(patientIds, statusFilter, from, to, lim);
+            rows = appointments.listFirstPage(
+                    filterPatients, patientParam, filterStatuses, statusParam,
+                    filterFrom, from, filterTo, to, lim);
         } else {
             Cursor c = Cursor.decode(cursorToken);
-            rows = appointments.listAfterCursor(patientIds, statusFilter, from, to, c.pivot(), c.id(), lim);
+            rows = appointments.listAfterCursor(
+                    filterPatients, patientParam, filterStatuses, statusParam,
+                    filterFrom, from, filterTo, to, c.pivot(), c.id(), lim);
         }
 
         String nextCursor = null;
