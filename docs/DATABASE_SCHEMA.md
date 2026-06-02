@@ -397,6 +397,33 @@ CREATE INDEX idx_notif_due
     WHERE status = 'PENDING';
 ```
 
+### 3.13a `fcm_tokens` — device push registration tokens
+
+```sql
+CREATE TABLE fcm_tokens (
+    id            UUID PRIMARY KEY,
+    account_id    UUID NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+    token         TEXT NOT NULL,
+    platform      VARCHAR(16) NOT NULL DEFAULT 'android',     -- 'ios' added Phase 2
+    device_id     VARCHAR(128),
+    created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    last_seen_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    deleted_at    TIMESTAMPTZ
+);
+
+CREATE UNIQUE INDEX idx_fcm_tokens_token   ON fcm_tokens(token)      WHERE deleted_at IS NULL;
+CREATE INDEX        idx_fcm_tokens_account ON fcm_tokens(account_id) WHERE deleted_at IS NULL;
+```
+
+Owned by the notifications module (the entity is `FcmToken`). One row per app install;
+a token is unique while live. Re-registering a known token rebinds it to the current
+account (device re-login / handover). The outbox dispatcher resolves an account's live
+tokens at send time and retires any that FCM reports as unregistered (soft-delete).
+
+> The legacy `device_sessions.fcm_token` column (V3) predates this table and is not the
+> dispatch source of truth; `fcm_tokens` is. The column is retained (dropping it needs
+> approval per the migration rules) and may be removed in a later cleanup.
+
 ### 3.14 `audit.audit_log` — separate schema, append-only
 
 ```sql
@@ -500,9 +527,11 @@ V9__file_objects_schema.sql      -- file metadata (bytes in S3)
 V10__discussion_message_attachments.sql  -- wires file_objects into discussion
 V11__notification_outbox.sql      -- transactional outbox (enqueue side)
 V12__audit_log.sql                -- audit schema + append-only audit_log
+V13__fcm_tokens.sql               -- device push tokens (dispatch side, registration API)
 ```
 
-Still pending: `fcm_tokens` lands with the outbox dispatcher.
+Still pending: nothing schema-side for Phase 1 notifications; the outbox poller +
+FCM adapter are application code (no further migration).
 
 ---
 

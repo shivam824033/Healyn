@@ -234,7 +234,13 @@ GET /api/v1/appointments?cursor=eyJpZCI6Ii4uLiJ9&limit=20
 | `POST` | `/api/v1/auth/password_reset/verify` | Verify OTP + set new password |
 | `GET`  | `/api/v1/auth/sessions` | List active device sessions |
 | `DELETE` | `/api/v1/auth/sessions/{id}` | Revoke a session |
-| `POST` | `/api/v1/auth/fcm_tokens` | Register / update FCM token |
+| `POST` | `/api/v1/auth/fcm_tokens` | Register / update FCM token (auth required) |
+
+> `POST /auth/fcm_tokens` body: `{ token (required), platform? ("android", default), device_id? }`.
+> Idempotent upsert keyed on `token`: re-posting a known token rebinds it to the caller's
+> account and refreshes metadata. Returns `200` with `{ "id": "<fcm_token_uuid>" }`. The
+> resource is owned by the notifications module; the controller lives there but serves the
+> `/auth/fcm_tokens` path (served unprefixed by the running backend — see §9.4 note).
 
 ### 9.2 Patients
 

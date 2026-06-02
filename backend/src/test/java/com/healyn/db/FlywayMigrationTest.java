@@ -30,8 +30,8 @@ class FlywayMigrationTest {
         flyway.migrate();
 
         MigrationInfo current = flyway.info().current();
-        assertThat(current.getVersion().getVersion()).isEqualTo("12");
-        assertThat(flyway.info().applied()).hasSizeGreaterThanOrEqualTo(12);
+        assertThat(current.getVersion().getVersion()).isEqualTo("13");
+        assertThat(flyway.info().applied()).hasSizeGreaterThanOrEqualTo(13);
 
         DataSource ds = flyway.getConfiguration().getDataSource();
         try (Connection c = ds.getConnection(); Statement st = c.createStatement()) {
@@ -54,6 +54,10 @@ class FlywayMigrationTest {
             try (ResultSet rs = st.executeQuery(
                     "select 1 from pg_tables where tablename = 'discussion_read_markers'")) {
                 assertThat(rs.next()).as("discussion_read_markers table exists").isTrue();
+            }
+            try (ResultSet rs = st.executeQuery(
+                    "select 1 from pg_tables where tablename = 'fcm_tokens'")) {
+                assertThat(rs.next()).as("fcm_tokens table exists").isTrue();
             }
         }
     }
