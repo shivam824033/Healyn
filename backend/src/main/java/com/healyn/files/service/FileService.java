@@ -13,6 +13,7 @@ import com.healyn.files.domain.FileMime;
 import com.healyn.files.domain.FileObject;
 import com.healyn.files.domain.FileStatus;
 import com.healyn.files.policy.FileAccessPolicy;
+import com.healyn.files.port.FileReferenceGuard;
 import com.healyn.files.port.FileStorePort;
 import com.healyn.files.repository.FileObjectRepository;
 import org.springframework.stereotype.Service;
@@ -37,6 +38,7 @@ public class FileService {
     private final AppointmentRepository appointments;
     private final FileAccessPolicy access;
     private final FileStorePort store;
+    private final FileReferenceGuard referenceGuard;
     private final Duration presignTtl;
     private final Clock clock;
 
@@ -44,12 +46,14 @@ public class FileService {
                        AppointmentRepository appointments,
                        FileAccessPolicy access,
                        FileStorePort store,
+                       FileReferenceGuard referenceGuard,
                        HealynS3Properties s3,
                        Clock clock) {
         this.files = files;
         this.appointments = appointments;
         this.access = access;
         this.store = store;
+        this.referenceGuard = referenceGuard;
         this.presignTtl = Duration.ofSeconds(s3.presignTtlSeconds());
         this.clock = clock;
     }
@@ -147,8 +151,11 @@ public class FileService {
     public void delete(UUID actorId, AccountRole role, UUID fileId) {
         FileObject file = loadActive(fileId);
         access.requireWrite(actorId, role, file.getPatientId());
-        // Once discussion_message_attachments exists, deletion is blocked while any
-        // message references the file (FILE_STORAGE_GUIDELINES §10). No references yet.
+        // Deletion is blocked while any message references the file (FILE_STORAGE_GUIDELINES §10).
+        if (referenceGuard.isReferenced(fileId)) {
+            throw new ConflictException(ErrorCode.FILE_REFERENCED,
+                    "File is referenced by a discussion message and cannot be deleted");
+        }
         file.softDelete(Instant.now(clock));
         // TODO move S3 object to cold storage (tombstone).
     }

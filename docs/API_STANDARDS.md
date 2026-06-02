@@ -144,11 +144,16 @@ Every non-2xx response uses this shape:
 | `discussion.edit_window_expired` | 409 | 5-minute edit window passed |
 | `discussion.not_sender` | 403 | Only the original sender may edit/delete |
 | `discussion.message_not_found` | 404 | Message not found in this appointment |
-| `discussion.empty_message` | 422 | Body required (or attachments, once supported) |
+| `discussion.empty_message` | 422 | Body required, or `ATTACHMENT_ONLY` with no attachment |
 | `discussion.body_too_long` | 422 | Body exceeds 2,000 characters |
-| `files.upload_too_large` | 400 | File exceeds size limit |
-| `files.unsupported_type` | 400 | MIME type not supported |
-| `files.not_available` | 409 | File still pending upload |
+| `discussion.too_many_attachments` | 422 | More than 10 attachments |
+| `discussion.attachment_not_found` | 404 | Referenced file does not exist |
+| `discussion.attachment_patient_mismatch` | 403 | File belongs to a different patient |
+| `discussion.attachment_not_ready` | 409 | File is not `AVAILABLE` yet |
+| `files.unsupported_mime` | 422 | MIME type not supported |
+| `files.too_large` | 422 | File exceeds the per-type size cap |
+| `files.invalid_state` | 409 | File not in the required status |
+| `files.referenced` | 409 | File referenced by a message; cannot delete |
 
 ---
 
@@ -295,12 +300,12 @@ Cancel reasons: `PATIENT_CANCELLED`, `PHYSIO_CANCELLED`, `CLINIC_CLOSED`, `OTHER
 
 ### 9.5 Discussion
 
-> Paths are unprefixed (no `/api/v1`) — see the open follow-up in §9.4. Attachments (`file_ids[]`) are deferred to the files PR; today's POST/PATCH accept body-only messages.
+> Paths are unprefixed (no `/api/v1`) — see the open follow-up in §9.4.
 
 | Method | Path | Purpose | Body |
 |---|---|---|---|
 | `GET`    | `/appointments/{id}/messages?cursor=&limit=` | List messages (cursor, default 20, max 50) | — |
-| `POST`   | `/appointments/{id}/messages` | Create | `{ messageType: "QUESTION"\|"REPLY"\|"INSTRUCTION", body: string }` |
+| `POST`   | `/appointments/{id}/messages` | Create | `{ messageType: "QUESTION"\|"REPLY"\|"INSTRUCTION"\|"ATTACHMENT_ONLY", body: string, fileIds?: uuid[] }` |
 | `PATCH`  | `/appointments/{id}/messages/{msgId}` | Edit (≤ 5 min, original sender only) | `{ body: string }` |
 | `DELETE` | `/appointments/{id}/messages/{msgId}` | Soft-delete (≤ 5 min, original sender only) | — |
 | `POST`   | `/appointments/{id}/messages/read` | Advance the caller's last-read marker | `{ messageId: uuid }` |
@@ -310,14 +315,19 @@ List response envelope:
 ```json
 { "items": [ { "id": "…", "appointmentId": "…", "senderAccountId": "…",
                "senderRole": "PATIENT_SIDE", "messageType": "REPLY",
-               "body": "…", "createdAt": "…", "editedAt": null } ],
+               "body": "…",
+               "attachments": [ { "fileId": "…", "kind": "REPORT",
+                                  "mimeType": "application/pdf",
+                                  "originalFilename": "spine-mri.pdf", "sizeBytes": 1843204 } ],
+               "createdAt": "…", "editedAt": null } ],
   "nextCursor": "…or null" }
 ```
 
 Rules:
 - `INSTRUCTION` is rejected for non-physio callers.
 - For patient-side callers, write is rejected on `CANCELLED` / `NO_SHOW` appointments (`discussion.appointment_terminal`).
-- Body is required for `QUESTION` / `REPLY` / `INSTRUCTION` (max 2,000 chars). `ATTACHMENT_ONLY` is reserved for the files PR.
+- Body is required for `QUESTION` / `REPLY` / `INSTRUCTION` (max 2,000 chars). `ATTACHMENT_ONLY` must carry no body and at least one attachment.
+- `fileIds` carries 0–10 file ids (>10 → `discussion.too_many_attachments`). Each must exist (`discussion.attachment_not_found`), belong to the appointment's patient (`discussion.attachment_patient_mismatch`, 403), and be `AVAILABLE` (`discussion.attachment_not_ready`, 409). Files are pre-uploaded via §9.6.
 - Edit/delete beyond 5 minutes returns `discussion.edit_window_expired`. Non-sender returns `discussion.not_sender`.
 
 ### 9.6 Files
@@ -341,6 +351,7 @@ Rules:
 - Write (presign / complete / delete) needs write access to `patientId`; `appointmentId` is required in Phase 1 and must belong to that patient (`files.appointment_required` / `files.patient_mismatch`, 422). Per-account cap 100 files/day (`files.daily_cap_exceeded`, 409).
 - `complete` requires `PENDING_UPLOAD` (`files.invalid_state`, 409) and the uploaded object present (`files.object_missing`, 409). Size/magic-byte mismatch moves the file to `QUARANTINED` and returns `files.magic_byte_mismatch` (422). Download requires `AVAILABLE`.
 - The server never streams bytes: upload is direct-to-S3 via the presigned PUT, download via the presigned GET. Keys are UUID-based; user filenames are display-only.
+- `DELETE` is blocked while any discussion message references the file (`files.referenced`, 409); detach/soft-delete the message first.
 
 ### 9.7 Treatment Notes
 

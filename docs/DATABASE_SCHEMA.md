@@ -497,10 +497,10 @@ V6__appointments_schema.sql
 V7__discussion_schema.sql        -- messages + read markers (attachments deferred)
 V8__treatment_notes_schema.sql
 V9__file_objects_schema.sql      -- file metadata (bytes in S3)
+V10__discussion_message_attachments.sql  -- wires file_objects into discussion
 ```
 
-Still pending: `discussion_message_attachments` (wires files into discussion),
-`notification_outbox` + `audit.audit_log` (notifications / audit PRs).
+Still pending: `notification_outbox` + `audit.audit_log` (notifications / audit PRs).
 
 ---
 

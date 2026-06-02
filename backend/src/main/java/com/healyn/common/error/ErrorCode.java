@@ -37,6 +37,10 @@ public final class ErrorCode {
     public static final String DISCUSSION_NOT_SENDER = "discussion.not_sender";
     public static final String DISCUSSION_EMPTY_MESSAGE = "discussion.empty_message";
     public static final String DISCUSSION_BODY_TOO_LONG = "discussion.body_too_long";
+    public static final String DISCUSSION_TOO_MANY_ATTACHMENTS = "discussion.too_many_attachments";
+    public static final String DISCUSSION_ATTACHMENT_NOT_FOUND = "discussion.attachment_not_found";
+    public static final String DISCUSSION_ATTACHMENT_NOT_READY = "discussion.attachment_not_ready";
+    public static final String DISCUSSION_ATTACHMENT_PATIENT_MISMATCH = "discussion.attachment_patient_mismatch";
 
     public static final String TREATMENT_NOTE_NOT_FOUND = "treatment_notes.not_found";
     public static final String TREATMENT_NOTE_APPOINTMENT_NOT_COMPLETED = "treatment_notes.appointment_not_completed";
@@ -54,6 +58,7 @@ public final class ErrorCode {
     public static final String FILE_INVALID_STATE = "files.invalid_state";
     public static final String FILE_OBJECT_MISSING = "files.object_missing";
     public static final String FILE_MAGIC_BYTE_MISMATCH = "files.magic_byte_mismatch";
+    public static final String FILE_REFERENCED = "files.referenced";
 
     private ErrorCode() {}
 }

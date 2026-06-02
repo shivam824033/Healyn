@@ -11,11 +11,18 @@ public final class DiscussionDtos {
 
     private DiscussionDtos() {}
 
-    public record PostMessageBody(DiscussionMessageType messageType, String body) {}
+    public record PostMessageBody(DiscussionMessageType messageType, String body, List<UUID> fileIds) {}
 
     public record EditMessageBody(String body) {}
 
     public record MarkReadBody(UUID messageId) {}
+
+    public record AttachmentView(
+            UUID fileId,
+            String kind,
+            String mimeType,
+            String originalFilename,
+            long sizeBytes) {}
 
     public record MessageView(
             UUID id,
@@ -24,6 +31,7 @@ public final class DiscussionDtos {
             DiscussionSenderRole senderRole,
             DiscussionMessageType messageType,
             String body,
+            List<AttachmentView> attachments,
             Instant createdAt,
             Instant editedAt) {}
 

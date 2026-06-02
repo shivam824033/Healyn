@@ -6,6 +6,7 @@ import com.healyn.discussion.domain.DiscussionMessage;
 import com.healyn.discussion.service.DiscussionService;
 import com.healyn.discussion.service.EditMessageRequest;
 import com.healyn.discussion.service.PostMessageRequest;
+import com.healyn.files.domain.FileObject;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -22,6 +23,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -43,8 +45,11 @@ public class DiscussionController {
         UUID actorId = UUID.fromString(jwt.getSubject());
         AccountRole role = roleOf(jwt);
         CursorPage<DiscussionMessage> page = service.list(actorId, role, appointmentId, cursor, limit);
-        List<DiscussionDtos.MessageView> views =
-                page.items().stream().map(DiscussionMapper::toView).toList();
+        Map<UUID, List<FileObject>> attachments = service.attachmentsFor(
+                page.items().stream().map(DiscussionMessage::getId).toList());
+        List<DiscussionDtos.MessageView> views = page.items().stream()
+                .map(m -> DiscussionMapper.toView(m, attachments.getOrDefault(m.getId(), List.of())))
+                .toList();
         return new DiscussionDtos.MessagePage(views, page.nextCursor());
     }
 
@@ -56,8 +61,9 @@ public class DiscussionController {
         UUID actorId = UUID.fromString(jwt.getSubject());
         AccountRole role = roleOf(jwt);
         DiscussionMessage saved = service.post(actorId, role, appointmentId,
-                new PostMessageRequest(body.messageType(), body.body()));
-        return ResponseEntity.status(HttpStatus.CREATED).body(DiscussionMapper.toView(saved));
+                new PostMessageRequest(body.messageType(), body.body(), body.fileIds()));
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(DiscussionMapper.toView(saved, attachmentsOf(saved)));
     }
 
     @PatchMapping("/{messageId}")
@@ -68,8 +74,9 @@ public class DiscussionController {
             @RequestBody DiscussionDtos.EditMessageBody body) {
         UUID actorId = UUID.fromString(jwt.getSubject());
         AccountRole role = roleOf(jwt);
-        return DiscussionMapper.toView(
-                service.edit(actorId, role, appointmentId, messageId, new EditMessageRequest(body.body())));
+        DiscussionMessage edited = service.edit(actorId, role, appointmentId, messageId,
+                new EditMessageRequest(body.body()));
+        return DiscussionMapper.toView(edited, attachmentsOf(edited));
     }
 
     @DeleteMapping("/{messageId}")
@@ -101,6 +108,10 @@ public class DiscussionController {
         UUID actorId = UUID.fromString(jwt.getSubject());
         AccountRole role = roleOf(jwt);
         return new DiscussionDtos.UnreadCountView(service.unreadCount(actorId, role, appointmentId));
+    }
+
+    private List<FileObject> attachmentsOf(DiscussionMessage msg) {
+        return service.attachmentsFor(List.of(msg.getId())).getOrDefault(msg.getId(), List.of());
     }
 
     private static AccountRole roleOf(Jwt jwt) {

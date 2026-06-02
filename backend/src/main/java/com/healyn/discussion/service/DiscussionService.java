@@ -15,9 +15,14 @@ import com.healyn.discussion.domain.DiscussionMessage;
 import com.healyn.discussion.domain.DiscussionMessageType;
 import com.healyn.discussion.domain.DiscussionReadMarker;
 import com.healyn.discussion.domain.DiscussionSenderRole;
+import com.healyn.discussion.domain.DiscussionMessageAttachment;
 import com.healyn.discussion.policy.DiscussionAccessPolicy;
+import com.healyn.discussion.repository.DiscussionMessageAttachmentRepository;
 import com.healyn.discussion.repository.DiscussionMessageRepository;
 import com.healyn.discussion.repository.DiscussionReadMarkerRepository;
+import com.healyn.files.domain.FileObject;
+import com.healyn.files.domain.FileStatus;
+import com.healyn.files.repository.FileObjectRepository;
 import org.springframework.data.domain.Limit;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,30 +31,43 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 public class DiscussionService {
 
     public static final int MAX_BODY_LENGTH = 2000;
+    public static final int MAX_ATTACHMENTS = 10;
     public static final Duration EDIT_WINDOW = Duration.ofMinutes(5);
 
     private final DiscussionMessageRepository messages;
+    private final DiscussionMessageAttachmentRepository attachments;
     private final DiscussionReadMarkerRepository readMarkers;
     private final AppointmentRepository appointments;
+    private final FileObjectRepository files;
     private final DiscussionAccessPolicy access;
     private final Clock clock;
 
     public DiscussionService(DiscussionMessageRepository messages,
+                             DiscussionMessageAttachmentRepository attachments,
                              DiscussionReadMarkerRepository readMarkers,
                              AppointmentRepository appointments,
+                             FileObjectRepository files,
                              DiscussionAccessPolicy access,
                              Clock clock) {
         this.messages = messages;
+        this.attachments = attachments;
         this.readMarkers = readMarkers;
         this.appointments = appointments;
+        this.files = files;
         this.access = access;
         this.clock = clock;
     }
@@ -61,11 +79,13 @@ public class DiscussionService {
 
         DiscussionMessageType type = req.messageType() != null ? req.messageType() : DiscussionMessageType.REPLY;
         String body = req.body();
-        validateBody(type, body);
+        List<UUID> fileIds = new ArrayList<>(new LinkedHashSet<>(req.fileIds()));
+        validateBody(type, body, fileIds.size());
         if (type == DiscussionMessageType.INSTRUCTION && role != AccountRole.ROLE_PHYSIO) {
             throw new ForbiddenException(ErrorCode.FORBIDDEN,
                     "Only the physiotherapist can post INSTRUCTION messages");
         }
+        List<FileObject> resolved = resolveAttachments(fileIds, appt.getPatientId());
 
         DiscussionSenderRole senderRole = role == AccountRole.ROLE_PHYSIO
                 ? DiscussionSenderRole.PHYSIO
@@ -79,8 +99,54 @@ public class DiscussionService {
                 type,
                 body);
         DiscussionMessage saved = messages.save(msg);
+        for (FileObject file : resolved) {
+            attachments.save(new DiscussionMessageAttachment(saved.getId(), file.getId()));
+        }
         // TODO outbox(DISCUSSION_NEW_MESSAGE) — wired in the notifications PR.
         return saved;
+    }
+
+    /** Attachments keyed by message id, for building list/detail views. */
+    @Transactional(readOnly = true)
+    public Map<UUID, List<FileObject>> attachmentsFor(Collection<UUID> messageIds) {
+        if (messageIds.isEmpty()) return Map.of();
+        List<DiscussionMessageAttachment> links = attachments.findByMessageIdIn(messageIds);
+        if (links.isEmpty()) return Map.of();
+        Map<UUID, FileObject> byFileId = files.findAllById(
+                        links.stream().map(DiscussionMessageAttachment::getFileId).distinct().toList())
+                .stream()
+                .collect(Collectors.toMap(FileObject::getId, Function.identity()));
+        Map<UUID, List<FileObject>> result = new LinkedHashMap<>();
+        for (DiscussionMessageAttachment link : links) {
+            FileObject file = byFileId.get(link.getFileId());
+            if (file != null) {
+                result.computeIfAbsent(link.getMessageId(), k -> new ArrayList<>()).add(file);
+            }
+        }
+        return result;
+    }
+
+    private List<FileObject> resolveAttachments(List<UUID> fileIds, UUID patientId) {
+        if (fileIds.size() > MAX_ATTACHMENTS) {
+            throw new UnprocessableException(ErrorCode.DISCUSSION_TOO_MANY_ATTACHMENTS,
+                    "A message may carry at most " + MAX_ATTACHMENTS + " attachments");
+        }
+        List<FileObject> resolved = new ArrayList<>(fileIds.size());
+        for (UUID fileId : fileIds) {
+            FileObject file = files.findByIdAndDeletedAtIsNull(fileId)
+                    .orElseThrow(() -> new NotFoundException(ErrorCode.DISCUSSION_ATTACHMENT_NOT_FOUND,
+                            "Attachment not found"));
+            if (!file.getPatientId().equals(patientId)) {
+                throw new ForbiddenException(ErrorCode.DISCUSSION_ATTACHMENT_PATIENT_MISMATCH,
+                        "Attachment belongs to a different patient");
+            }
+            if (file.getStatus() != FileStatus.AVAILABLE) {
+                throw new ConflictException(ErrorCode.DISCUSSION_ATTACHMENT_NOT_READY,
+                        "Attachment is not yet available (status=" + file.getStatus() + ")");
+            }
+            resolved.add(file);
+        }
+        return resolved;
     }
 
     @Transactional
@@ -211,16 +277,18 @@ public class DiscussionService {
         }
     }
 
-    private void validateBody(DiscussionMessageType type, String body) {
+    private void validateBody(DiscussionMessageType type, String body, int attachmentCount) {
         boolean blank = body == null || body.isBlank();
         if (type == DiscussionMessageType.ATTACHMENT_ONLY) {
             if (!blank) {
                 throw new UnprocessableException(ErrorCode.DISCUSSION_EMPTY_MESSAGE,
                         "ATTACHMENT_ONLY messages must not carry a body");
             }
-            // Attachments are out of scope until the files module ships; reject ATTACHMENT_ONLY for now.
-            throw new ConflictException(ErrorCode.DISCUSSION_EMPTY_MESSAGE,
-                    "ATTACHMENT_ONLY messages require attachments — not yet supported");
+            if (attachmentCount == 0) {
+                throw new UnprocessableException(ErrorCode.DISCUSSION_EMPTY_MESSAGE,
+                        "ATTACHMENT_ONLY messages require at least one attachment");
+            }
+            return;
         }
         if (blank) {
             throw new UnprocessableException(ErrorCode.DISCUSSION_EMPTY_MESSAGE,

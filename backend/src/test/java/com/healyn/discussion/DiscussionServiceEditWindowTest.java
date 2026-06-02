@@ -9,9 +9,11 @@ import com.healyn.discussion.domain.DiscussionMessage;
 import com.healyn.discussion.domain.DiscussionMessageType;
 import com.healyn.discussion.domain.DiscussionSenderRole;
 import com.healyn.discussion.policy.DiscussionAccessPolicy;
+import com.healyn.discussion.repository.DiscussionMessageAttachmentRepository;
 import com.healyn.discussion.repository.DiscussionMessageRepository;
 import com.healyn.discussion.repository.DiscussionReadMarkerRepository;
 import com.healyn.discussion.service.DiscussionService;
+import com.healyn.files.repository.FileObjectRepository;
 import com.healyn.discussion.service.EditMessageRequest;
 import org.junit.jupiter.api.Test;
 
@@ -30,8 +32,10 @@ import static org.mockito.Mockito.when;
 class DiscussionServiceEditWindowTest {
 
     private final DiscussionMessageRepository messages = mock(DiscussionMessageRepository.class);
+    private final DiscussionMessageAttachmentRepository attachments = mock(DiscussionMessageAttachmentRepository.class);
     private final DiscussionReadMarkerRepository readMarkers = mock(DiscussionReadMarkerRepository.class);
     private final AppointmentRepository appointments = mock(AppointmentRepository.class);
+    private final FileObjectRepository files = mock(FileObjectRepository.class);
     private final DiscussionAccessPolicy access = mock(DiscussionAccessPolicy.class);
 
     private static final UUID SENDER = UUID.randomUUID();
@@ -110,6 +114,6 @@ class DiscussionServiceEditWindowTest {
 
     private DiscussionService newService(Instant now) {
         Clock fixed = Clock.fixed(now, ZoneOffset.UTC);
-        return new DiscussionService(messages, readMarkers, appointments, access, fixed);
+        return new DiscussionService(messages, attachments, readMarkers, appointments, files, access, fixed);
     }
 }
