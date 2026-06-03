@@ -11,15 +11,22 @@ import 'package:healyn/features/appointments/presentation/appointments_providers
 import 'package:healyn/features/appointments/presentation/screens/appointment_detail_screen.dart';
 import 'package:healyn/features/appointments/presentation/screens/appointments_screen.dart';
 import 'package:healyn/features/appointments/presentation/screens/book_appointment_screen.dart';
+import 'package:healyn/features/appointments/presentation/screens/reschedule_appointment_screen.dart';
 import 'package:healyn/features/patients/data/models/patient_models.dart';
 import 'package:healyn/features/patients/presentation/patients_providers.dart';
 
-/// Records a booking but never completes it, so the submit-guard test can assert
-/// the call was *not* made without the screen navigating away.
+/// Records book/reschedule calls but never completes them, so the submit-guard
+/// tests can assert the call was *not* made without the screen navigating away.
+/// [slots] feeds the slot picker without hitting the network.
 class _RecordingApptRepo extends AppointmentsRepository {
   _RecordingApptRepo() : super(AppointmentsApi(Dio()));
 
   bool bookCalled = false;
+  bool rescheduleCalled = false;
+  List<Slot> slots = const [];
+
+  @override
+  Future<List<Slot>> slotsFor(DateTime day) async => slots;
 
   @override
   Future<Appointment> book(
@@ -29,7 +36,19 @@ class _RecordingApptRepo extends AppointmentsRepository {
     bookCalled = true;
     return Completer<Appointment>().future;
   }
+
+  @override
+  Future<Appointment> reschedule(String id, RescheduleAppointmentRequest body) {
+    rescheduleCalled = true;
+    return Completer<Appointment>().future;
+  }
 }
+
+Slot _slot(DateTime startsAt, {int duration = 45}) => Slot(
+  startsAt: startsAt,
+  endsAt: startsAt.add(Duration(minutes: duration)),
+  durationMinutes: duration,
+);
 
 final _asha = Patient(
   id: 'pt1',
@@ -134,7 +153,9 @@ void main() {
   });
 
   group('appointment detail', () {
-    testWidgets('offers Cancel for a requested appointment', (tester) async {
+    testWidgets('offers Reschedule and Cancel for a requested appointment', (
+      tester,
+    ) async {
       await _pump(
         tester,
         AppointmentDetailScreen(
@@ -147,10 +168,13 @@ void main() {
       );
       await tester.pumpAndSettle();
 
+      expect(find.text('Reschedule'), findsOneWidget);
       expect(find.text('Cancel appointment'), findsOneWidget);
     });
 
-    testWidgets('hides Cancel for a completed appointment', (tester) async {
+    testWidgets('hides Reschedule and Cancel for a completed appointment', (
+      tester,
+    ) async {
       await _pump(
         tester,
         AppointmentDetailScreen(
@@ -163,7 +187,42 @@ void main() {
       );
       await tester.pumpAndSettle();
 
+      expect(find.text('Reschedule'), findsNothing);
       expect(find.text('Cancel appointment'), findsNothing);
+    });
+  });
+
+  group('reschedule appointment', () {
+    testWidgets('blocks submit until a slot is chosen and does not reschedule', (
+      tester,
+    ) async {
+      // The form prefills the current date and auto-loads that day's slots, so
+      // the only thing missing is the new time selection.
+      final repo = _RecordingApptRepo()
+        ..slots = [_slot(DateTime.now().add(const Duration(days: 2, hours: 3)))];
+      await _pump(
+        tester,
+        RescheduleAppointmentScreen(
+          appointment: _appt(
+            id: 'ap1',
+            status: AppointmentStatus.confirmed,
+            scheduledAt: DateTime.now().add(const Duration(days: 2)),
+          ),
+        ),
+        repo: repo,
+      );
+      await tester.pumpAndSettle();
+
+      final submit = find.widgetWithText(
+        ElevatedButton,
+        'Reschedule appointment',
+      );
+      await tester.ensureVisible(submit);
+      await tester.tap(submit);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Choose a time slot.'), findsOneWidget);
+      expect(repo.rescheduleCalled, isFalse);
     });
   });
 }

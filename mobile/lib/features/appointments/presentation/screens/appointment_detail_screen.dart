@@ -15,9 +15,10 @@ import '../appointment_format.dart';
 import '../appointments_providers.dart';
 import '../widgets/appointment_status_chip.dart';
 
-/// Read view of one appointment, with the patient's only write action: cancel
-/// (allowed while it is still Requested or Confirmed). Reschedule arrives in a
-/// later slice. On cancel it refreshes the timeline and pops.
+/// Read view of one appointment, with the patient's write actions while it is
+/// still open (Requested or Confirmed): reschedule to a new time, or cancel.
+/// Reschedule creates a new appointment server-side, so on success this screen
+/// is replaced by the new appointment's detail; cancel refreshes and pops.
 class AppointmentDetailScreen extends ConsumerStatefulWidget {
   const AppointmentDetailScreen({required this.appointment, super.key});
 
@@ -34,6 +35,18 @@ class _AppointmentDetailScreenState
   String? _error;
 
   Appointment get _appt => widget.appointment;
+
+  Future<void> _reschedule() async {
+    // The reschedule screen returns the *new* appointment the backend created.
+    // The one we're showing is now RESCHEDULED, so replace it with the new one.
+    final saved = await context.push<Appointment>(
+      '/appointments/${_appt.id}/reschedule',
+      extra: _appt,
+    );
+    if (saved != null && mounted) {
+      context.pushReplacement('/appointments/${saved.id}', extra: saved);
+    }
+  }
 
   Future<void> _cancel() async {
     final confirmed = await showDialog<bool>(
@@ -146,8 +159,21 @@ class _AppointmentDetailScreenState
               const SizedBox(height: HealynSpacing.s3),
               _DetailCard(rows: cancellation),
             ],
-            if (_appt.status.isCancellableByPatient) ...[
+            if (_appt.status.isReschedulableByPatient) ...[
               const SizedBox(height: HealynSpacing.s7),
+              OutlinedButton.icon(
+                onPressed: _submitting ? null : _reschedule,
+                icon: const Icon(Icons.event_repeat_outlined),
+                label: const Text('Reschedule'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: HealynColors.brandPrimary,
+                  minimumSize: const Size.fromHeight(48),
+                  side: const BorderSide(color: HealynColors.borderSubtle),
+                ),
+              ),
+            ],
+            if (_appt.status.isCancellableByPatient) ...[
+              const SizedBox(height: HealynSpacing.s3),
               OutlinedButton.icon(
                 onPressed: _submitting ? null : _cancel,
                 icon: const Icon(Icons.event_busy_outlined),

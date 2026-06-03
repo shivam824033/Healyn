@@ -101,6 +101,39 @@ void main() {
     expect(json.containsKey('cancel_note'), isFalse);
   });
 
+  test('RescheduleAppointmentRequest serializes to snake_case; UTC instant '
+      'round-trips and the patient is not sent', () {
+    final json = RescheduleAppointmentRequest(
+      scheduledAt: DateTime.utc(2026, 6, 12, 14, 30),
+      durationMinutes: 30,
+      reason: 'Need an earlier time',
+    ).toJson();
+
+    expect(json['duration_minutes'], 30);
+    expect(json['reason'], 'Need an earlier time');
+    expect(json['scheduled_at'], '2026-06-12T14:30:00.000Z');
+    // Patient + physiotherapist are kept by the backend; never sent here.
+    expect(json.containsKey('patient_id'), isFalse);
+  });
+
+  test('RescheduleAppointmentRequest omits a null reason (keeps the original)', () {
+    final json = RescheduleAppointmentRequest(
+      scheduledAt: DateTime.utc(2026, 6, 12, 14, 30),
+      durationMinutes: 30,
+    ).toJson();
+    expect(json.containsKey('reason'), isFalse);
+  });
+
+  test('isReschedulableByPatient is true only for open, pre-start statuses', () {
+    expect(AppointmentStatus.requested.isReschedulableByPatient, isTrue);
+    expect(AppointmentStatus.confirmed.isReschedulableByPatient, isTrue);
+    expect(AppointmentStatus.inProgress.isReschedulableByPatient, isFalse);
+    expect(AppointmentStatus.completed.isReschedulableByPatient, isFalse);
+    expect(AppointmentStatus.cancelled.isReschedulableByPatient, isFalse);
+    expect(AppointmentStatus.noShow.isReschedulableByPatient, isFalse);
+    expect(AppointmentStatus.rescheduled.isReschedulableByPatient, isFalse);
+  });
+
   test('SlotListResponse parses slots with UTC instants', () {
     final res = SlotListResponse.fromJson(<String, dynamic>{
       'physiotherapist_id': 'ph1',

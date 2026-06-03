@@ -44,6 +44,12 @@ extension AppointmentStatusX on AppointmentStatus {
   bool get isCancellableByPatient =>
       this == AppointmentStatus.requested ||
       this == AppointmentStatus.confirmed;
+
+  /// The patient may move a still-open appointment to a new time. Mirrors the
+  /// backend reschedule precondition (REQUESTED or CONFIRMED only).
+  bool get isReschedulableByPatient =>
+      this == AppointmentStatus.requested ||
+      this == AppointmentStatus.confirmed;
 }
 
 /// Why an appointment was cancelled. The patient app only ever sends
@@ -124,6 +130,24 @@ abstract class BookAppointmentRequest with _$BookAppointmentRequest {
 
   factory BookAppointmentRequest.fromJson(Map<String, dynamic> json) =>
       _$BookAppointmentRequestFromJson(json);
+}
+
+/// Body for `POST /appointments/{id}/reschedule`. Like a booking, [scheduledAt]
+/// must be the exact `startsAt` of an available [Slot] and [durationMinutes] its
+/// duration — for the *same* physiotherapist as the original appointment, which
+/// the backend keeps (the patient can't be changed here). The backend marks the
+/// old appointment RESCHEDULED and returns a fresh one. A null [reason] keeps the
+/// original appointment's reason. No Idempotency-Key (unlike booking).
+@freezed
+abstract class RescheduleAppointmentRequest with _$RescheduleAppointmentRequest {
+  const factory RescheduleAppointmentRequest({
+    required DateTime scheduledAt,
+    required int durationMinutes,
+    String? reason,
+  }) = _RescheduleAppointmentRequest;
+
+  factory RescheduleAppointmentRequest.fromJson(Map<String, dynamic> json) =>
+      _$RescheduleAppointmentRequestFromJson(json);
 }
 
 /// Body for `POST /appointments/{id}/transitions`. The patient app uses this

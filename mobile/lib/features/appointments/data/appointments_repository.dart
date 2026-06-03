@@ -27,6 +27,15 @@ class AppointmentsRepository {
     return _guard(() => _api.book(body, idempotencyKey: idempotencyKey));
   }
 
+  /// Moves [id] to a new time, returning the new appointment the backend
+  /// creates (the original becomes RESCHEDULED).
+  Future<Appointment> reschedule(
+    String id,
+    RescheduleAppointmentRequest body,
+  ) async {
+    return _guard(() => _api.reschedule(id, body));
+  }
+
   Future<Appointment> cancel(String id, {String? note}) async {
     return _guard(
       () => _api.transition(

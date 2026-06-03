@@ -7,9 +7,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../patients/data/models/patient_models.dart';
 import '../../../patients/presentation/patients_providers.dart';
-import '../../../shared/design/colors.dart';
 import '../../../shared/design/spacing.dart';
-import '../../../shared/design/typography.dart';
 import '../../../shared/network/api_exception.dart';
 import '../../../shared/widgets/app_text_field.dart';
 import '../../../shared/widgets/error_banner.dart';
@@ -18,6 +16,7 @@ import '../../data/appointments_repository.dart';
 import '../../data/models/appointment_models.dart';
 import '../appointment_format.dart';
 import '../appointments_providers.dart';
+import '../widgets/slot_picker.dart';
 
 /// Books an appointment: pick the patient, a date, then one of the open slots
 /// for that day, with an optional reason. Slots come live from `/availability`,
@@ -194,7 +193,7 @@ class _BookAppointmentScreenState extends ConsumerState<BookAppointmentScreen> {
             suffixIcon: const Icon(Icons.calendar_today_outlined),
           ),
           const SizedBox(height: HealynSpacing.s4),
-          _SlotPicker(
+          SlotPicker(
             label: 'Time',
             day: _day,
             loading: _slotsLoading,
@@ -274,103 +273,5 @@ class _PatientField extends StatelessWidget {
     if (p.primary) return '${p.fullName} (You)';
     final rel = p.relationship?.label;
     return rel == null ? p.fullName : '${p.fullName} ($rel)';
-  }
-}
-
-/// The time-slot step: shows guidance until a date is chosen, then the open
-/// slots for that day as selectable chips (with loading/empty/error states).
-class _SlotPicker extends StatelessWidget {
-  const _SlotPicker({
-    required this.label,
-    required this.day,
-    required this.loading,
-    required this.error,
-    required this.slots,
-    required this.selected,
-    required this.enabled,
-    required this.onSelected,
-    required this.onRetry,
-  });
-
-  final String label;
-  final DateTime? day;
-  final bool loading;
-  final String? error;
-  final List<Slot>? slots;
-  final Slot? selected;
-  final bool enabled;
-  final ValueChanged<Slot> onSelected;
-  final VoidCallback? onRetry;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: HealynTypography.caption.copyWith(
-            color: HealynColors.textPrimary,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        const SizedBox(height: HealynSpacing.s2),
-        _body(),
-      ],
-    );
-  }
-
-  Widget _body() {
-    if (day == null) {
-      return const Text(
-        'Pick a date to see available times.',
-        style: HealynTypography.caption,
-      );
-    }
-    if (loading) {
-      return const Padding(
-        padding: EdgeInsets.symmetric(vertical: HealynSpacing.s3),
-        child: SizedBox(
-          height: 20,
-          width: 20,
-          child: CircularProgressIndicator(strokeWidth: 2),
-        ),
-      );
-    }
-    if (error != null) {
-      return Row(
-        children: [
-          Expanded(
-            child: Text(
-              error!,
-              style: HealynTypography.caption.copyWith(
-                color: HealynColors.statusDanger,
-              ),
-            ),
-          ),
-          if (onRetry != null)
-            TextButton(onPressed: onRetry, child: const Text('Retry')),
-        ],
-      );
-    }
-    final list = slots ?? const [];
-    if (list.isEmpty) {
-      return const Text(
-        'No open slots on this day. Try another date.',
-        style: HealynTypography.caption,
-      );
-    }
-    return Wrap(
-      spacing: HealynSpacing.s2,
-      runSpacing: HealynSpacing.s2,
-      children: [
-        for (final s in list)
-          ChoiceChip(
-            label: Text(formatTimeOfDay(s.startsAt)),
-            selected: selected?.startsAt == s.startsAt,
-            onSelected: enabled ? (_) => onSelected(s) : null,
-          ),
-      ],
-    );
   }
 }

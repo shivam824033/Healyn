@@ -51,6 +51,20 @@ class AppointmentsApi {
     return Appointment.fromJson(res.data!);
   }
 
+  /// Moves an appointment to a new time. The backend marks the original
+  /// RESCHEDULED and returns the *new* appointment (HTTP 201). No
+  /// Idempotency-Key — the original appointment id makes the call idempotent.
+  Future<Appointment> reschedule(
+    String id,
+    RescheduleAppointmentRequest body,
+  ) async {
+    final res = await _dio.post<Map<String, dynamic>>(
+      '/appointments/$id/reschedule',
+      data: body.toJson(),
+    );
+    return Appointment.fromJson(res.data!);
+  }
+
   /// Drives a status transition. The patient app uses this only to cancel.
   Future<Appointment> transition(String id, TransitionRequest body) async {
     final res = await _dio.post<Map<String, dynamic>>(

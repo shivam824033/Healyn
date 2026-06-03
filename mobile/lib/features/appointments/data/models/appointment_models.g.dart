@@ -113,6 +113,22 @@ Map<String, dynamic> _$BookAppointmentRequestToJson(
   'reason': ?instance.reason,
 };
 
+_RescheduleAppointmentRequest _$RescheduleAppointmentRequestFromJson(
+  Map<String, dynamic> json,
+) => _RescheduleAppointmentRequest(
+  scheduledAt: DateTime.parse(json['scheduled_at'] as String),
+  durationMinutes: (json['duration_minutes'] as num).toInt(),
+  reason: json['reason'] as String?,
+);
+
+Map<String, dynamic> _$RescheduleAppointmentRequestToJson(
+  _RescheduleAppointmentRequest instance,
+) => <String, dynamic>{
+  'scheduled_at': instance.scheduledAt.toIso8601String(),
+  'duration_minutes': instance.durationMinutes,
+  'reason': ?instance.reason,
+};
+
 _TransitionRequest _$TransitionRequestFromJson(Map<String, dynamic> json) =>
     _TransitionRequest(
       to: $enumDecode(_$AppointmentStatusEnumMap, json['to']),
