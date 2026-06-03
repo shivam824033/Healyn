@@ -106,6 +106,26 @@ abstract final class HealynTheme {
         thickness: 1,
         space: HealynSpacing.s4,
       ),
+      navigationBarTheme: NavigationBarThemeData(
+        backgroundColor: HealynColors.surfaceBase,
+        indicatorColor: HealynColors.brandPrimarySubtle,
+        elevation: 0,
+        labelTextStyle: WidgetStateProperty.resolveWith(
+          (states) => states.contains(WidgetState.selected)
+              ? HealynTypography.caption.copyWith(
+                  color: HealynColors.brandPrimaryHover,
+                  fontWeight: FontWeight.w600,
+                )
+              : HealynTypography.caption,
+        ),
+        iconTheme: WidgetStateProperty.resolveWith(
+          (states) => IconThemeData(
+            color: states.contains(WidgetState.selected)
+                ? HealynColors.brandPrimaryHover
+                : HealynColors.textSecondary,
+          ),
+        ),
+      ),
       snackBarTheme: const SnackBarThemeData(
         behavior: SnackBarBehavior.floating,
         backgroundColor: HealynColors.textPrimary,

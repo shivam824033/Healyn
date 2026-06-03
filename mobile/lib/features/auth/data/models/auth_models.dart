@@ -1,44 +1,16 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
+import '../../../shared/domain/patient_sex.dart';
+import '../../../shared/network/json_converters.dart';
+
+// PatientSex and LocalDateConverter moved to shared/ (also used by the patients
+// feature). Re-exported so existing `import auth_models.dart` consumers are
+// unaffected.
+export '../../../shared/domain/patient_sex.dart';
+export '../../../shared/network/json_converters.dart';
+
 part 'auth_models.freezed.dart';
 part 'auth_models.g.dart';
-
-/// Biological sex on the patient profile. Wire values are the backend enum
-/// names (MALE/FEMALE/OTHER/UNDISCLOSED), mapped here to idiomatic Dart names.
-enum PatientSex {
-  @JsonValue('MALE')
-  male,
-  @JsonValue('FEMALE')
-  female,
-  @JsonValue('OTHER')
-  other,
-  @JsonValue('UNDISCLOSED')
-  undisclosed,
-}
-
-extension PatientSexLabel on PatientSex {
-  String get label => switch (this) {
-    PatientSex.male => 'Male',
-    PatientSex.female => 'Female',
-    PatientSex.other => 'Other',
-    PatientSex.undisclosed => 'Prefer not to say',
-  };
-}
-
-/// Serializes a [DateTime] as a bare `yyyy-MM-dd` date to match the backend's
-/// `LocalDate` (date of birth carries no time).
-class LocalDateConverter implements JsonConverter<DateTime, String> {
-  const LocalDateConverter();
-
-  @override
-  DateTime fromJson(String json) => DateTime.parse(json);
-
-  @override
-  String toJson(DateTime object) =>
-      '${object.year.toString().padLeft(4, '0')}-'
-      '${object.month.toString().padLeft(2, '0')}-'
-      '${object.day.toString().padLeft(2, '0')}';
-}
 
 /// Exactly one of [email] / [phone] is set (the backend enforces the xor).
 @freezed

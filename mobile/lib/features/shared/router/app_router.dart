@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../appointments/presentation/screens/appointments_screen.dart';
 import '../../auth/domain/auth_status.dart';
 import '../../auth/presentation/controllers/auth_controller.dart';
 import '../../auth/presentation/screens/login_screen.dart';
@@ -9,6 +10,9 @@ import '../../auth/presentation/screens/register_start_screen.dart';
 import '../../auth/presentation/screens/register_verify_screen.dart';
 import '../../auth/presentation/screens/splash_screen.dart';
 import '../../home/presentation/home_screen.dart';
+import '../../patient_shell/presentation/patient_shell.dart';
+import '../../patients/presentation/screens/family_screen.dart';
+import '../../patients/presentation/screens/profile_screen.dart';
 
 /// The app router. Redirect is driven by [AuthStatus]:
 /// - unknown        → splash (`/`) while the token store is read
@@ -63,7 +67,43 @@ final routerProvider = Provider<GoRouter>((ref) {
           ),
         ],
       ),
-      GoRoute(path: '/home', builder: (_, _) => const HomeScreen()),
+      // The authenticated patient app: a 4-tab bottom-nav shell. Each branch
+      // keeps its own back stack (UI_UX_GUIDELINES §8.1).
+      StatefulShellRoute.indexedStack(
+        builder: (_, _, navigationShell) =>
+            PatientShell(navigationShell: navigationShell),
+        branches: [
+          StatefulShellBranch(
+            routes: [
+              GoRoute(path: '/home', builder: (_, _) => const HomeScreen()),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/appointments',
+                builder: (_, _) => const AppointmentsScreen(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/family',
+                builder: (_, _) => const FamilyScreen(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/profile',
+                builder: (_, _) => const ProfileScreen(),
+              ),
+            ],
+          ),
+        ],
+      ),
     ],
   );
   ref.onDispose(router.dispose);
