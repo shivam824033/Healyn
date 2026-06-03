@@ -86,7 +86,9 @@ class AuthRepository {
   Future<DeviceRequest> _device() async => DeviceRequest(
     deviceId: await _deviceIdentity.getOrCreate(),
     deviceLabel: 'Healyn mobile',
-    // fcmToken is wired in a later task (FCM SDK not yet integrated).
+    // fcmToken stays null here: the push token is registered out-of-band via
+    // POST /auth/fcm_tokens (see shared/push/PushService), not inline at login —
+    // the token may not exist yet until the user grants notification permission.
   );
 
   Future<void> _persist(TokenResponse t) => _tokenStore.saveSession(

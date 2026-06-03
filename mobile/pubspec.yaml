@@ -40,6 +40,12 @@ dependencies:
   go_router: ^17.3.0
   freezed_annotation: ^3.1.0
   json_annotation: ^4.12.0
+  # Push notifications. BSD-3-Clause (Google); resolve cleanly on Dart 3.12 with
+  # the Riverpod/freezed pins. Native Firebase config (google-services.json /
+  # GoogleService-Info.plist) is environment-specific and added per install — the
+  # app degrades to push-disabled when it is absent (see shared/push/).
+  firebase_core: ^4.10.0
+  firebase_messaging: ^16.3.0
 
 dev_dependencies:
   flutter_test:

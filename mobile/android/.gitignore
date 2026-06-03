@@ -12,3 +12,6 @@ GeneratedPluginRegistrant.java
 key.properties
 **/*.keystore
 **/*.jks
+
+# Firebase config is per-environment; each install drops in its own (see README §5).
+app/google-services.json

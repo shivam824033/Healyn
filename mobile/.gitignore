@@ -33,6 +33,9 @@ migrate_working_dir/
 /build/
 /coverage/
 
+# FlutterFire-generated, per-environment Firebase options (see README §5).
+lib/firebase_options.dart
+
 # Symbolication related
 app.*.symbols
 

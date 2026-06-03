@@ -32,3 +32,6 @@ Runner/GeneratedPluginRegistrant.*
 !default.mode2v3
 !default.pbxuser
 !default.perspectivev3
+
+# Firebase config is per-environment; each install drops in its own (see README §5).
+Runner/GoogleService-Info.plist
