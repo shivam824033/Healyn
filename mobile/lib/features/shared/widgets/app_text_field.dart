@@ -20,6 +20,8 @@ class AppTextField extends StatelessWidget {
     this.autofillHints,
     this.inputFormatters,
     this.enabled = true,
+    this.readOnly = false,
+    this.onTap,
     super.key,
   });
 
@@ -34,6 +36,13 @@ class AppTextField extends StatelessWidget {
   final Iterable<String>? autofillHints;
   final List<TextInputFormatter>? inputFormatters;
   final bool enabled;
+
+  /// Non-editable but still enabled and tappable — for picker-backed fields
+  /// (e.g. date of birth) where input comes from a dialog, not the keyboard.
+  final bool readOnly;
+
+  /// Tap handler for picker-backed fields. Pairs with [readOnly].
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -53,6 +62,8 @@ class AppTextField extends StatelessWidget {
           keyboardType: keyboardType,
           obscureText: obscureText,
           enabled: enabled,
+          readOnly: readOnly,
+          onTap: onTap,
           validator: validator,
           textInputAction: textInputAction,
           autofillHints: autofillHints,

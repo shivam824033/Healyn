@@ -36,6 +36,7 @@ class _RegisterVerifyScreenState extends ConsumerState<RegisterVerifyScreen> {
   final _code = TextEditingController();
   final _password = TextEditingController();
   final _fullName = TextEditingController();
+  final _dobField = TextEditingController();
   bool _obscure = true;
   bool _submitting = false;
   String? _error;
@@ -47,6 +48,7 @@ class _RegisterVerifyScreenState extends ConsumerState<RegisterVerifyScreen> {
     _code.dispose();
     _password.dispose();
     _fullName.dispose();
+    _dobField.dispose();
     super.dispose();
   }
 
@@ -65,7 +67,12 @@ class _RegisterVerifyScreenState extends ConsumerState<RegisterVerifyScreen> {
       lastDate: today.subtract(const Duration(days: 1)),
       helpText: 'Date of birth',
     );
-    if (picked != null) setState(() => _dob = picked);
+    if (picked != null) {
+      setState(() {
+        _dob = picked;
+        _dobField.text = _formatDate(picked);
+      });
+    }
   }
 
   Future<void> _submit() async {
@@ -171,21 +178,13 @@ class _RegisterVerifyScreenState extends ConsumerState<RegisterVerifyScreen> {
                 const SizedBox(height: HealynSpacing.s4),
                 AppTextField(
                   label: 'Date of birth',
-                  enabled: false,
-                  controller: TextEditingController(
-                    text: _dob == null ? '' : _formatDate(_dob!),
-                  ),
+                  controller: _dobField,
+                  readOnly: true,
+                  onTap: _submitting ? null : _pickDob,
                   hintText: 'Select a date',
                   suffixIcon: const Icon(Icons.calendar_today_outlined),
                 ),
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: TextButton(
-                    onPressed: _submitting ? null : _pickDob,
-                    child: Text(_dob == null ? 'Pick date' : 'Change date'),
-                  ),
-                ),
-                const SizedBox(height: HealynSpacing.s2),
+                const SizedBox(height: HealynSpacing.s4),
                 DropdownButtonFormField<PatientSex>(
                   initialValue: _sex,
                   decoration: const InputDecoration(
