@@ -108,6 +108,17 @@ public class NotificationOutbox {
     public UUID getCorrelationId() { return correlationId; }
     public Instant getCreatedAt() { return createdAt; }
 
+    /**
+     * Reserve this row for an in-flight dispatch by pushing {@code nextAttemptAt} forward,
+     * so a concurrent poller (another instance) skips it while delivery is attempted outside
+     * the DB transaction. Does not change status or count an attempt; if the dispatcher dies
+     * mid-flight the lease expires and the row is retried. The final outcome
+     * ({@link #markSent}/{@link #reschedule}/{@link #markDead}) overwrites the lease.
+     */
+    public void leaseUntil(Instant until) {
+        this.nextAttemptAt = until;
+    }
+
     /** Delivered (or terminally not deliverable, e.g. no live tokens). */
     public void markSent(Instant now, String resolvedToken) {
         this.attempts = (short) (this.attempts + 1);

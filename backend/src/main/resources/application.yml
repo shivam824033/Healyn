@@ -93,6 +93,7 @@ healyn:
     batch-size: ${HEALYN_NOTIFICATIONS_BATCH_SIZE:50}
     max-attempts: ${HEALYN_NOTIFICATIONS_MAX_ATTEMPTS:5}
     backoff-base-seconds: ${HEALYN_NOTIFICATIONS_BACKOFF_BASE_SECONDS:2}
+    lease-seconds: ${HEALYN_NOTIFICATIONS_LEASE_SECONDS:60}
   # fcm.credentials-path is intentionally NOT defaulted here: when the env var is set the
   # real FirebaseFcmSender activates; when unset the property is absent and the logging
   # sender is used. (An empty default would falsely satisfy @ConditionalOnProperty.)

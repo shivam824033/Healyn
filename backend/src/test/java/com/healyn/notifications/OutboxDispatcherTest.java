@@ -10,6 +10,7 @@ import com.healyn.notifications.port.FcmSenderPort;
 import com.healyn.notifications.repository.FcmTokenRepository;
 import com.healyn.notifications.repository.NotificationOutboxRepository;
 import com.healyn.notifications.service.OutboxDispatcher;
+import com.healyn.notifications.service.OutboxTransactions;
 import org.junit.jupiter.api.Test;
 
 import java.time.Clock;
@@ -17,6 +18,7 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -36,8 +38,13 @@ class OutboxDispatcherTest {
     private final FcmSenderPort sender = (token, kind, data) -> outcome.get();
 
     private OutboxDispatcher dispatcher(int maxAttempts) {
-        NotificationProperties props = new NotificationProperties(true, 2000L, 50, maxAttempts, 2L);
-        return new OutboxDispatcher(outbox, tokens, sender, props, Clock.fixed(NOW, ZoneOffset.UTC));
+        return dispatcher(maxAttempts, sender);
+    }
+
+    private OutboxDispatcher dispatcher(int maxAttempts, FcmSenderPort sender) {
+        NotificationProperties props = new NotificationProperties(true, 2000L, 50, maxAttempts, 2L, 60L);
+        OutboxTransactions transactions = new OutboxTransactions(outbox, tokens, props);
+        return new OutboxDispatcher(transactions, tokens, sender, Clock.fixed(NOW, ZoneOffset.UTC));
     }
 
     private NotificationOutbox dueRow(UUID account) {
@@ -46,6 +53,7 @@ class OutboxDispatcherTest {
                 Map.of("appointmentId", UUID.randomUUID().toString()), UUID.randomUUID(), NOW);
         when(outbox.findDueForDispatch(eq(NotificationStatus.PENDING), eq(NOW), any()))
                 .thenReturn(List.of(row));
+        when(outbox.findById(row.getId())).thenReturn(Optional.of(row));
         return row;
     }
 
@@ -81,11 +89,30 @@ class OutboxDispatcherTest {
         NotificationOutbox row = dueRow(account);
         FcmToken token = new FcmToken(UUID.randomUUID(), account, "tok-dead", "android", "dev-1");
         when(tokens.findByAccountIdAndDeletedAtIsNull(account)).thenReturn(List.of(token));
+        when(tokens.findByTokenAndDeletedAtIsNull("tok-dead")).thenReturn(Optional.of(token));
         outcome.set(FcmSendOutcome.TOKEN_INVALID);
 
         dispatcher(5).dispatchDue();
         assertThat(token.getDeletedAt()).isNotNull();
         assertThat(row.getStatus()).isEqualTo(NotificationStatus.SENT);
+    }
+
+    @Test
+    void sender_exception_is_isolated_and_row_rescheduled() {
+        UUID account = UUID.randomUUID();
+        NotificationOutbox row = dueRow(account);
+        FcmToken token = new FcmToken(UUID.randomUUID(), account, "tok-1", "android", "dev-1");
+        when(tokens.findByAccountIdAndDeletedAtIsNull(account)).thenReturn(List.of(token));
+        FcmSenderPort throwing = (t, kind, data) -> { throw new RuntimeException("boom"); };
+
+        // A throwing send must not abort the sweep or wedge the queue: the row is rescheduled.
+        int processed = dispatcher(5, throwing).dispatchDue();
+
+        assertThat(processed).isEqualTo(1);
+        assertThat(row.getStatus()).isEqualTo(NotificationStatus.PENDING);
+        assertThat(row.getAttempts()).isEqualTo((short) 1);
+        assertThat(row.getNextAttemptAt()).isEqualTo(NOW.plusSeconds(2));
+        assertThat(row.getLastError()).isEqualTo("transient_fcm_error");
     }
 
     @Test
