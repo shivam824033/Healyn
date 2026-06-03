@@ -16,6 +16,30 @@ class PatientsApi {
     final res = await _dio.get<Map<String, dynamic>>('/patients');
     return PatientListResponse.fromJson(res.data!);
   }
+
+  /// Adds a family member; returns the created patient.
+  Future<Patient> create(CreateFamilyMemberRequest body) async {
+    final res = await _dio.post<Map<String, dynamic>>(
+      '/patients',
+      data: body.toJson(),
+    );
+    return Patient.fromJson(res.data!);
+  }
+
+  /// Updates a patient's profile; returns the updated patient.
+  Future<Patient> update(String id, UpdatePatientRequest body) async {
+    final res = await _dio.patch<Map<String, dynamic>>(
+      '/patients/$id',
+      data: body.toJson(),
+    );
+    return Patient.fromJson(res.data!);
+  }
+
+  /// Removes the account's link to a family member (soft-deletes the patient
+  /// when no links remain). The primary patient cannot be removed.
+  Future<void> delete(String id) async {
+    await _dio.delete<void>('/patients/$id');
+  }
 }
 
 final patientsApiProvider = Provider<PatientsApi>(

@@ -49,4 +49,47 @@ void main() {
     expect(child.primary, isFalse);
     expect(child.bloodGroup, isNull);
   });
+
+  test('CreateFamilyMemberRequest serializes to snake_case and omits nulls', () {
+    final json = CreateFamilyMemberRequest(
+      fullName: 'Kiran Rao',
+      dateOfBirth: DateTime(2015, 3, 10),
+      relationship: PatientRelationship.child,
+      sex: PatientSex.male,
+      phoneE164: '+14155550123',
+    ).toJson();
+
+    expect(json['full_name'], 'Kiran Rao');
+    expect(json['date_of_birth'], '2015-03-10');
+    expect(json['relationship'], 'CHILD');
+    expect(json['sex'], 'MALE');
+    expect(json['phone_e164'], '+14155550123');
+    // include_if_null:false — unset optional fields are absent, not null.
+    expect(json.containsKey('email'), isFalse);
+    expect(json.containsKey('allergies'), isFalse);
+  });
+
+  test('UpdatePatientRequest sends blanks to clear and drops null sex', () {
+    final json = UpdatePatientRequest(
+      fullName: 'Asha Rao',
+      dateOfBirth: DateTime(1990, 5, 21),
+      sex: null,
+      phoneE164: '+14155550123',
+      email: '',
+      bloodGroup: 'O+',
+      allergies: '',
+      notes: '',
+    ).toJson();
+
+    expect(json['full_name'], 'Asha Rao');
+    expect(json['date_of_birth'], '1990-05-21');
+    expect(json['phone_e164'], '+14155550123');
+    expect(json['blood_group'], 'O+');
+    // Blank strings are sent (the backend treats blank as "clear this field").
+    expect(json['email'], '');
+    expect(json['allergies'], '');
+    expect(json['notes'], '');
+    // Null sex is omitted (the backend leaves it unchanged).
+    expect(json.containsKey('sex'), isFalse);
+  });
 }

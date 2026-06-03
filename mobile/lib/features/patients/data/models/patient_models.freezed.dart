@@ -582,4 +582,575 @@ as List<Patient>,
 
 }
 
+
+/// @nodoc
+mixin _$CreateFamilyMemberRequest {
+
+ String get fullName;@LocalDateConverter() DateTime get dateOfBirth; PatientRelationship get relationship; PatientSex? get sex; String? get phoneE164; String? get email; String? get bloodGroup; String? get allergies; String? get notes;
+/// Create a copy of CreateFamilyMemberRequest
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$CreateFamilyMemberRequestCopyWith<CreateFamilyMemberRequest> get copyWith => _$CreateFamilyMemberRequestCopyWithImpl<CreateFamilyMemberRequest>(this as CreateFamilyMemberRequest, _$identity);
+
+  /// Serializes this CreateFamilyMemberRequest to a JSON map.
+  Map<String, dynamic> toJson();
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is CreateFamilyMemberRequest&&(identical(other.fullName, fullName) || other.fullName == fullName)&&(identical(other.dateOfBirth, dateOfBirth) || other.dateOfBirth == dateOfBirth)&&(identical(other.relationship, relationship) || other.relationship == relationship)&&(identical(other.sex, sex) || other.sex == sex)&&(identical(other.phoneE164, phoneE164) || other.phoneE164 == phoneE164)&&(identical(other.email, email) || other.email == email)&&(identical(other.bloodGroup, bloodGroup) || other.bloodGroup == bloodGroup)&&(identical(other.allergies, allergies) || other.allergies == allergies)&&(identical(other.notes, notes) || other.notes == notes));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,fullName,dateOfBirth,relationship,sex,phoneE164,email,bloodGroup,allergies,notes);
+
+@override
+String toString() {
+  return 'CreateFamilyMemberRequest(fullName: $fullName, dateOfBirth: $dateOfBirth, relationship: $relationship, sex: $sex, phoneE164: $phoneE164, email: $email, bloodGroup: $bloodGroup, allergies: $allergies, notes: $notes)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $CreateFamilyMemberRequestCopyWith<$Res>  {
+  factory $CreateFamilyMemberRequestCopyWith(CreateFamilyMemberRequest value, $Res Function(CreateFamilyMemberRequest) _then) = _$CreateFamilyMemberRequestCopyWithImpl;
+@useResult
+$Res call({
+ String fullName,@LocalDateConverter() DateTime dateOfBirth, PatientRelationship relationship, PatientSex? sex, String? phoneE164, String? email, String? bloodGroup, String? allergies, String? notes
+});
+
+
+
+
+}
+/// @nodoc
+class _$CreateFamilyMemberRequestCopyWithImpl<$Res>
+    implements $CreateFamilyMemberRequestCopyWith<$Res> {
+  _$CreateFamilyMemberRequestCopyWithImpl(this._self, this._then);
+
+  final CreateFamilyMemberRequest _self;
+  final $Res Function(CreateFamilyMemberRequest) _then;
+
+/// Create a copy of CreateFamilyMemberRequest
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? fullName = null,Object? dateOfBirth = null,Object? relationship = null,Object? sex = freezed,Object? phoneE164 = freezed,Object? email = freezed,Object? bloodGroup = freezed,Object? allergies = freezed,Object? notes = freezed,}) {
+  return _then(_self.copyWith(
+fullName: null == fullName ? _self.fullName : fullName // ignore: cast_nullable_to_non_nullable
+as String,dateOfBirth: null == dateOfBirth ? _self.dateOfBirth : dateOfBirth // ignore: cast_nullable_to_non_nullable
+as DateTime,relationship: null == relationship ? _self.relationship : relationship // ignore: cast_nullable_to_non_nullable
+as PatientRelationship,sex: freezed == sex ? _self.sex : sex // ignore: cast_nullable_to_non_nullable
+as PatientSex?,phoneE164: freezed == phoneE164 ? _self.phoneE164 : phoneE164 // ignore: cast_nullable_to_non_nullable
+as String?,email: freezed == email ? _self.email : email // ignore: cast_nullable_to_non_nullable
+as String?,bloodGroup: freezed == bloodGroup ? _self.bloodGroup : bloodGroup // ignore: cast_nullable_to_non_nullable
+as String?,allergies: freezed == allergies ? _self.allergies : allergies // ignore: cast_nullable_to_non_nullable
+as String?,notes: freezed == notes ? _self.notes : notes // ignore: cast_nullable_to_non_nullable
+as String?,
+  ));
+}
+
+}
+
+
+/// Adds pattern-matching-related methods to [CreateFamilyMemberRequest].
+extension CreateFamilyMemberRequestPatterns on CreateFamilyMemberRequest {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _CreateFamilyMemberRequest value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _CreateFamilyMemberRequest() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _CreateFamilyMemberRequest value)  $default,){
+final _that = this;
+switch (_that) {
+case _CreateFamilyMemberRequest():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _CreateFamilyMemberRequest value)?  $default,){
+final _that = this;
+switch (_that) {
+case _CreateFamilyMemberRequest() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String fullName, @LocalDateConverter()  DateTime dateOfBirth,  PatientRelationship relationship,  PatientSex? sex,  String? phoneE164,  String? email,  String? bloodGroup,  String? allergies,  String? notes)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _CreateFamilyMemberRequest() when $default != null:
+return $default(_that.fullName,_that.dateOfBirth,_that.relationship,_that.sex,_that.phoneE164,_that.email,_that.bloodGroup,_that.allergies,_that.notes);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String fullName, @LocalDateConverter()  DateTime dateOfBirth,  PatientRelationship relationship,  PatientSex? sex,  String? phoneE164,  String? email,  String? bloodGroup,  String? allergies,  String? notes)  $default,) {final _that = this;
+switch (_that) {
+case _CreateFamilyMemberRequest():
+return $default(_that.fullName,_that.dateOfBirth,_that.relationship,_that.sex,_that.phoneE164,_that.email,_that.bloodGroup,_that.allergies,_that.notes);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String fullName, @LocalDateConverter()  DateTime dateOfBirth,  PatientRelationship relationship,  PatientSex? sex,  String? phoneE164,  String? email,  String? bloodGroup,  String? allergies,  String? notes)?  $default,) {final _that = this;
+switch (_that) {
+case _CreateFamilyMemberRequest() when $default != null:
+return $default(_that.fullName,_that.dateOfBirth,_that.relationship,_that.sex,_that.phoneE164,_that.email,_that.bloodGroup,_that.allergies,_that.notes);case _:
+  return null;
+
+}
+}
+
+}
+
+/// @nodoc
+@JsonSerializable()
+
+class _CreateFamilyMemberRequest implements CreateFamilyMemberRequest {
+  const _CreateFamilyMemberRequest({required this.fullName, @LocalDateConverter() required this.dateOfBirth, required this.relationship, this.sex, this.phoneE164, this.email, this.bloodGroup, this.allergies, this.notes});
+  factory _CreateFamilyMemberRequest.fromJson(Map<String, dynamic> json) => _$CreateFamilyMemberRequestFromJson(json);
+
+@override final  String fullName;
+@override@LocalDateConverter() final  DateTime dateOfBirth;
+@override final  PatientRelationship relationship;
+@override final  PatientSex? sex;
+@override final  String? phoneE164;
+@override final  String? email;
+@override final  String? bloodGroup;
+@override final  String? allergies;
+@override final  String? notes;
+
+/// Create a copy of CreateFamilyMemberRequest
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$CreateFamilyMemberRequestCopyWith<_CreateFamilyMemberRequest> get copyWith => __$CreateFamilyMemberRequestCopyWithImpl<_CreateFamilyMemberRequest>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$CreateFamilyMemberRequestToJson(this, );
+}
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _CreateFamilyMemberRequest&&(identical(other.fullName, fullName) || other.fullName == fullName)&&(identical(other.dateOfBirth, dateOfBirth) || other.dateOfBirth == dateOfBirth)&&(identical(other.relationship, relationship) || other.relationship == relationship)&&(identical(other.sex, sex) || other.sex == sex)&&(identical(other.phoneE164, phoneE164) || other.phoneE164 == phoneE164)&&(identical(other.email, email) || other.email == email)&&(identical(other.bloodGroup, bloodGroup) || other.bloodGroup == bloodGroup)&&(identical(other.allergies, allergies) || other.allergies == allergies)&&(identical(other.notes, notes) || other.notes == notes));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,fullName,dateOfBirth,relationship,sex,phoneE164,email,bloodGroup,allergies,notes);
+
+@override
+String toString() {
+  return 'CreateFamilyMemberRequest(fullName: $fullName, dateOfBirth: $dateOfBirth, relationship: $relationship, sex: $sex, phoneE164: $phoneE164, email: $email, bloodGroup: $bloodGroup, allergies: $allergies, notes: $notes)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$CreateFamilyMemberRequestCopyWith<$Res> implements $CreateFamilyMemberRequestCopyWith<$Res> {
+  factory _$CreateFamilyMemberRequestCopyWith(_CreateFamilyMemberRequest value, $Res Function(_CreateFamilyMemberRequest) _then) = __$CreateFamilyMemberRequestCopyWithImpl;
+@override @useResult
+$Res call({
+ String fullName,@LocalDateConverter() DateTime dateOfBirth, PatientRelationship relationship, PatientSex? sex, String? phoneE164, String? email, String? bloodGroup, String? allergies, String? notes
+});
+
+
+
+
+}
+/// @nodoc
+class __$CreateFamilyMemberRequestCopyWithImpl<$Res>
+    implements _$CreateFamilyMemberRequestCopyWith<$Res> {
+  __$CreateFamilyMemberRequestCopyWithImpl(this._self, this._then);
+
+  final _CreateFamilyMemberRequest _self;
+  final $Res Function(_CreateFamilyMemberRequest) _then;
+
+/// Create a copy of CreateFamilyMemberRequest
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? fullName = null,Object? dateOfBirth = null,Object? relationship = null,Object? sex = freezed,Object? phoneE164 = freezed,Object? email = freezed,Object? bloodGroup = freezed,Object? allergies = freezed,Object? notes = freezed,}) {
+  return _then(_CreateFamilyMemberRequest(
+fullName: null == fullName ? _self.fullName : fullName // ignore: cast_nullable_to_non_nullable
+as String,dateOfBirth: null == dateOfBirth ? _self.dateOfBirth : dateOfBirth // ignore: cast_nullable_to_non_nullable
+as DateTime,relationship: null == relationship ? _self.relationship : relationship // ignore: cast_nullable_to_non_nullable
+as PatientRelationship,sex: freezed == sex ? _self.sex : sex // ignore: cast_nullable_to_non_nullable
+as PatientSex?,phoneE164: freezed == phoneE164 ? _self.phoneE164 : phoneE164 // ignore: cast_nullable_to_non_nullable
+as String?,email: freezed == email ? _self.email : email // ignore: cast_nullable_to_non_nullable
+as String?,bloodGroup: freezed == bloodGroup ? _self.bloodGroup : bloodGroup // ignore: cast_nullable_to_non_nullable
+as String?,allergies: freezed == allergies ? _self.allergies : allergies // ignore: cast_nullable_to_non_nullable
+as String?,notes: freezed == notes ? _self.notes : notes // ignore: cast_nullable_to_non_nullable
+as String?,
+  ));
+}
+
+
+}
+
+
+/// @nodoc
+mixin _$UpdatePatientRequest {
+
+ String get fullName;@LocalDateConverter() DateTime get dateOfBirth; PatientSex? get sex; String get phoneE164; String get email; String get bloodGroup; String get allergies; String get notes;
+/// Create a copy of UpdatePatientRequest
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$UpdatePatientRequestCopyWith<UpdatePatientRequest> get copyWith => _$UpdatePatientRequestCopyWithImpl<UpdatePatientRequest>(this as UpdatePatientRequest, _$identity);
+
+  /// Serializes this UpdatePatientRequest to a JSON map.
+  Map<String, dynamic> toJson();
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is UpdatePatientRequest&&(identical(other.fullName, fullName) || other.fullName == fullName)&&(identical(other.dateOfBirth, dateOfBirth) || other.dateOfBirth == dateOfBirth)&&(identical(other.sex, sex) || other.sex == sex)&&(identical(other.phoneE164, phoneE164) || other.phoneE164 == phoneE164)&&(identical(other.email, email) || other.email == email)&&(identical(other.bloodGroup, bloodGroup) || other.bloodGroup == bloodGroup)&&(identical(other.allergies, allergies) || other.allergies == allergies)&&(identical(other.notes, notes) || other.notes == notes));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,fullName,dateOfBirth,sex,phoneE164,email,bloodGroup,allergies,notes);
+
+@override
+String toString() {
+  return 'UpdatePatientRequest(fullName: $fullName, dateOfBirth: $dateOfBirth, sex: $sex, phoneE164: $phoneE164, email: $email, bloodGroup: $bloodGroup, allergies: $allergies, notes: $notes)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $UpdatePatientRequestCopyWith<$Res>  {
+  factory $UpdatePatientRequestCopyWith(UpdatePatientRequest value, $Res Function(UpdatePatientRequest) _then) = _$UpdatePatientRequestCopyWithImpl;
+@useResult
+$Res call({
+ String fullName,@LocalDateConverter() DateTime dateOfBirth, PatientSex? sex, String phoneE164, String email, String bloodGroup, String allergies, String notes
+});
+
+
+
+
+}
+/// @nodoc
+class _$UpdatePatientRequestCopyWithImpl<$Res>
+    implements $UpdatePatientRequestCopyWith<$Res> {
+  _$UpdatePatientRequestCopyWithImpl(this._self, this._then);
+
+  final UpdatePatientRequest _self;
+  final $Res Function(UpdatePatientRequest) _then;
+
+/// Create a copy of UpdatePatientRequest
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? fullName = null,Object? dateOfBirth = null,Object? sex = freezed,Object? phoneE164 = null,Object? email = null,Object? bloodGroup = null,Object? allergies = null,Object? notes = null,}) {
+  return _then(_self.copyWith(
+fullName: null == fullName ? _self.fullName : fullName // ignore: cast_nullable_to_non_nullable
+as String,dateOfBirth: null == dateOfBirth ? _self.dateOfBirth : dateOfBirth // ignore: cast_nullable_to_non_nullable
+as DateTime,sex: freezed == sex ? _self.sex : sex // ignore: cast_nullable_to_non_nullable
+as PatientSex?,phoneE164: null == phoneE164 ? _self.phoneE164 : phoneE164 // ignore: cast_nullable_to_non_nullable
+as String,email: null == email ? _self.email : email // ignore: cast_nullable_to_non_nullable
+as String,bloodGroup: null == bloodGroup ? _self.bloodGroup : bloodGroup // ignore: cast_nullable_to_non_nullable
+as String,allergies: null == allergies ? _self.allergies : allergies // ignore: cast_nullable_to_non_nullable
+as String,notes: null == notes ? _self.notes : notes // ignore: cast_nullable_to_non_nullable
+as String,
+  ));
+}
+
+}
+
+
+/// Adds pattern-matching-related methods to [UpdatePatientRequest].
+extension UpdatePatientRequestPatterns on UpdatePatientRequest {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _UpdatePatientRequest value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _UpdatePatientRequest() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _UpdatePatientRequest value)  $default,){
+final _that = this;
+switch (_that) {
+case _UpdatePatientRequest():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _UpdatePatientRequest value)?  $default,){
+final _that = this;
+switch (_that) {
+case _UpdatePatientRequest() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String fullName, @LocalDateConverter()  DateTime dateOfBirth,  PatientSex? sex,  String phoneE164,  String email,  String bloodGroup,  String allergies,  String notes)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _UpdatePatientRequest() when $default != null:
+return $default(_that.fullName,_that.dateOfBirth,_that.sex,_that.phoneE164,_that.email,_that.bloodGroup,_that.allergies,_that.notes);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String fullName, @LocalDateConverter()  DateTime dateOfBirth,  PatientSex? sex,  String phoneE164,  String email,  String bloodGroup,  String allergies,  String notes)  $default,) {final _that = this;
+switch (_that) {
+case _UpdatePatientRequest():
+return $default(_that.fullName,_that.dateOfBirth,_that.sex,_that.phoneE164,_that.email,_that.bloodGroup,_that.allergies,_that.notes);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String fullName, @LocalDateConverter()  DateTime dateOfBirth,  PatientSex? sex,  String phoneE164,  String email,  String bloodGroup,  String allergies,  String notes)?  $default,) {final _that = this;
+switch (_that) {
+case _UpdatePatientRequest() when $default != null:
+return $default(_that.fullName,_that.dateOfBirth,_that.sex,_that.phoneE164,_that.email,_that.bloodGroup,_that.allergies,_that.notes);case _:
+  return null;
+
+}
+}
+
+}
+
+/// @nodoc
+@JsonSerializable()
+
+class _UpdatePatientRequest implements UpdatePatientRequest {
+  const _UpdatePatientRequest({required this.fullName, @LocalDateConverter() required this.dateOfBirth, this.sex, required this.phoneE164, required this.email, required this.bloodGroup, required this.allergies, required this.notes});
+  factory _UpdatePatientRequest.fromJson(Map<String, dynamic> json) => _$UpdatePatientRequestFromJson(json);
+
+@override final  String fullName;
+@override@LocalDateConverter() final  DateTime dateOfBirth;
+@override final  PatientSex? sex;
+@override final  String phoneE164;
+@override final  String email;
+@override final  String bloodGroup;
+@override final  String allergies;
+@override final  String notes;
+
+/// Create a copy of UpdatePatientRequest
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$UpdatePatientRequestCopyWith<_UpdatePatientRequest> get copyWith => __$UpdatePatientRequestCopyWithImpl<_UpdatePatientRequest>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$UpdatePatientRequestToJson(this, );
+}
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _UpdatePatientRequest&&(identical(other.fullName, fullName) || other.fullName == fullName)&&(identical(other.dateOfBirth, dateOfBirth) || other.dateOfBirth == dateOfBirth)&&(identical(other.sex, sex) || other.sex == sex)&&(identical(other.phoneE164, phoneE164) || other.phoneE164 == phoneE164)&&(identical(other.email, email) || other.email == email)&&(identical(other.bloodGroup, bloodGroup) || other.bloodGroup == bloodGroup)&&(identical(other.allergies, allergies) || other.allergies == allergies)&&(identical(other.notes, notes) || other.notes == notes));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,fullName,dateOfBirth,sex,phoneE164,email,bloodGroup,allergies,notes);
+
+@override
+String toString() {
+  return 'UpdatePatientRequest(fullName: $fullName, dateOfBirth: $dateOfBirth, sex: $sex, phoneE164: $phoneE164, email: $email, bloodGroup: $bloodGroup, allergies: $allergies, notes: $notes)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$UpdatePatientRequestCopyWith<$Res> implements $UpdatePatientRequestCopyWith<$Res> {
+  factory _$UpdatePatientRequestCopyWith(_UpdatePatientRequest value, $Res Function(_UpdatePatientRequest) _then) = __$UpdatePatientRequestCopyWithImpl;
+@override @useResult
+$Res call({
+ String fullName,@LocalDateConverter() DateTime dateOfBirth, PatientSex? sex, String phoneE164, String email, String bloodGroup, String allergies, String notes
+});
+
+
+
+
+}
+/// @nodoc
+class __$UpdatePatientRequestCopyWithImpl<$Res>
+    implements _$UpdatePatientRequestCopyWith<$Res> {
+  __$UpdatePatientRequestCopyWithImpl(this._self, this._then);
+
+  final _UpdatePatientRequest _self;
+  final $Res Function(_UpdatePatientRequest) _then;
+
+/// Create a copy of UpdatePatientRequest
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? fullName = null,Object? dateOfBirth = null,Object? sex = freezed,Object? phoneE164 = null,Object? email = null,Object? bloodGroup = null,Object? allergies = null,Object? notes = null,}) {
+  return _then(_UpdatePatientRequest(
+fullName: null == fullName ? _self.fullName : fullName // ignore: cast_nullable_to_non_nullable
+as String,dateOfBirth: null == dateOfBirth ? _self.dateOfBirth : dateOfBirth // ignore: cast_nullable_to_non_nullable
+as DateTime,sex: freezed == sex ? _self.sex : sex // ignore: cast_nullable_to_non_nullable
+as PatientSex?,phoneE164: null == phoneE164 ? _self.phoneE164 : phoneE164 // ignore: cast_nullable_to_non_nullable
+as String,email: null == email ? _self.email : email // ignore: cast_nullable_to_non_nullable
+as String,bloodGroup: null == bloodGroup ? _self.bloodGroup : bloodGroup // ignore: cast_nullable_to_non_nullable
+as String,allergies: null == allergies ? _self.allergies : allergies // ignore: cast_nullable_to_non_nullable
+as String,notes: null == notes ? _self.notes : notes // ignore: cast_nullable_to_non_nullable
+as String,
+  ));
+}
+
+
+}
+
 // dart format on

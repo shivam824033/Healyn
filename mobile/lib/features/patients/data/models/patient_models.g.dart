@@ -78,3 +78,61 @@ Map<String, dynamic> _$PatientListResponseToJson(
 ) => <String, dynamic>{
   'patients': instance.patients.map((e) => e.toJson()).toList(),
 };
+
+_CreateFamilyMemberRequest _$CreateFamilyMemberRequestFromJson(
+  Map<String, dynamic> json,
+) => _CreateFamilyMemberRequest(
+  fullName: json['full_name'] as String,
+  dateOfBirth: const LocalDateConverter().fromJson(
+    json['date_of_birth'] as String,
+  ),
+  relationship: $enumDecode(_$PatientRelationshipEnumMap, json['relationship']),
+  sex: $enumDecodeNullable(_$PatientSexEnumMap, json['sex']),
+  phoneE164: json['phone_e164'] as String?,
+  email: json['email'] as String?,
+  bloodGroup: json['blood_group'] as String?,
+  allergies: json['allergies'] as String?,
+  notes: json['notes'] as String?,
+);
+
+Map<String, dynamic> _$CreateFamilyMemberRequestToJson(
+  _CreateFamilyMemberRequest instance,
+) => <String, dynamic>{
+  'full_name': instance.fullName,
+  'date_of_birth': const LocalDateConverter().toJson(instance.dateOfBirth),
+  'relationship': _$PatientRelationshipEnumMap[instance.relationship]!,
+  'sex': ?_$PatientSexEnumMap[instance.sex],
+  'phone_e164': ?instance.phoneE164,
+  'email': ?instance.email,
+  'blood_group': ?instance.bloodGroup,
+  'allergies': ?instance.allergies,
+  'notes': ?instance.notes,
+};
+
+_UpdatePatientRequest _$UpdatePatientRequestFromJson(
+  Map<String, dynamic> json,
+) => _UpdatePatientRequest(
+  fullName: json['full_name'] as String,
+  dateOfBirth: const LocalDateConverter().fromJson(
+    json['date_of_birth'] as String,
+  ),
+  sex: $enumDecodeNullable(_$PatientSexEnumMap, json['sex']),
+  phoneE164: json['phone_e164'] as String,
+  email: json['email'] as String,
+  bloodGroup: json['blood_group'] as String,
+  allergies: json['allergies'] as String,
+  notes: json['notes'] as String,
+);
+
+Map<String, dynamic> _$UpdatePatientRequestToJson(
+  _UpdatePatientRequest instance,
+) => <String, dynamic>{
+  'full_name': instance.fullName,
+  'date_of_birth': const LocalDateConverter().toJson(instance.dateOfBirth),
+  'sex': ?_$PatientSexEnumMap[instance.sex],
+  'phone_e164': instance.phoneE164,
+  'email': instance.email,
+  'blood_group': instance.bloodGroup,
+  'allergies': instance.allergies,
+  'notes': instance.notes,
+};

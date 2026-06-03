@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../auth/data/auth_repository.dart';
 import '../../../auth/data/models/auth_models.dart';
@@ -27,8 +28,21 @@ class ProfileScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final patients = ref.watch(patientsProvider);
+    final list = patients.valueOrNull;
+    final me = (list == null || list.isEmpty) ? null : primaryPatientOf(list);
     return Scaffold(
-      appBar: AppBar(title: const Text('Profile')),
+      appBar: AppBar(
+        title: const Text('Profile'),
+        actions: [
+          if (me != null)
+            IconButton(
+              tooltip: 'Edit profile',
+              icon: const Icon(Icons.edit_outlined),
+              onPressed: () =>
+                  context.push('/patients/${me.id}/edit', extra: me),
+            ),
+        ],
+      ),
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: () async {

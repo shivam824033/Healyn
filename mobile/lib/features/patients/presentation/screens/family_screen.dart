@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../shared/design/colors.dart';
 import '../../../shared/design/radii.dart';
@@ -19,7 +20,16 @@ class FamilyScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final patients = ref.watch(patientsProvider);
     return Scaffold(
-      appBar: AppBar(title: const Text('Family')),
+      appBar: AppBar(
+        title: const Text('Family'),
+        actions: [
+          IconButton(
+            tooltip: 'Add family member',
+            icon: const Icon(Icons.person_add_alt_1),
+            onPressed: () => context.push('/patients/new'),
+          ),
+        ],
+      ),
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: () async {
@@ -68,27 +78,44 @@ class _FamilyTile extends StatelessWidget {
       '$age yrs',
     ].join(' · ');
     return Container(
-      padding: const EdgeInsets.all(HealynSpacing.s4),
       decoration: BoxDecoration(
         color: HealynColors.surfaceBase,
         borderRadius: HealynRadii.brLg,
         border: Border.all(color: HealynColors.borderSubtle),
       ),
-      child: Row(
-        children: [
-          _Avatar(name: patient.fullName),
-          const SizedBox(width: HealynSpacing.s3),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+      child: Material(
+        type: MaterialType.transparency,
+        child: InkWell(
+          borderRadius: HealynRadii.brLg,
+          onTap: () =>
+              context.push('/patients/${patient.id}/edit', extra: patient),
+          child: Padding(
+            padding: const EdgeInsets.all(HealynSpacing.s4),
+            child: Row(
               children: [
-                Text(patient.fullName, style: HealynTypography.bodyStrong),
-                const SizedBox(height: HealynSpacing.s1),
-                Text(meta, style: HealynTypography.caption),
+                _Avatar(name: patient.fullName),
+                const SizedBox(width: HealynSpacing.s3),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        patient.fullName,
+                        style: HealynTypography.bodyStrong,
+                      ),
+                      const SizedBox(height: HealynSpacing.s1),
+                      Text(meta, style: HealynTypography.caption),
+                    ],
+                  ),
+                ),
+                const Icon(
+                  Icons.chevron_right,
+                  color: HealynColors.textMuted,
+                ),
               ],
             ),
           ),
-        ],
+        ),
       ),
     );
   }
@@ -142,6 +169,14 @@ class _EmptyFamily extends StatelessWidget {
             color: HealynColors.textSecondary,
           ),
           textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: HealynSpacing.s6),
+        Center(
+          child: OutlinedButton.icon(
+            onPressed: () => context.push('/patients/new'),
+            icon: const Icon(Icons.person_add_alt_1),
+            label: const Text('Add family member'),
+          ),
         ),
       ],
     );

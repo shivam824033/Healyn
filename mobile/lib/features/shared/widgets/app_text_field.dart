@@ -22,6 +22,7 @@ class AppTextField extends StatelessWidget {
     this.enabled = true,
     this.readOnly = false,
     this.onTap,
+    this.maxLines = 1,
     super.key,
   });
 
@@ -44,6 +45,9 @@ class AppTextField extends StatelessWidget {
   /// Tap handler for picker-backed fields. Pairs with [readOnly].
   final VoidCallback? onTap;
 
+  /// Lines for multi-line inputs (e.g. notes); 1 for a normal single-line field.
+  final int maxLines;
+
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -64,6 +68,7 @@ class AppTextField extends StatelessWidget {
           enabled: enabled,
           readOnly: readOnly,
           onTap: onTap,
+          maxLines: obscureText ? 1 : maxLines,
           validator: validator,
           textInputAction: textInputAction,
           autofillHints: autofillHints,

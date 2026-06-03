@@ -16,6 +16,18 @@ class PatientsRepository {
     return _guard(() async => (await _api.list()).patients);
   }
 
+  Future<Patient> create(CreateFamilyMemberRequest body) async {
+    return _guard(() => _api.create(body));
+  }
+
+  Future<Patient> update(String id, UpdatePatientRequest body) async {
+    return _guard(() => _api.update(id, body));
+  }
+
+  Future<void> remove(String id) async {
+    return _guard(() => _api.delete(id));
+  }
+
   Future<T> _guard<T>(Future<T> Function() body) async {
     try {
       return await body();

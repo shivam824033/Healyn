@@ -72,3 +72,44 @@ abstract class PatientListResponse with _$PatientListResponse {
   factory PatientListResponse.fromJson(Map<String, dynamic> json) =>
       _$PatientListResponseFromJson(json);
 }
+
+/// Body for `POST /patients` — adds a family member the account manages.
+/// [relationship] is required and must not be `self`. Mirrors the backend
+/// `CreateFamilyMemberRequest`.
+@freezed
+abstract class CreateFamilyMemberRequest with _$CreateFamilyMemberRequest {
+  const factory CreateFamilyMemberRequest({
+    required String fullName,
+    @LocalDateConverter() required DateTime dateOfBirth,
+    required PatientRelationship relationship,
+    PatientSex? sex,
+    String? phoneE164,
+    String? email,
+    String? bloodGroup,
+    String? allergies,
+    String? notes,
+  }) = _CreateFamilyMemberRequest;
+
+  factory CreateFamilyMemberRequest.fromJson(Map<String, dynamic> json) =>
+      _$CreateFamilyMemberRequestFromJson(json);
+}
+
+/// Body for `PATCH /patients/{id}`. The backend leaves a field unchanged when
+/// it is absent and clears it when sent blank, so the form sends every editable
+/// field explicitly (empty string clears it). [relationship] is not editable.
+@freezed
+abstract class UpdatePatientRequest with _$UpdatePatientRequest {
+  const factory UpdatePatientRequest({
+    required String fullName,
+    @LocalDateConverter() required DateTime dateOfBirth,
+    PatientSex? sex,
+    required String phoneE164,
+    required String email,
+    required String bloodGroup,
+    required String allergies,
+    required String notes,
+  }) = _UpdatePatientRequest;
+
+  factory UpdatePatientRequest.fromJson(Map<String, dynamic> json) =>
+      _$UpdatePatientRequestFromJson(json);
+}
