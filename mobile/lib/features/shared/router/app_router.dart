@@ -8,6 +8,7 @@ import '../../appointments/presentation/screens/appointment_detail_screen.dart';
 import '../../appointments/presentation/screens/appointments_screen.dart';
 import '../../appointments/presentation/screens/book_appointment_screen.dart';
 import '../../appointments/presentation/screens/reschedule_appointment_screen.dart';
+import '../../discussion/presentation/screens/discussion_screen.dart';
 import '../../auth/domain/auth_status.dart';
 import '../../auth/presentation/controllers/auth_controller.dart';
 import '../../auth/presentation/screens/login_screen.dart';
@@ -147,6 +148,18 @@ final routerProvider = Provider<GoRouter>((ref) {
         },
       ),
       GoRoute(
+        path: '/appointments/:id/discussion',
+        builder: (_, state) {
+          final extra = state.extra;
+          if (extra is Appointment) {
+            return DiscussionScreen(appointment: extra);
+          }
+          // No object passed (push from a notification tap / refresh) — the
+          // thread needs the appointment for its status, so fetch it by id.
+          return _DiscussionRoute(id: state.pathParameters['id']!);
+        },
+      ),
+      GoRoute(
         path: '/appointments/:id',
         builder: (_, state) {
           final extra = state.extra;
@@ -233,6 +246,28 @@ class _RescheduleRoute extends ConsumerWidget {
         body: const Center(child: Text('Could not load this appointment.')),
       ),
       data: (a) => RescheduleAppointmentScreen(appointment: a),
+    );
+  }
+}
+
+/// Fetches the appointment whose discussion to open when the route was entered
+/// without the [Appointment] in `extra` (e.g. a notification deep link).
+class _DiscussionRoute extends ConsumerWidget {
+  const _DiscussionRoute({required this.id});
+
+  final String id;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final appointment = ref.watch(appointmentByIdProvider(id));
+    return appointment.when(
+      loading: () =>
+          const Scaffold(body: Center(child: CircularProgressIndicator())),
+      error: (_, _) => Scaffold(
+        appBar: AppBar(),
+        body: const Center(child: Text('Could not load this appointment.')),
+      ),
+      data: (a) => DiscussionScreen(appointment: a),
     );
   }
 }

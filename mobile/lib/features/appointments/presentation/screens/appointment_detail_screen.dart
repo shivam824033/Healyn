@@ -153,6 +153,18 @@ class _AppointmentDetailScreenState
             const _SectionTitle('Details'),
             const SizedBox(height: HealynSpacing.s3),
             _DetailCard(rows: rows),
+            const SizedBox(height: HealynSpacing.s6),
+            ElevatedButton.icon(
+              onPressed: () => context.push(
+                '/appointments/${_appt.id}/discussion',
+                extra: _appt,
+              ),
+              icon: const Icon(Icons.forum_outlined),
+              label: const Text('Discussion'),
+              style: ElevatedButton.styleFrom(
+                minimumSize: const Size.fromHeight(48),
+              ),
+            ),
             if (cancellation.isNotEmpty) ...[
               const SizedBox(height: HealynSpacing.s6),
               const _SectionTitle('Cancellation'),
