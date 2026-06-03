@@ -11,6 +11,7 @@ import com.healyn.discussion.repository.DiscussionMessageAttachmentRepository;
 import com.healyn.discussion.repository.DiscussionMessageRepository;
 import com.healyn.discussion.repository.DiscussionReadMarkerRepository;
 import com.healyn.files.repository.FileObjectRepository;
+import com.healyn.notifications.repository.FcmTokenRepository;
 import com.healyn.notifications.repository.NotificationOutboxRepository;
 import com.healyn.patients.repository.AccountPatientRepository;
 import com.healyn.patients.repository.PatientRepository;
@@ -47,6 +48,7 @@ class ApplicationBootSmokeTest {
     @MockBean FileObjectRepository fileObjectRepository;
     @MockBean TreatmentNoteRepository treatmentNoteRepository;
     @MockBean NotificationOutboxRepository notificationOutboxRepository;
+    @MockBean FcmTokenRepository fcmTokenRepository;
     @MockBean AuditLogRepository auditLogRepository;
     @MockBean StringRedisTemplate stringRedisTemplate;
 

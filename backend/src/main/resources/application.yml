@@ -87,3 +87,14 @@ healyn:
     public-key-path: ${HEALYN_JWT_PUBLIC_KEY_PATH:}
   password:
     pepper: ${HEALYN_PASSWORD_PEPPER:}
+  notifications:
+    poller-enabled: ${HEALYN_NOTIFICATIONS_POLLER_ENABLED:true}
+    poll-interval-ms: ${HEALYN_NOTIFICATIONS_POLL_INTERVAL_MS:2000}
+    batch-size: ${HEALYN_NOTIFICATIONS_BATCH_SIZE:50}
+    max-attempts: ${HEALYN_NOTIFICATIONS_MAX_ATTEMPTS:5}
+    backoff-base-seconds: ${HEALYN_NOTIFICATIONS_BACKOFF_BASE_SECONDS:2}
+  # fcm.credentials-path is intentionally NOT defaulted here: when the env var is set the
+  # real FirebaseFcmSender activates; when unset the property is absent and the logging
+  # sender is used. (An empty default would falsely satisfy @ConditionalOnProperty.)
+  # fcm:
+  #   credentials-path: ${HEALYN_FCM_CREDENTIALS_PATH}
