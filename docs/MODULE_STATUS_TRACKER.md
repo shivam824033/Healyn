@@ -31,7 +31,7 @@ Layers tracked:
 
 | Module | DB | Backend | API | Mobile | Tests | Notes |
 |---|---|---|---|---|---|---|
-| **auth**                       | 🟩 | 🟩 | 🟩 | ⬜ | 🟩 | V3 migration; register/login/refresh/sessions/password-reset; integration + unit tests. |
+| **auth**                       | 🟩 | 🟩 | 🟩 | 🟨 | 🟩 | V3 migration; register/login/refresh/sessions/password-reset; integration + unit tests. **Mobile (Flutter):** patient app scaffolded under `mobile/` — two-step register (OTP), login, session bootstrap + logout. Riverpod 2.x (manual providers, no codegen) + Dio (snake_case, RS256 bearer, single-flight 401 refresh) + `flutter_secure_storage` token store + go_router auth redirect; UI from design tokens. `flutter analyze` clean; widget + network unit tests green. **Not yet device-tested or merged.** |
 | **patients**                   | 🟩 | 🟩 | 🟩 | ⬜ | 🟩 | V4 migration; primary patient auto-created at registration; `PatientAccessPolicy` exposed for other modules. |
 | **availability**               | 🟩 | 🟩 | 🟩 | ⬜ | 🟩 | V5 migration; rules + blackouts CRUD; `SlotExpansionService` pure function; blackout EXCLUDE-GIST overlap guard. |
 | **appointments**               | 🟩 | 🟩 | 🟩 | ⬜ | 🟩 | V6 migration; booking validates via `SlotExpansionService`; state machine + cursor list + reschedule + idempotency; EXCLUDE constraint enforced + asserted. |
@@ -49,12 +49,12 @@ Layers tracked:
 | Task | Status | Notes |
 |---|---|---|
 | CI pipeline (backend test, mobile test, lint) | ⬜ |  |
-| Dockerized local dev (PG + Redis + MinIO) | ⬜ |  |
+| Dockerized local dev (PG + Redis + MinIO) | 🟨 | `docker-compose.yml` committed (postgres:16, redis:7, minio + bucket init). Not brought up this session — dev reused an existing external `pc-*` stack on the same ports. |
 | Flyway baseline migrations V1–V13 | 🟦 | V1 extensions, V2 enums, V3 auth, V4 patients, V5 availability, V6 appointments, V7 discussion (messages + read markers), V8 treatment_notes, V9 file_objects, V10 discussion_message_attachments, V11 notification_outbox, V12 audit.audit_log, V13 fcm_tokens applied. No further Phase 1 notification migrations expected (dispatcher is app code). |
-| Design tokens implemented in Flutter | ⬜ | See [UI_UX_GUIDELINES.md §12](./UI_UX_GUIDELINES.md#12-implementation-notes-flutter--riverpod) |
-| Network layer (Dio + interceptors) | ⬜ |  |
-| Auth token storage (`flutter_secure_storage`) | ⬜ |  |
-| FCM SDK wired in mobile app | ⬜ |  |
+| Design tokens implemented in Flutter | 🟨 | `lib/features/shared/design/` — colors, typography, spacing, radii, motion + `HealynTheme` from [UI_UX_GUIDELINES.md §12](./UI_UX_GUIDELINES.md#12-implementation-notes-flutter--riverpod). Inter font not yet bundled (system default); golden tests pending. |
+| Network layer (Dio + interceptors) | 🟨 | `lib/features/shared/network/` — Dio client + `AuthInterceptor` (RS256 bearer, single-flight 401 refresh) + `ApiException` envelope mapping. Unit-tested. |
+| Auth token storage (`flutter_secure_storage`) | 🟨 | `TokenStore` + `DeviceIdentity` over `flutter_secure_storage` (Keychain/Keystore); tokens never in plain storage (CLAUDE.md §11). |
+| FCM SDK wired in mobile app | ⬜ | Deferred to a later mobile slice; `DeviceRequest.fcmToken` is currently null. |
 | Outbox poller + retry policy | 🟩 | `OutboxPoller` (`@Scheduled` fixed-delay) drives a **claim → send-outside-tx → record** sweep (`OutboxTransactions` + `OutboxDispatcher`): SKIP-LOCKED claim with a visibility lease (`lease-seconds`), per-row error isolation, exp backoff (base 2s ×2^n, max 5 → DEAD). Delivery behind `FcmSenderPort`. Unit-tested; integration test Docker-gated. |
 | Real FCM adapter (`firebase-admin`) | 🟩 | `FirebaseFcmSender` (data-only messages, IDs only per Hard Rule #4; FCM error→outcome mapping unit-tested). Dependency `com.google.firebase:firebase-admin:9.4.3` (Apache 2.0) added. Activates when `HEALYN_FCM_CREDENTIALS_PATH` is set; otherwise `LoggingFcmSender` is the fallback (`@ConditionalOnProperty`/`@ConditionalOnMissingBean`). Credentials provisioned in dev env. |
 | OWASP dependency-check integrated | ⬜ |  |
