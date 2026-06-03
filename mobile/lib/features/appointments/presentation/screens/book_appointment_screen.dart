@@ -1,0 +1,376 @@
+import 'dart:math';
+
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+
+import '../../../patients/data/models/patient_models.dart';
+import '../../../patients/presentation/patients_providers.dart';
+import '../../../shared/design/colors.dart';
+import '../../../shared/design/spacing.dart';
+import '../../../shared/design/typography.dart';
+import '../../../shared/network/api_exception.dart';
+import '../../../shared/widgets/app_text_field.dart';
+import '../../../shared/widgets/error_banner.dart';
+import '../../../shared/widgets/primary_button.dart';
+import '../../data/appointments_repository.dart';
+import '../../data/models/appointment_models.dart';
+import '../appointment_format.dart';
+import '../appointments_providers.dart';
+
+/// Books an appointment: pick the patient, a date, then one of the open slots
+/// for that day, with an optional reason. Slots come live from `/availability`,
+/// so the chosen time is always one the backend will accept. On success it
+/// refreshes the timeline and pops.
+class BookAppointmentScreen extends ConsumerStatefulWidget {
+  const BookAppointmentScreen({super.key});
+
+  @override
+  ConsumerState<BookAppointmentScreen> createState() =>
+      _BookAppointmentScreenState();
+}
+
+class _BookAppointmentScreenState extends ConsumerState<BookAppointmentScreen> {
+  static const int _maxHorizonDays = 90;
+  static const int _reasonMaxLength = 280;
+
+  // One key per booking attempt: dedupes retries of the *same* booking (e.g. a
+  // lost response) without blocking a genuinely new one on the next screen.
+  final String _idempotencyKey = _newIdempotencyKey();
+  final _reason = TextEditingController();
+  final _dayField = TextEditingController();
+
+  Patient? _patient;
+  DateTime? _day;
+  List<Slot>? _slots;
+  bool _slotsLoading = false;
+  String? _slotsError;
+  Slot? _selectedSlot;
+
+  bool _submitting = false;
+  String? _error;
+
+  @override
+  void dispose() {
+    _reason.dispose();
+    _dayField.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pickDay() async {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _day ?? today,
+      firstDate: today,
+      lastDate: today.add(const Duration(days: _maxHorizonDays)),
+      helpText: 'Appointment date',
+    );
+    if (picked == null) return;
+    setState(() {
+      _day = picked;
+      _dayField.text = formatDateShort(picked);
+      _selectedSlot = null;
+      _slots = null;
+    });
+    await _loadSlots(picked);
+  }
+
+  Future<void> _loadSlots(DateTime day) async {
+    setState(() {
+      _slotsLoading = true;
+      _slotsError = null;
+    });
+    try {
+      final slots = await ref.read(appointmentsRepositoryProvider).slotsFor(day);
+      if (!mounted) return;
+      setState(() => _slots = slots);
+    } on ApiException catch (e) {
+      if (mounted) setState(() => _slotsError = e.message);
+    } finally {
+      if (mounted) setState(() => _slotsLoading = false);
+    }
+  }
+
+  Future<void> _submit(Patient patient) async {
+    if (_day == null) {
+      setState(() => _error = 'Pick a date.');
+      return;
+    }
+    if (_selectedSlot == null) {
+      setState(() => _error = 'Choose a time slot.');
+      return;
+    }
+
+    setState(() {
+      _submitting = true;
+      _error = null;
+    });
+    final repo = ref.read(appointmentsRepositoryProvider);
+    final messenger = ScaffoldMessenger.of(context);
+    final slot = _selectedSlot!;
+    final reason = _reason.text.trim();
+    try {
+      await repo.book(
+        BookAppointmentRequest(
+          patientId: patient.id,
+          scheduledAt: slot.startsAt,
+          durationMinutes: slot.durationMinutes,
+          reason: reason.isEmpty ? null : reason,
+        ),
+        idempotencyKey: _idempotencyKey,
+      );
+      ref.invalidate(appointmentsProvider);
+      if (!mounted) return;
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Appointment requested')),
+      );
+      context.pop();
+    } on ApiException catch (e) {
+      if (mounted) setState(() => _error = e.message);
+    } finally {
+      if (mounted) setState(() => _submitting = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final patients = ref.watch(patientsProvider);
+    return Scaffold(
+      appBar: AppBar(title: const Text('Book appointment')),
+      body: SafeArea(
+        child: patients.when(
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (_, _) => ListView(
+            padding: const EdgeInsets.all(HealynSpacing.screenEdge),
+            children: const [
+              ErrorBanner(
+                message: 'Could not load your patients. Go back and retry.',
+              ),
+            ],
+          ),
+          data: (all) {
+            if (all.isEmpty) {
+              return ListView(
+                padding: const EdgeInsets.all(HealynSpacing.screenEdge),
+                children: const [
+                  ErrorBanner(message: 'No patient profile found.'),
+                ],
+              );
+            }
+            final selected = _patient ?? primaryPatientOf(all)!;
+            return _form(all, selected);
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _form(List<Patient> patients, Patient selected) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(HealynSpacing.screenEdge),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (_error != null) ...[
+            ErrorBanner(message: _error!),
+            const SizedBox(height: HealynSpacing.s4),
+          ],
+          _PatientField(
+            patients: patients,
+            value: selected,
+            enabled: !_submitting,
+            onChanged: (p) => setState(() => _patient = p),
+          ),
+          const SizedBox(height: HealynSpacing.s4),
+          AppTextField(
+            label: 'Date',
+            controller: _dayField,
+            readOnly: true,
+            onTap: _submitting ? null : _pickDay,
+            hintText: 'Select a date',
+            suffixIcon: const Icon(Icons.calendar_today_outlined),
+          ),
+          const SizedBox(height: HealynSpacing.s4),
+          _SlotPicker(
+            label: 'Time',
+            day: _day,
+            loading: _slotsLoading,
+            error: _slotsError,
+            slots: _slots,
+            selected: _selectedSlot,
+            enabled: !_submitting,
+            onSelected: (s) => setState(() => _selectedSlot = s),
+            onRetry: _day == null ? null : () => _loadSlots(_day!),
+          ),
+          const SizedBox(height: HealynSpacing.s4),
+          AppTextField(
+            label: 'Reason (optional)',
+            controller: _reason,
+            keyboardType: TextInputType.multiline,
+            maxLines: 3,
+            hintText: 'e.g. Lower back pain follow-up',
+            inputFormatters: [
+              LengthLimitingTextInputFormatter(_reasonMaxLength),
+            ],
+          ),
+          const SizedBox(height: HealynSpacing.s7),
+          PrimaryButton(
+            label: 'Request appointment',
+            loading: _submitting,
+            onPressed: () => _submit(selected),
+          ),
+        ],
+      ),
+    );
+  }
+
+  static String _newIdempotencyKey() {
+    final rng = Random.secure();
+    return List<int>.generate(16, (_) => rng.nextInt(256))
+        .map((b) => b.toRadixString(16).padLeft(2, '0'))
+        .join();
+  }
+}
+
+class _PatientField extends StatelessWidget {
+  const _PatientField({
+    required this.patients,
+    required this.value,
+    required this.enabled,
+    required this.onChanged,
+  });
+
+  final List<Patient> patients;
+  final Patient value;
+  final bool enabled;
+  final ValueChanged<Patient> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return DropdownButtonFormField<String>(
+      initialValue: value.id,
+      decoration: const InputDecoration(labelText: 'Patient'),
+      items: patients
+          .map(
+            (p) => DropdownMenuItem(
+              value: p.id,
+              child: Text(_label(p)),
+            ),
+          )
+          .toList(),
+      onChanged: enabled
+          ? (id) {
+              if (id == null) return;
+              onChanged(patients.firstWhere((p) => p.id == id));
+            }
+          : null,
+    );
+  }
+
+  static String _label(Patient p) {
+    if (p.primary) return '${p.fullName} (You)';
+    final rel = p.relationship?.label;
+    return rel == null ? p.fullName : '${p.fullName} ($rel)';
+  }
+}
+
+/// The time-slot step: shows guidance until a date is chosen, then the open
+/// slots for that day as selectable chips (with loading/empty/error states).
+class _SlotPicker extends StatelessWidget {
+  const _SlotPicker({
+    required this.label,
+    required this.day,
+    required this.loading,
+    required this.error,
+    required this.slots,
+    required this.selected,
+    required this.enabled,
+    required this.onSelected,
+    required this.onRetry,
+  });
+
+  final String label;
+  final DateTime? day;
+  final bool loading;
+  final String? error;
+  final List<Slot>? slots;
+  final Slot? selected;
+  final bool enabled;
+  final ValueChanged<Slot> onSelected;
+  final VoidCallback? onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: HealynTypography.caption.copyWith(
+            color: HealynColors.textPrimary,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: HealynSpacing.s2),
+        _body(),
+      ],
+    );
+  }
+
+  Widget _body() {
+    if (day == null) {
+      return const Text(
+        'Pick a date to see available times.',
+        style: HealynTypography.caption,
+      );
+    }
+    if (loading) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: HealynSpacing.s3),
+        child: SizedBox(
+          height: 20,
+          width: 20,
+          child: CircularProgressIndicator(strokeWidth: 2),
+        ),
+      );
+    }
+    if (error != null) {
+      return Row(
+        children: [
+          Expanded(
+            child: Text(
+              error!,
+              style: HealynTypography.caption.copyWith(
+                color: HealynColors.statusDanger,
+              ),
+            ),
+          ),
+          if (onRetry != null)
+            TextButton(onPressed: onRetry, child: const Text('Retry')),
+        ],
+      );
+    }
+    final list = slots ?? const [];
+    if (list.isEmpty) {
+      return const Text(
+        'No open slots on this day. Try another date.',
+        style: HealynTypography.caption,
+      );
+    }
+    return Wrap(
+      spacing: HealynSpacing.s2,
+      runSpacing: HealynSpacing.s2,
+      children: [
+        for (final s in list)
+          ChoiceChip(
+            label: Text(formatTimeOfDay(s.startsAt)),
+            selected: selected?.startsAt == s.startsAt,
+            onSelected: enabled ? (_) => onSelected(s) : null,
+          ),
+      ],
+    );
+  }
+}

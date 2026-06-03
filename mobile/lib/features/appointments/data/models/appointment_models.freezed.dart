@@ -1,0 +1,1682 @@
+// GENERATED CODE - DO NOT MODIFY BY HAND
+// coverage:ignore-file
+// ignore_for_file: type=lint
+// ignore_for_file: unused_element, deprecated_member_use, deprecated_member_use_from_same_package, use_function_type_syntax_for_parameters, unnecessary_const, avoid_init_to_null, invalid_override_different_default_values_named, prefer_expression_function_bodies, annotate_overrides, invalid_annotation_target, unnecessary_question_mark
+
+part of 'appointment_models.dart';
+
+// **************************************************************************
+// FreezedGenerator
+// **************************************************************************
+
+// dart format off
+T _$identity<T>(T value) => value;
+
+/// @nodoc
+mixin _$Appointment {
+
+ String get id; String get patientId; String get bookedByAccountId; String get physiotherapistId; DateTime get scheduledAt; DateTime get scheduledEndAt; int get durationMinutes; AppointmentStatus get status; String? get reason; AppointmentCancelReason? get cancelReason; String? get cancelNote; String? get rescheduledFromId; DateTime? get confirmedAt; DateTime? get startedAt; DateTime? get completedAt; DateTime? get cancelledAt; DateTime? get createdAt; DateTime? get updatedAt;
+/// Create a copy of Appointment
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$AppointmentCopyWith<Appointment> get copyWith => _$AppointmentCopyWithImpl<Appointment>(this as Appointment, _$identity);
+
+  /// Serializes this Appointment to a JSON map.
+  Map<String, dynamic> toJson();
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is Appointment&&(identical(other.id, id) || other.id == id)&&(identical(other.patientId, patientId) || other.patientId == patientId)&&(identical(other.bookedByAccountId, bookedByAccountId) || other.bookedByAccountId == bookedByAccountId)&&(identical(other.physiotherapistId, physiotherapistId) || other.physiotherapistId == physiotherapistId)&&(identical(other.scheduledAt, scheduledAt) || other.scheduledAt == scheduledAt)&&(identical(other.scheduledEndAt, scheduledEndAt) || other.scheduledEndAt == scheduledEndAt)&&(identical(other.durationMinutes, durationMinutes) || other.durationMinutes == durationMinutes)&&(identical(other.status, status) || other.status == status)&&(identical(other.reason, reason) || other.reason == reason)&&(identical(other.cancelReason, cancelReason) || other.cancelReason == cancelReason)&&(identical(other.cancelNote, cancelNote) || other.cancelNote == cancelNote)&&(identical(other.rescheduledFromId, rescheduledFromId) || other.rescheduledFromId == rescheduledFromId)&&(identical(other.confirmedAt, confirmedAt) || other.confirmedAt == confirmedAt)&&(identical(other.startedAt, startedAt) || other.startedAt == startedAt)&&(identical(other.completedAt, completedAt) || other.completedAt == completedAt)&&(identical(other.cancelledAt, cancelledAt) || other.cancelledAt == cancelledAt)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,id,patientId,bookedByAccountId,physiotherapistId,scheduledAt,scheduledEndAt,durationMinutes,status,reason,cancelReason,cancelNote,rescheduledFromId,confirmedAt,startedAt,completedAt,cancelledAt,createdAt,updatedAt);
+
+@override
+String toString() {
+  return 'Appointment(id: $id, patientId: $patientId, bookedByAccountId: $bookedByAccountId, physiotherapistId: $physiotherapistId, scheduledAt: $scheduledAt, scheduledEndAt: $scheduledEndAt, durationMinutes: $durationMinutes, status: $status, reason: $reason, cancelReason: $cancelReason, cancelNote: $cancelNote, rescheduledFromId: $rescheduledFromId, confirmedAt: $confirmedAt, startedAt: $startedAt, completedAt: $completedAt, cancelledAt: $cancelledAt, createdAt: $createdAt, updatedAt: $updatedAt)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $AppointmentCopyWith<$Res>  {
+  factory $AppointmentCopyWith(Appointment value, $Res Function(Appointment) _then) = _$AppointmentCopyWithImpl;
+@useResult
+$Res call({
+ String id, String patientId, String bookedByAccountId, String physiotherapistId, DateTime scheduledAt, DateTime scheduledEndAt, int durationMinutes, AppointmentStatus status, String? reason, AppointmentCancelReason? cancelReason, String? cancelNote, String? rescheduledFromId, DateTime? confirmedAt, DateTime? startedAt, DateTime? completedAt, DateTime? cancelledAt, DateTime? createdAt, DateTime? updatedAt
+});
+
+
+
+
+}
+/// @nodoc
+class _$AppointmentCopyWithImpl<$Res>
+    implements $AppointmentCopyWith<$Res> {
+  _$AppointmentCopyWithImpl(this._self, this._then);
+
+  final Appointment _self;
+  final $Res Function(Appointment) _then;
+
+/// Create a copy of Appointment
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? patientId = null,Object? bookedByAccountId = null,Object? physiotherapistId = null,Object? scheduledAt = null,Object? scheduledEndAt = null,Object? durationMinutes = null,Object? status = null,Object? reason = freezed,Object? cancelReason = freezed,Object? cancelNote = freezed,Object? rescheduledFromId = freezed,Object? confirmedAt = freezed,Object? startedAt = freezed,Object? completedAt = freezed,Object? cancelledAt = freezed,Object? createdAt = freezed,Object? updatedAt = freezed,}) {
+  return _then(_self.copyWith(
+id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as String,patientId: null == patientId ? _self.patientId : patientId // ignore: cast_nullable_to_non_nullable
+as String,bookedByAccountId: null == bookedByAccountId ? _self.bookedByAccountId : bookedByAccountId // ignore: cast_nullable_to_non_nullable
+as String,physiotherapistId: null == physiotherapistId ? _self.physiotherapistId : physiotherapistId // ignore: cast_nullable_to_non_nullable
+as String,scheduledAt: null == scheduledAt ? _self.scheduledAt : scheduledAt // ignore: cast_nullable_to_non_nullable
+as DateTime,scheduledEndAt: null == scheduledEndAt ? _self.scheduledEndAt : scheduledEndAt // ignore: cast_nullable_to_non_nullable
+as DateTime,durationMinutes: null == durationMinutes ? _self.durationMinutes : durationMinutes // ignore: cast_nullable_to_non_nullable
+as int,status: null == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
+as AppointmentStatus,reason: freezed == reason ? _self.reason : reason // ignore: cast_nullable_to_non_nullable
+as String?,cancelReason: freezed == cancelReason ? _self.cancelReason : cancelReason // ignore: cast_nullable_to_non_nullable
+as AppointmentCancelReason?,cancelNote: freezed == cancelNote ? _self.cancelNote : cancelNote // ignore: cast_nullable_to_non_nullable
+as String?,rescheduledFromId: freezed == rescheduledFromId ? _self.rescheduledFromId : rescheduledFromId // ignore: cast_nullable_to_non_nullable
+as String?,confirmedAt: freezed == confirmedAt ? _self.confirmedAt : confirmedAt // ignore: cast_nullable_to_non_nullable
+as DateTime?,startedAt: freezed == startedAt ? _self.startedAt : startedAt // ignore: cast_nullable_to_non_nullable
+as DateTime?,completedAt: freezed == completedAt ? _self.completedAt : completedAt // ignore: cast_nullable_to_non_nullable
+as DateTime?,cancelledAt: freezed == cancelledAt ? _self.cancelledAt : cancelledAt // ignore: cast_nullable_to_non_nullable
+as DateTime?,createdAt: freezed == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
+as DateTime?,updatedAt: freezed == updatedAt ? _self.updatedAt : updatedAt // ignore: cast_nullable_to_non_nullable
+as DateTime?,
+  ));
+}
+
+}
+
+
+/// Adds pattern-matching-related methods to [Appointment].
+extension AppointmentPatterns on Appointment {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _Appointment value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _Appointment() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _Appointment value)  $default,){
+final _that = this;
+switch (_that) {
+case _Appointment():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _Appointment value)?  $default,){
+final _that = this;
+switch (_that) {
+case _Appointment() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String patientId,  String bookedByAccountId,  String physiotherapistId,  DateTime scheduledAt,  DateTime scheduledEndAt,  int durationMinutes,  AppointmentStatus status,  String? reason,  AppointmentCancelReason? cancelReason,  String? cancelNote,  String? rescheduledFromId,  DateTime? confirmedAt,  DateTime? startedAt,  DateTime? completedAt,  DateTime? cancelledAt,  DateTime? createdAt,  DateTime? updatedAt)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _Appointment() when $default != null:
+return $default(_that.id,_that.patientId,_that.bookedByAccountId,_that.physiotherapistId,_that.scheduledAt,_that.scheduledEndAt,_that.durationMinutes,_that.status,_that.reason,_that.cancelReason,_that.cancelNote,_that.rescheduledFromId,_that.confirmedAt,_that.startedAt,_that.completedAt,_that.cancelledAt,_that.createdAt,_that.updatedAt);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String patientId,  String bookedByAccountId,  String physiotherapistId,  DateTime scheduledAt,  DateTime scheduledEndAt,  int durationMinutes,  AppointmentStatus status,  String? reason,  AppointmentCancelReason? cancelReason,  String? cancelNote,  String? rescheduledFromId,  DateTime? confirmedAt,  DateTime? startedAt,  DateTime? completedAt,  DateTime? cancelledAt,  DateTime? createdAt,  DateTime? updatedAt)  $default,) {final _that = this;
+switch (_that) {
+case _Appointment():
+return $default(_that.id,_that.patientId,_that.bookedByAccountId,_that.physiotherapistId,_that.scheduledAt,_that.scheduledEndAt,_that.durationMinutes,_that.status,_that.reason,_that.cancelReason,_that.cancelNote,_that.rescheduledFromId,_that.confirmedAt,_that.startedAt,_that.completedAt,_that.cancelledAt,_that.createdAt,_that.updatedAt);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String patientId,  String bookedByAccountId,  String physiotherapistId,  DateTime scheduledAt,  DateTime scheduledEndAt,  int durationMinutes,  AppointmentStatus status,  String? reason,  AppointmentCancelReason? cancelReason,  String? cancelNote,  String? rescheduledFromId,  DateTime? confirmedAt,  DateTime? startedAt,  DateTime? completedAt,  DateTime? cancelledAt,  DateTime? createdAt,  DateTime? updatedAt)?  $default,) {final _that = this;
+switch (_that) {
+case _Appointment() when $default != null:
+return $default(_that.id,_that.patientId,_that.bookedByAccountId,_that.physiotherapistId,_that.scheduledAt,_that.scheduledEndAt,_that.durationMinutes,_that.status,_that.reason,_that.cancelReason,_that.cancelNote,_that.rescheduledFromId,_that.confirmedAt,_that.startedAt,_that.completedAt,_that.cancelledAt,_that.createdAt,_that.updatedAt);case _:
+  return null;
+
+}
+}
+
+}
+
+/// @nodoc
+@JsonSerializable()
+
+class _Appointment implements Appointment {
+  const _Appointment({required this.id, required this.patientId, required this.bookedByAccountId, required this.physiotherapistId, required this.scheduledAt, required this.scheduledEndAt, required this.durationMinutes, required this.status, this.reason, this.cancelReason, this.cancelNote, this.rescheduledFromId, this.confirmedAt, this.startedAt, this.completedAt, this.cancelledAt, this.createdAt, this.updatedAt});
+  factory _Appointment.fromJson(Map<String, dynamic> json) => _$AppointmentFromJson(json);
+
+@override final  String id;
+@override final  String patientId;
+@override final  String bookedByAccountId;
+@override final  String physiotherapistId;
+@override final  DateTime scheduledAt;
+@override final  DateTime scheduledEndAt;
+@override final  int durationMinutes;
+@override final  AppointmentStatus status;
+@override final  String? reason;
+@override final  AppointmentCancelReason? cancelReason;
+@override final  String? cancelNote;
+@override final  String? rescheduledFromId;
+@override final  DateTime? confirmedAt;
+@override final  DateTime? startedAt;
+@override final  DateTime? completedAt;
+@override final  DateTime? cancelledAt;
+@override final  DateTime? createdAt;
+@override final  DateTime? updatedAt;
+
+/// Create a copy of Appointment
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$AppointmentCopyWith<_Appointment> get copyWith => __$AppointmentCopyWithImpl<_Appointment>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$AppointmentToJson(this, );
+}
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Appointment&&(identical(other.id, id) || other.id == id)&&(identical(other.patientId, patientId) || other.patientId == patientId)&&(identical(other.bookedByAccountId, bookedByAccountId) || other.bookedByAccountId == bookedByAccountId)&&(identical(other.physiotherapistId, physiotherapistId) || other.physiotherapistId == physiotherapistId)&&(identical(other.scheduledAt, scheduledAt) || other.scheduledAt == scheduledAt)&&(identical(other.scheduledEndAt, scheduledEndAt) || other.scheduledEndAt == scheduledEndAt)&&(identical(other.durationMinutes, durationMinutes) || other.durationMinutes == durationMinutes)&&(identical(other.status, status) || other.status == status)&&(identical(other.reason, reason) || other.reason == reason)&&(identical(other.cancelReason, cancelReason) || other.cancelReason == cancelReason)&&(identical(other.cancelNote, cancelNote) || other.cancelNote == cancelNote)&&(identical(other.rescheduledFromId, rescheduledFromId) || other.rescheduledFromId == rescheduledFromId)&&(identical(other.confirmedAt, confirmedAt) || other.confirmedAt == confirmedAt)&&(identical(other.startedAt, startedAt) || other.startedAt == startedAt)&&(identical(other.completedAt, completedAt) || other.completedAt == completedAt)&&(identical(other.cancelledAt, cancelledAt) || other.cancelledAt == cancelledAt)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,id,patientId,bookedByAccountId,physiotherapistId,scheduledAt,scheduledEndAt,durationMinutes,status,reason,cancelReason,cancelNote,rescheduledFromId,confirmedAt,startedAt,completedAt,cancelledAt,createdAt,updatedAt);
+
+@override
+String toString() {
+  return 'Appointment(id: $id, patientId: $patientId, bookedByAccountId: $bookedByAccountId, physiotherapistId: $physiotherapistId, scheduledAt: $scheduledAt, scheduledEndAt: $scheduledEndAt, durationMinutes: $durationMinutes, status: $status, reason: $reason, cancelReason: $cancelReason, cancelNote: $cancelNote, rescheduledFromId: $rescheduledFromId, confirmedAt: $confirmedAt, startedAt: $startedAt, completedAt: $completedAt, cancelledAt: $cancelledAt, createdAt: $createdAt, updatedAt: $updatedAt)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$AppointmentCopyWith<$Res> implements $AppointmentCopyWith<$Res> {
+  factory _$AppointmentCopyWith(_Appointment value, $Res Function(_Appointment) _then) = __$AppointmentCopyWithImpl;
+@override @useResult
+$Res call({
+ String id, String patientId, String bookedByAccountId, String physiotherapistId, DateTime scheduledAt, DateTime scheduledEndAt, int durationMinutes, AppointmentStatus status, String? reason, AppointmentCancelReason? cancelReason, String? cancelNote, String? rescheduledFromId, DateTime? confirmedAt, DateTime? startedAt, DateTime? completedAt, DateTime? cancelledAt, DateTime? createdAt, DateTime? updatedAt
+});
+
+
+
+
+}
+/// @nodoc
+class __$AppointmentCopyWithImpl<$Res>
+    implements _$AppointmentCopyWith<$Res> {
+  __$AppointmentCopyWithImpl(this._self, this._then);
+
+  final _Appointment _self;
+  final $Res Function(_Appointment) _then;
+
+/// Create a copy of Appointment
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? patientId = null,Object? bookedByAccountId = null,Object? physiotherapistId = null,Object? scheduledAt = null,Object? scheduledEndAt = null,Object? durationMinutes = null,Object? status = null,Object? reason = freezed,Object? cancelReason = freezed,Object? cancelNote = freezed,Object? rescheduledFromId = freezed,Object? confirmedAt = freezed,Object? startedAt = freezed,Object? completedAt = freezed,Object? cancelledAt = freezed,Object? createdAt = freezed,Object? updatedAt = freezed,}) {
+  return _then(_Appointment(
+id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as String,patientId: null == patientId ? _self.patientId : patientId // ignore: cast_nullable_to_non_nullable
+as String,bookedByAccountId: null == bookedByAccountId ? _self.bookedByAccountId : bookedByAccountId // ignore: cast_nullable_to_non_nullable
+as String,physiotherapistId: null == physiotherapistId ? _self.physiotherapistId : physiotherapistId // ignore: cast_nullable_to_non_nullable
+as String,scheduledAt: null == scheduledAt ? _self.scheduledAt : scheduledAt // ignore: cast_nullable_to_non_nullable
+as DateTime,scheduledEndAt: null == scheduledEndAt ? _self.scheduledEndAt : scheduledEndAt // ignore: cast_nullable_to_non_nullable
+as DateTime,durationMinutes: null == durationMinutes ? _self.durationMinutes : durationMinutes // ignore: cast_nullable_to_non_nullable
+as int,status: null == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
+as AppointmentStatus,reason: freezed == reason ? _self.reason : reason // ignore: cast_nullable_to_non_nullable
+as String?,cancelReason: freezed == cancelReason ? _self.cancelReason : cancelReason // ignore: cast_nullable_to_non_nullable
+as AppointmentCancelReason?,cancelNote: freezed == cancelNote ? _self.cancelNote : cancelNote // ignore: cast_nullable_to_non_nullable
+as String?,rescheduledFromId: freezed == rescheduledFromId ? _self.rescheduledFromId : rescheduledFromId // ignore: cast_nullable_to_non_nullable
+as String?,confirmedAt: freezed == confirmedAt ? _self.confirmedAt : confirmedAt // ignore: cast_nullable_to_non_nullable
+as DateTime?,startedAt: freezed == startedAt ? _self.startedAt : startedAt // ignore: cast_nullable_to_non_nullable
+as DateTime?,completedAt: freezed == completedAt ? _self.completedAt : completedAt // ignore: cast_nullable_to_non_nullable
+as DateTime?,cancelledAt: freezed == cancelledAt ? _self.cancelledAt : cancelledAt // ignore: cast_nullable_to_non_nullable
+as DateTime?,createdAt: freezed == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
+as DateTime?,updatedAt: freezed == updatedAt ? _self.updatedAt : updatedAt // ignore: cast_nullable_to_non_nullable
+as DateTime?,
+  ));
+}
+
+
+}
+
+
+/// @nodoc
+mixin _$AppointmentPage {
+
+ List<Appointment> get items; String? get nextCursor;
+/// Create a copy of AppointmentPage
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$AppointmentPageCopyWith<AppointmentPage> get copyWith => _$AppointmentPageCopyWithImpl<AppointmentPage>(this as AppointmentPage, _$identity);
+
+  /// Serializes this AppointmentPage to a JSON map.
+  Map<String, dynamic> toJson();
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is AppointmentPage&&const DeepCollectionEquality().equals(other.items, items)&&(identical(other.nextCursor, nextCursor) || other.nextCursor == nextCursor));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,const DeepCollectionEquality().hash(items),nextCursor);
+
+@override
+String toString() {
+  return 'AppointmentPage(items: $items, nextCursor: $nextCursor)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $AppointmentPageCopyWith<$Res>  {
+  factory $AppointmentPageCopyWith(AppointmentPage value, $Res Function(AppointmentPage) _then) = _$AppointmentPageCopyWithImpl;
+@useResult
+$Res call({
+ List<Appointment> items, String? nextCursor
+});
+
+
+
+
+}
+/// @nodoc
+class _$AppointmentPageCopyWithImpl<$Res>
+    implements $AppointmentPageCopyWith<$Res> {
+  _$AppointmentPageCopyWithImpl(this._self, this._then);
+
+  final AppointmentPage _self;
+  final $Res Function(AppointmentPage) _then;
+
+/// Create a copy of AppointmentPage
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? items = null,Object? nextCursor = freezed,}) {
+  return _then(_self.copyWith(
+items: null == items ? _self.items : items // ignore: cast_nullable_to_non_nullable
+as List<Appointment>,nextCursor: freezed == nextCursor ? _self.nextCursor : nextCursor // ignore: cast_nullable_to_non_nullable
+as String?,
+  ));
+}
+
+}
+
+
+/// Adds pattern-matching-related methods to [AppointmentPage].
+extension AppointmentPagePatterns on AppointmentPage {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _AppointmentPage value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _AppointmentPage() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _AppointmentPage value)  $default,){
+final _that = this;
+switch (_that) {
+case _AppointmentPage():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _AppointmentPage value)?  $default,){
+final _that = this;
+switch (_that) {
+case _AppointmentPage() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( List<Appointment> items,  String? nextCursor)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _AppointmentPage() when $default != null:
+return $default(_that.items,_that.nextCursor);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( List<Appointment> items,  String? nextCursor)  $default,) {final _that = this;
+switch (_that) {
+case _AppointmentPage():
+return $default(_that.items,_that.nextCursor);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( List<Appointment> items,  String? nextCursor)?  $default,) {final _that = this;
+switch (_that) {
+case _AppointmentPage() when $default != null:
+return $default(_that.items,_that.nextCursor);case _:
+  return null;
+
+}
+}
+
+}
+
+/// @nodoc
+@JsonSerializable()
+
+class _AppointmentPage implements AppointmentPage {
+  const _AppointmentPage({required final  List<Appointment> items, this.nextCursor}): _items = items;
+  factory _AppointmentPage.fromJson(Map<String, dynamic> json) => _$AppointmentPageFromJson(json);
+
+ final  List<Appointment> _items;
+@override List<Appointment> get items {
+  if (_items is EqualUnmodifiableListView) return _items;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_items);
+}
+
+@override final  String? nextCursor;
+
+/// Create a copy of AppointmentPage
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$AppointmentPageCopyWith<_AppointmentPage> get copyWith => __$AppointmentPageCopyWithImpl<_AppointmentPage>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$AppointmentPageToJson(this, );
+}
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _AppointmentPage&&const DeepCollectionEquality().equals(other._items, _items)&&(identical(other.nextCursor, nextCursor) || other.nextCursor == nextCursor));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,const DeepCollectionEquality().hash(_items),nextCursor);
+
+@override
+String toString() {
+  return 'AppointmentPage(items: $items, nextCursor: $nextCursor)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$AppointmentPageCopyWith<$Res> implements $AppointmentPageCopyWith<$Res> {
+  factory _$AppointmentPageCopyWith(_AppointmentPage value, $Res Function(_AppointmentPage) _then) = __$AppointmentPageCopyWithImpl;
+@override @useResult
+$Res call({
+ List<Appointment> items, String? nextCursor
+});
+
+
+
+
+}
+/// @nodoc
+class __$AppointmentPageCopyWithImpl<$Res>
+    implements _$AppointmentPageCopyWith<$Res> {
+  __$AppointmentPageCopyWithImpl(this._self, this._then);
+
+  final _AppointmentPage _self;
+  final $Res Function(_AppointmentPage) _then;
+
+/// Create a copy of AppointmentPage
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? items = null,Object? nextCursor = freezed,}) {
+  return _then(_AppointmentPage(
+items: null == items ? _self._items : items // ignore: cast_nullable_to_non_nullable
+as List<Appointment>,nextCursor: freezed == nextCursor ? _self.nextCursor : nextCursor // ignore: cast_nullable_to_non_nullable
+as String?,
+  ));
+}
+
+
+}
+
+
+/// @nodoc
+mixin _$BookAppointmentRequest {
+
+ String get patientId; DateTime get scheduledAt; int get durationMinutes; String? get reason;
+/// Create a copy of BookAppointmentRequest
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$BookAppointmentRequestCopyWith<BookAppointmentRequest> get copyWith => _$BookAppointmentRequestCopyWithImpl<BookAppointmentRequest>(this as BookAppointmentRequest, _$identity);
+
+  /// Serializes this BookAppointmentRequest to a JSON map.
+  Map<String, dynamic> toJson();
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is BookAppointmentRequest&&(identical(other.patientId, patientId) || other.patientId == patientId)&&(identical(other.scheduledAt, scheduledAt) || other.scheduledAt == scheduledAt)&&(identical(other.durationMinutes, durationMinutes) || other.durationMinutes == durationMinutes)&&(identical(other.reason, reason) || other.reason == reason));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,patientId,scheduledAt,durationMinutes,reason);
+
+@override
+String toString() {
+  return 'BookAppointmentRequest(patientId: $patientId, scheduledAt: $scheduledAt, durationMinutes: $durationMinutes, reason: $reason)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $BookAppointmentRequestCopyWith<$Res>  {
+  factory $BookAppointmentRequestCopyWith(BookAppointmentRequest value, $Res Function(BookAppointmentRequest) _then) = _$BookAppointmentRequestCopyWithImpl;
+@useResult
+$Res call({
+ String patientId, DateTime scheduledAt, int durationMinutes, String? reason
+});
+
+
+
+
+}
+/// @nodoc
+class _$BookAppointmentRequestCopyWithImpl<$Res>
+    implements $BookAppointmentRequestCopyWith<$Res> {
+  _$BookAppointmentRequestCopyWithImpl(this._self, this._then);
+
+  final BookAppointmentRequest _self;
+  final $Res Function(BookAppointmentRequest) _then;
+
+/// Create a copy of BookAppointmentRequest
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? patientId = null,Object? scheduledAt = null,Object? durationMinutes = null,Object? reason = freezed,}) {
+  return _then(_self.copyWith(
+patientId: null == patientId ? _self.patientId : patientId // ignore: cast_nullable_to_non_nullable
+as String,scheduledAt: null == scheduledAt ? _self.scheduledAt : scheduledAt // ignore: cast_nullable_to_non_nullable
+as DateTime,durationMinutes: null == durationMinutes ? _self.durationMinutes : durationMinutes // ignore: cast_nullable_to_non_nullable
+as int,reason: freezed == reason ? _self.reason : reason // ignore: cast_nullable_to_non_nullable
+as String?,
+  ));
+}
+
+}
+
+
+/// Adds pattern-matching-related methods to [BookAppointmentRequest].
+extension BookAppointmentRequestPatterns on BookAppointmentRequest {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _BookAppointmentRequest value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _BookAppointmentRequest() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _BookAppointmentRequest value)  $default,){
+final _that = this;
+switch (_that) {
+case _BookAppointmentRequest():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _BookAppointmentRequest value)?  $default,){
+final _that = this;
+switch (_that) {
+case _BookAppointmentRequest() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String patientId,  DateTime scheduledAt,  int durationMinutes,  String? reason)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _BookAppointmentRequest() when $default != null:
+return $default(_that.patientId,_that.scheduledAt,_that.durationMinutes,_that.reason);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String patientId,  DateTime scheduledAt,  int durationMinutes,  String? reason)  $default,) {final _that = this;
+switch (_that) {
+case _BookAppointmentRequest():
+return $default(_that.patientId,_that.scheduledAt,_that.durationMinutes,_that.reason);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String patientId,  DateTime scheduledAt,  int durationMinutes,  String? reason)?  $default,) {final _that = this;
+switch (_that) {
+case _BookAppointmentRequest() when $default != null:
+return $default(_that.patientId,_that.scheduledAt,_that.durationMinutes,_that.reason);case _:
+  return null;
+
+}
+}
+
+}
+
+/// @nodoc
+@JsonSerializable()
+
+class _BookAppointmentRequest implements BookAppointmentRequest {
+  const _BookAppointmentRequest({required this.patientId, required this.scheduledAt, required this.durationMinutes, this.reason});
+  factory _BookAppointmentRequest.fromJson(Map<String, dynamic> json) => _$BookAppointmentRequestFromJson(json);
+
+@override final  String patientId;
+@override final  DateTime scheduledAt;
+@override final  int durationMinutes;
+@override final  String? reason;
+
+/// Create a copy of BookAppointmentRequest
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$BookAppointmentRequestCopyWith<_BookAppointmentRequest> get copyWith => __$BookAppointmentRequestCopyWithImpl<_BookAppointmentRequest>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$BookAppointmentRequestToJson(this, );
+}
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _BookAppointmentRequest&&(identical(other.patientId, patientId) || other.patientId == patientId)&&(identical(other.scheduledAt, scheduledAt) || other.scheduledAt == scheduledAt)&&(identical(other.durationMinutes, durationMinutes) || other.durationMinutes == durationMinutes)&&(identical(other.reason, reason) || other.reason == reason));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,patientId,scheduledAt,durationMinutes,reason);
+
+@override
+String toString() {
+  return 'BookAppointmentRequest(patientId: $patientId, scheduledAt: $scheduledAt, durationMinutes: $durationMinutes, reason: $reason)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$BookAppointmentRequestCopyWith<$Res> implements $BookAppointmentRequestCopyWith<$Res> {
+  factory _$BookAppointmentRequestCopyWith(_BookAppointmentRequest value, $Res Function(_BookAppointmentRequest) _then) = __$BookAppointmentRequestCopyWithImpl;
+@override @useResult
+$Res call({
+ String patientId, DateTime scheduledAt, int durationMinutes, String? reason
+});
+
+
+
+
+}
+/// @nodoc
+class __$BookAppointmentRequestCopyWithImpl<$Res>
+    implements _$BookAppointmentRequestCopyWith<$Res> {
+  __$BookAppointmentRequestCopyWithImpl(this._self, this._then);
+
+  final _BookAppointmentRequest _self;
+  final $Res Function(_BookAppointmentRequest) _then;
+
+/// Create a copy of BookAppointmentRequest
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? patientId = null,Object? scheduledAt = null,Object? durationMinutes = null,Object? reason = freezed,}) {
+  return _then(_BookAppointmentRequest(
+patientId: null == patientId ? _self.patientId : patientId // ignore: cast_nullable_to_non_nullable
+as String,scheduledAt: null == scheduledAt ? _self.scheduledAt : scheduledAt // ignore: cast_nullable_to_non_nullable
+as DateTime,durationMinutes: null == durationMinutes ? _self.durationMinutes : durationMinutes // ignore: cast_nullable_to_non_nullable
+as int,reason: freezed == reason ? _self.reason : reason // ignore: cast_nullable_to_non_nullable
+as String?,
+  ));
+}
+
+
+}
+
+
+/// @nodoc
+mixin _$TransitionRequest {
+
+ AppointmentStatus get to; AppointmentCancelReason? get cancelReason; String? get cancelNote;
+/// Create a copy of TransitionRequest
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$TransitionRequestCopyWith<TransitionRequest> get copyWith => _$TransitionRequestCopyWithImpl<TransitionRequest>(this as TransitionRequest, _$identity);
+
+  /// Serializes this TransitionRequest to a JSON map.
+  Map<String, dynamic> toJson();
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is TransitionRequest&&(identical(other.to, to) || other.to == to)&&(identical(other.cancelReason, cancelReason) || other.cancelReason == cancelReason)&&(identical(other.cancelNote, cancelNote) || other.cancelNote == cancelNote));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,to,cancelReason,cancelNote);
+
+@override
+String toString() {
+  return 'TransitionRequest(to: $to, cancelReason: $cancelReason, cancelNote: $cancelNote)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $TransitionRequestCopyWith<$Res>  {
+  factory $TransitionRequestCopyWith(TransitionRequest value, $Res Function(TransitionRequest) _then) = _$TransitionRequestCopyWithImpl;
+@useResult
+$Res call({
+ AppointmentStatus to, AppointmentCancelReason? cancelReason, String? cancelNote
+});
+
+
+
+
+}
+/// @nodoc
+class _$TransitionRequestCopyWithImpl<$Res>
+    implements $TransitionRequestCopyWith<$Res> {
+  _$TransitionRequestCopyWithImpl(this._self, this._then);
+
+  final TransitionRequest _self;
+  final $Res Function(TransitionRequest) _then;
+
+/// Create a copy of TransitionRequest
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? to = null,Object? cancelReason = freezed,Object? cancelNote = freezed,}) {
+  return _then(_self.copyWith(
+to: null == to ? _self.to : to // ignore: cast_nullable_to_non_nullable
+as AppointmentStatus,cancelReason: freezed == cancelReason ? _self.cancelReason : cancelReason // ignore: cast_nullable_to_non_nullable
+as AppointmentCancelReason?,cancelNote: freezed == cancelNote ? _self.cancelNote : cancelNote // ignore: cast_nullable_to_non_nullable
+as String?,
+  ));
+}
+
+}
+
+
+/// Adds pattern-matching-related methods to [TransitionRequest].
+extension TransitionRequestPatterns on TransitionRequest {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _TransitionRequest value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _TransitionRequest() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _TransitionRequest value)  $default,){
+final _that = this;
+switch (_that) {
+case _TransitionRequest():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _TransitionRequest value)?  $default,){
+final _that = this;
+switch (_that) {
+case _TransitionRequest() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( AppointmentStatus to,  AppointmentCancelReason? cancelReason,  String? cancelNote)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _TransitionRequest() when $default != null:
+return $default(_that.to,_that.cancelReason,_that.cancelNote);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( AppointmentStatus to,  AppointmentCancelReason? cancelReason,  String? cancelNote)  $default,) {final _that = this;
+switch (_that) {
+case _TransitionRequest():
+return $default(_that.to,_that.cancelReason,_that.cancelNote);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( AppointmentStatus to,  AppointmentCancelReason? cancelReason,  String? cancelNote)?  $default,) {final _that = this;
+switch (_that) {
+case _TransitionRequest() when $default != null:
+return $default(_that.to,_that.cancelReason,_that.cancelNote);case _:
+  return null;
+
+}
+}
+
+}
+
+/// @nodoc
+@JsonSerializable()
+
+class _TransitionRequest implements TransitionRequest {
+  const _TransitionRequest({required this.to, this.cancelReason, this.cancelNote});
+  factory _TransitionRequest.fromJson(Map<String, dynamic> json) => _$TransitionRequestFromJson(json);
+
+@override final  AppointmentStatus to;
+@override final  AppointmentCancelReason? cancelReason;
+@override final  String? cancelNote;
+
+/// Create a copy of TransitionRequest
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$TransitionRequestCopyWith<_TransitionRequest> get copyWith => __$TransitionRequestCopyWithImpl<_TransitionRequest>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$TransitionRequestToJson(this, );
+}
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _TransitionRequest&&(identical(other.to, to) || other.to == to)&&(identical(other.cancelReason, cancelReason) || other.cancelReason == cancelReason)&&(identical(other.cancelNote, cancelNote) || other.cancelNote == cancelNote));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,to,cancelReason,cancelNote);
+
+@override
+String toString() {
+  return 'TransitionRequest(to: $to, cancelReason: $cancelReason, cancelNote: $cancelNote)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$TransitionRequestCopyWith<$Res> implements $TransitionRequestCopyWith<$Res> {
+  factory _$TransitionRequestCopyWith(_TransitionRequest value, $Res Function(_TransitionRequest) _then) = __$TransitionRequestCopyWithImpl;
+@override @useResult
+$Res call({
+ AppointmentStatus to, AppointmentCancelReason? cancelReason, String? cancelNote
+});
+
+
+
+
+}
+/// @nodoc
+class __$TransitionRequestCopyWithImpl<$Res>
+    implements _$TransitionRequestCopyWith<$Res> {
+  __$TransitionRequestCopyWithImpl(this._self, this._then);
+
+  final _TransitionRequest _self;
+  final $Res Function(_TransitionRequest) _then;
+
+/// Create a copy of TransitionRequest
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? to = null,Object? cancelReason = freezed,Object? cancelNote = freezed,}) {
+  return _then(_TransitionRequest(
+to: null == to ? _self.to : to // ignore: cast_nullable_to_non_nullable
+as AppointmentStatus,cancelReason: freezed == cancelReason ? _self.cancelReason : cancelReason // ignore: cast_nullable_to_non_nullable
+as AppointmentCancelReason?,cancelNote: freezed == cancelNote ? _self.cancelNote : cancelNote // ignore: cast_nullable_to_non_nullable
+as String?,
+  ));
+}
+
+
+}
+
+
+/// @nodoc
+mixin _$Slot {
+
+ DateTime get startsAt; DateTime get endsAt; int get durationMinutes;
+/// Create a copy of Slot
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$SlotCopyWith<Slot> get copyWith => _$SlotCopyWithImpl<Slot>(this as Slot, _$identity);
+
+  /// Serializes this Slot to a JSON map.
+  Map<String, dynamic> toJson();
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is Slot&&(identical(other.startsAt, startsAt) || other.startsAt == startsAt)&&(identical(other.endsAt, endsAt) || other.endsAt == endsAt)&&(identical(other.durationMinutes, durationMinutes) || other.durationMinutes == durationMinutes));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,startsAt,endsAt,durationMinutes);
+
+@override
+String toString() {
+  return 'Slot(startsAt: $startsAt, endsAt: $endsAt, durationMinutes: $durationMinutes)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $SlotCopyWith<$Res>  {
+  factory $SlotCopyWith(Slot value, $Res Function(Slot) _then) = _$SlotCopyWithImpl;
+@useResult
+$Res call({
+ DateTime startsAt, DateTime endsAt, int durationMinutes
+});
+
+
+
+
+}
+/// @nodoc
+class _$SlotCopyWithImpl<$Res>
+    implements $SlotCopyWith<$Res> {
+  _$SlotCopyWithImpl(this._self, this._then);
+
+  final Slot _self;
+  final $Res Function(Slot) _then;
+
+/// Create a copy of Slot
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? startsAt = null,Object? endsAt = null,Object? durationMinutes = null,}) {
+  return _then(_self.copyWith(
+startsAt: null == startsAt ? _self.startsAt : startsAt // ignore: cast_nullable_to_non_nullable
+as DateTime,endsAt: null == endsAt ? _self.endsAt : endsAt // ignore: cast_nullable_to_non_nullable
+as DateTime,durationMinutes: null == durationMinutes ? _self.durationMinutes : durationMinutes // ignore: cast_nullable_to_non_nullable
+as int,
+  ));
+}
+
+}
+
+
+/// Adds pattern-matching-related methods to [Slot].
+extension SlotPatterns on Slot {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _Slot value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _Slot() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _Slot value)  $default,){
+final _that = this;
+switch (_that) {
+case _Slot():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _Slot value)?  $default,){
+final _that = this;
+switch (_that) {
+case _Slot() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( DateTime startsAt,  DateTime endsAt,  int durationMinutes)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _Slot() when $default != null:
+return $default(_that.startsAt,_that.endsAt,_that.durationMinutes);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( DateTime startsAt,  DateTime endsAt,  int durationMinutes)  $default,) {final _that = this;
+switch (_that) {
+case _Slot():
+return $default(_that.startsAt,_that.endsAt,_that.durationMinutes);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( DateTime startsAt,  DateTime endsAt,  int durationMinutes)?  $default,) {final _that = this;
+switch (_that) {
+case _Slot() when $default != null:
+return $default(_that.startsAt,_that.endsAt,_that.durationMinutes);case _:
+  return null;
+
+}
+}
+
+}
+
+/// @nodoc
+@JsonSerializable()
+
+class _Slot implements Slot {
+  const _Slot({required this.startsAt, required this.endsAt, required this.durationMinutes});
+  factory _Slot.fromJson(Map<String, dynamic> json) => _$SlotFromJson(json);
+
+@override final  DateTime startsAt;
+@override final  DateTime endsAt;
+@override final  int durationMinutes;
+
+/// Create a copy of Slot
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$SlotCopyWith<_Slot> get copyWith => __$SlotCopyWithImpl<_Slot>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$SlotToJson(this, );
+}
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Slot&&(identical(other.startsAt, startsAt) || other.startsAt == startsAt)&&(identical(other.endsAt, endsAt) || other.endsAt == endsAt)&&(identical(other.durationMinutes, durationMinutes) || other.durationMinutes == durationMinutes));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,startsAt,endsAt,durationMinutes);
+
+@override
+String toString() {
+  return 'Slot(startsAt: $startsAt, endsAt: $endsAt, durationMinutes: $durationMinutes)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$SlotCopyWith<$Res> implements $SlotCopyWith<$Res> {
+  factory _$SlotCopyWith(_Slot value, $Res Function(_Slot) _then) = __$SlotCopyWithImpl;
+@override @useResult
+$Res call({
+ DateTime startsAt, DateTime endsAt, int durationMinutes
+});
+
+
+
+
+}
+/// @nodoc
+class __$SlotCopyWithImpl<$Res>
+    implements _$SlotCopyWith<$Res> {
+  __$SlotCopyWithImpl(this._self, this._then);
+
+  final _Slot _self;
+  final $Res Function(_Slot) _then;
+
+/// Create a copy of Slot
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? startsAt = null,Object? endsAt = null,Object? durationMinutes = null,}) {
+  return _then(_Slot(
+startsAt: null == startsAt ? _self.startsAt : startsAt // ignore: cast_nullable_to_non_nullable
+as DateTime,endsAt: null == endsAt ? _self.endsAt : endsAt // ignore: cast_nullable_to_non_nullable
+as DateTime,durationMinutes: null == durationMinutes ? _self.durationMinutes : durationMinutes // ignore: cast_nullable_to_non_nullable
+as int,
+  ));
+}
+
+
+}
+
+
+/// @nodoc
+mixin _$SlotListResponse {
+
+ String get physiotherapistId; List<Slot> get slots;
+/// Create a copy of SlotListResponse
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$SlotListResponseCopyWith<SlotListResponse> get copyWith => _$SlotListResponseCopyWithImpl<SlotListResponse>(this as SlotListResponse, _$identity);
+
+  /// Serializes this SlotListResponse to a JSON map.
+  Map<String, dynamic> toJson();
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is SlotListResponse&&(identical(other.physiotherapistId, physiotherapistId) || other.physiotherapistId == physiotherapistId)&&const DeepCollectionEquality().equals(other.slots, slots));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,physiotherapistId,const DeepCollectionEquality().hash(slots));
+
+@override
+String toString() {
+  return 'SlotListResponse(physiotherapistId: $physiotherapistId, slots: $slots)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $SlotListResponseCopyWith<$Res>  {
+  factory $SlotListResponseCopyWith(SlotListResponse value, $Res Function(SlotListResponse) _then) = _$SlotListResponseCopyWithImpl;
+@useResult
+$Res call({
+ String physiotherapistId, List<Slot> slots
+});
+
+
+
+
+}
+/// @nodoc
+class _$SlotListResponseCopyWithImpl<$Res>
+    implements $SlotListResponseCopyWith<$Res> {
+  _$SlotListResponseCopyWithImpl(this._self, this._then);
+
+  final SlotListResponse _self;
+  final $Res Function(SlotListResponse) _then;
+
+/// Create a copy of SlotListResponse
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? physiotherapistId = null,Object? slots = null,}) {
+  return _then(_self.copyWith(
+physiotherapistId: null == physiotherapistId ? _self.physiotherapistId : physiotherapistId // ignore: cast_nullable_to_non_nullable
+as String,slots: null == slots ? _self.slots : slots // ignore: cast_nullable_to_non_nullable
+as List<Slot>,
+  ));
+}
+
+}
+
+
+/// Adds pattern-matching-related methods to [SlotListResponse].
+extension SlotListResponsePatterns on SlotListResponse {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _SlotListResponse value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _SlotListResponse() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _SlotListResponse value)  $default,){
+final _that = this;
+switch (_that) {
+case _SlotListResponse():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _SlotListResponse value)?  $default,){
+final _that = this;
+switch (_that) {
+case _SlotListResponse() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String physiotherapistId,  List<Slot> slots)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _SlotListResponse() when $default != null:
+return $default(_that.physiotherapistId,_that.slots);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String physiotherapistId,  List<Slot> slots)  $default,) {final _that = this;
+switch (_that) {
+case _SlotListResponse():
+return $default(_that.physiotherapistId,_that.slots);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String physiotherapistId,  List<Slot> slots)?  $default,) {final _that = this;
+switch (_that) {
+case _SlotListResponse() when $default != null:
+return $default(_that.physiotherapistId,_that.slots);case _:
+  return null;
+
+}
+}
+
+}
+
+/// @nodoc
+@JsonSerializable()
+
+class _SlotListResponse implements SlotListResponse {
+  const _SlotListResponse({required this.physiotherapistId, required final  List<Slot> slots}): _slots = slots;
+  factory _SlotListResponse.fromJson(Map<String, dynamic> json) => _$SlotListResponseFromJson(json);
+
+@override final  String physiotherapistId;
+ final  List<Slot> _slots;
+@override List<Slot> get slots {
+  if (_slots is EqualUnmodifiableListView) return _slots;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_slots);
+}
+
+
+/// Create a copy of SlotListResponse
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$SlotListResponseCopyWith<_SlotListResponse> get copyWith => __$SlotListResponseCopyWithImpl<_SlotListResponse>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$SlotListResponseToJson(this, );
+}
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _SlotListResponse&&(identical(other.physiotherapistId, physiotherapistId) || other.physiotherapistId == physiotherapistId)&&const DeepCollectionEquality().equals(other._slots, _slots));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,physiotherapistId,const DeepCollectionEquality().hash(_slots));
+
+@override
+String toString() {
+  return 'SlotListResponse(physiotherapistId: $physiotherapistId, slots: $slots)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$SlotListResponseCopyWith<$Res> implements $SlotListResponseCopyWith<$Res> {
+  factory _$SlotListResponseCopyWith(_SlotListResponse value, $Res Function(_SlotListResponse) _then) = __$SlotListResponseCopyWithImpl;
+@override @useResult
+$Res call({
+ String physiotherapistId, List<Slot> slots
+});
+
+
+
+
+}
+/// @nodoc
+class __$SlotListResponseCopyWithImpl<$Res>
+    implements _$SlotListResponseCopyWith<$Res> {
+  __$SlotListResponseCopyWithImpl(this._self, this._then);
+
+  final _SlotListResponse _self;
+  final $Res Function(_SlotListResponse) _then;
+
+/// Create a copy of SlotListResponse
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? physiotherapistId = null,Object? slots = null,}) {
+  return _then(_SlotListResponse(
+physiotherapistId: null == physiotherapistId ? _self.physiotherapistId : physiotherapistId // ignore: cast_nullable_to_non_nullable
+as String,slots: null == slots ? _self._slots : slots // ignore: cast_nullable_to_non_nullable
+as List<Slot>,
+  ));
+}
+
+
+}
+
+// dart format on

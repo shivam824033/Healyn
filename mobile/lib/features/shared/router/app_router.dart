@@ -2,7 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../appointments/data/models/appointment_models.dart';
+import '../../appointments/presentation/appointments_providers.dart';
+import '../../appointments/presentation/screens/appointment_detail_screen.dart';
 import '../../appointments/presentation/screens/appointments_screen.dart';
+import '../../appointments/presentation/screens/book_appointment_screen.dart';
 import '../../auth/domain/auth_status.dart';
 import '../../auth/presentation/controllers/auth_controller.dart';
 import '../../auth/presentation/screens/login_screen.dart';
@@ -124,6 +128,23 @@ final routerProvider = Provider<GoRouter>((ref) {
           return _EditPatientRoute(id: state.pathParameters['id']!);
         },
       ),
+      // Appointment booking + detail also live outside the shell. `book` is
+      // matched before `:id` so it isn't captured as an appointment id.
+      GoRoute(
+        path: '/appointments/book',
+        builder: (_, _) => const BookAppointmentScreen(),
+      ),
+      GoRoute(
+        path: '/appointments/:id',
+        builder: (_, state) {
+          final extra = state.extra;
+          if (extra is Appointment) {
+            return AppointmentDetailScreen(appointment: extra);
+          }
+          // No object passed (deep link / refresh) — fetch it by id.
+          return _AppointmentDetailRoute(id: state.pathParameters['id']!);
+        },
+      ),
     ],
   );
   ref.onDispose(router.dispose);
@@ -156,6 +177,28 @@ class _EditPatientRoute extends ConsumerWidget {
           body: const Center(child: Text('Patient not found.')),
         );
       },
+    );
+  }
+}
+
+/// Fetches the appointment to show when the detail route was entered without
+/// the [Appointment] object in `extra` (deep link / refresh).
+class _AppointmentDetailRoute extends ConsumerWidget {
+  const _AppointmentDetailRoute({required this.id});
+
+  final String id;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final appointment = ref.watch(appointmentByIdProvider(id));
+    return appointment.when(
+      loading: () =>
+          const Scaffold(body: Center(child: CircularProgressIndicator())),
+      error: (_, _) => Scaffold(
+        appBar: AppBar(),
+        body: const Center(child: Text('Could not load this appointment.')),
+      ),
+      data: (a) => AppointmentDetailScreen(appointment: a),
     );
   }
 }
