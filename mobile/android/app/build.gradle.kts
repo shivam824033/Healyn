@@ -9,7 +9,10 @@ plugins {
 
 android {
     namespace = "com.healyn.healyn"
-    compileSdk = flutter.compileSdkVersion
+    // Pinned ahead of flutter.compileSdkVersion (34): flutter_plugin_android_lifecycle,
+    // pulled in transitively (file_picker, firebase_messaging), requires compileSdk >= 36.
+    // The Flutter Gradle plugin propagates this to plugin subprojects.
+    compileSdk = maxOf(flutter.compileSdkVersion, 36)
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
