@@ -25,6 +25,9 @@ class PhysioTodayScreen extends ConsumerWidget {
     final schedule = ref.watch(physioScheduleProvider);
     final patients = ref.watch(patientsProvider).valueOrNull ?? const [];
     final names = {for (final p in patients) p.id: p.fullName};
+    final activity =
+        ref.watch(physioScheduleActivityProvider).valueOrNull ??
+        const <String, ScheduleActivity>{};
 
     void stepDays(int delta) {
       final d = ref.read(scheduleDayProvider);
@@ -59,7 +62,9 @@ class PhysioTodayScreen extends ConsumerWidget {
             Expanded(
               child: RefreshIndicator(
                 onRefresh: () async {
-                  ref.invalidate(physioScheduleProvider);
+                  ref
+                    ..invalidate(physioScheduleProvider)
+                    ..invalidate(physioScheduleActivityProvider);
                   await ref.read(physioScheduleProvider.future);
                 },
                 child: schedule.when(
@@ -84,6 +89,7 @@ class PhysioTodayScreen extends ConsumerWidget {
                       itemBuilder: (_, i) => _ScheduleTile(
                         appointment: appointments[i],
                         patientName: names[appointments[i].patientId],
+                        activity: activity[appointments[i].id],
                       ),
                     );
                   },
@@ -167,13 +173,19 @@ class _DayStepper extends StatelessWidget {
 }
 
 class _ScheduleTile extends StatelessWidget {
-  const _ScheduleTile({required this.appointment, this.patientName});
+  const _ScheduleTile({
+    required this.appointment,
+    this.patientName,
+    this.activity,
+  });
 
   final Appointment appointment;
   final String? patientName;
+  final ScheduleActivity? activity;
 
   @override
   Widget build(BuildContext context) {
+    final act = activity;
     return Container(
       decoration: BoxDecoration(
         color: HealynColors.surfaceBase,
@@ -207,7 +219,18 @@ class _ScheduleTile extends StatelessWidget {
                         style: HealynTypography.body,
                       ),
                       const SizedBox(height: HealynSpacing.s2),
-                      AppointmentStatusChip(status: appointment.status),
+                      Wrap(
+                        spacing: HealynSpacing.s2,
+                        runSpacing: HealynSpacing.s2,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          AppointmentStatusChip(status: appointment.status),
+                          if (act != null && act.hasUnread)
+                            _UnreadBadge(act.unreadCount),
+                          if (act != null && act.hasPendingFiles)
+                            _PendingFilesBadge(act.pendingFileCount),
+                        ],
+                      ),
                     ],
                   ),
                 ),
@@ -215,6 +238,93 @@ class _ScheduleTile extends StatelessWidget {
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Compact count of unread patient messages on a schedule row (C8).
+class _UnreadBadge extends StatelessWidget {
+  const _UnreadBadge(this.count);
+
+  final int count;
+
+  @override
+  Widget build(BuildContext context) {
+    final label = count > 99 ? '99+' : '$count';
+    return Semantics(
+      label: count == 1 ? '1 unread message' : '$count unread messages',
+      child: Container(
+        padding: const EdgeInsets.symmetric(
+          horizontal: HealynSpacing.s2,
+          vertical: 2,
+        ),
+        decoration: BoxDecoration(
+          color: HealynColors.brandPrimary,
+          borderRadius: BorderRadius.circular(999),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.mark_email_unread_outlined,
+              size: 13,
+              color: HealynColors.textInverse,
+            ),
+            const SizedBox(width: HealynSpacing.s1),
+            Text(
+              label,
+              style: HealynTypography.caption.copyWith(
+                color: HealynColors.textInverse,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Count of files attached to the unread messages — the ones the physio still
+/// needs to open (C8). Subtle, so it reads as a hint, not an alarm.
+class _PendingFilesBadge extends StatelessWidget {
+  const _PendingFilesBadge(this.count);
+
+  final int count;
+
+  @override
+  Widget build(BuildContext context) {
+    final label = count > 99 ? '99+' : '$count';
+    return Semantics(
+      label: count == 1 ? '1 file to review' : '$count files to review',
+      child: Container(
+        padding: const EdgeInsets.symmetric(
+          horizontal: HealynSpacing.s2,
+          vertical: 2,
+        ),
+        decoration: BoxDecoration(
+          color: HealynColors.brandPrimarySubtle,
+          borderRadius: BorderRadius.circular(999),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.attach_file,
+              size: 13,
+              color: HealynColors.brandPrimary,
+            ),
+            const SizedBox(width: HealynSpacing.s1),
+            Text(
+              label,
+              style: HealynTypography.caption.copyWith(
+                color: HealynColors.brandPrimary,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
         ),
       ),
     );
