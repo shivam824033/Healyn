@@ -377,8 +377,48 @@ Rules:
 
 | Method | Path | Purpose |
 |---|---|---|
-| `GET`  | `/api/v1/notifications/preferences` | View user preferences |
-| `PATCH` | `/api/v1/notifications/preferences` | Update preferences |
+| `GET`  | `/api/v1/notifications/preferences` | View the account's push opt-outs |
+| `PATCH` | `/api/v1/notifications/preferences` | Update the account's push opt-outs |
+
+Preferences are account-scoped (the subject claim is the only identity needed). They are
+expressed as user-facing **categories**, each a boolean that is `true` when the account wants
+push for it:
+
+| Field | Covers (`notification_kind`) |
+|---|---|
+| `appointment_updates` | `BOOKING_REQUESTED`, `BOOKING_CONFIRMED`, `BOOKING_CANCELLED` |
+| `appointment_reminders` | `APPOINTMENT_REMINDER` |
+| `messages` | `DISCUSSION_NEW_MESSAGE` |
+| `treatment_notes` | `TREATMENT_NOTE_ADDED` |
+
+```http
+PATCH /api/v1/notifications/preferences HTTP/1.1
+Authorization: Bearer eyJhbGciOiJSUzI1NiIs...
+Content-Type: application/json
+
+{ "messages": false }
+```
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{
+  "appointment_updates": true,
+  "appointment_reminders": true,
+  "messages": false,
+  "treatment_notes": true
+}
+```
+
+Rules:
+- The default is **opted-in to everything**. An account with no stored row gets all-`true`
+  from `GET`; the row is created lazily on the first `PATCH`.
+- `PATCH` is partial — an **omitted** field leaves that category unchanged. The response is the
+  full resulting snapshot (every field present).
+- Enforcement is at enqueue: `NotificationPublisher` skips writing an outbox row for a recipient
+  who has opted out of that kind's category, so an opt-out is honoured before dispatch and never
+  produces a suppressed row.
 
 ### 9.9 Health
 

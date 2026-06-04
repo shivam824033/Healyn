@@ -424,6 +424,30 @@ tokens at send time and retires any that FCM reports as unregistered (soft-delet
 > dispatch source of truth; `fcm_tokens` is. The column is retained (dropping it needs
 > approval per the migration rules) and may be removed in a later cleanup.
 
+### 3.13b `notification_preferences` — per-account push opt-outs
+
+```sql
+CREATE TABLE notification_preferences (
+    account_id              UUID PRIMARY KEY REFERENCES accounts(id) ON DELETE CASCADE,
+    appointment_updates     BOOLEAN NOT NULL DEFAULT TRUE,
+    appointment_reminders   BOOLEAN NOT NULL DEFAULT TRUE,
+    messages                BOOLEAN NOT NULL DEFAULT TRUE,
+    treatment_notes         BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at              TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at              TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+```
+
+Owned by the notifications module (the entity is `NotificationPreferences`). One row per
+account; every column is a user-facing **category** (each maps to one or more
+`notification_kind` values via `NotificationCategory`). The default is opted-in to
+everything, so a **missing row means all-enabled** — `GET /notifications/preferences`
+synthesises defaults rather than persisting on read, and a row is created lazily the first
+time the account changes a default (`PATCH`). `NotificationPublisher` consults this at enqueue
+time and skips writing an outbox row for a recipient who has opted out of that kind's category.
+Config rather than clinical data, so there is no `deleted_at` (Hard Rule #7 does not apply).
+See [API_STANDARDS.md §9.8](./API_STANDARDS.md#98-notifications).
+
 ### 3.14 `audit.audit_log` — separate schema, append-only
 
 ```sql
@@ -528,10 +552,11 @@ V10__discussion_message_attachments.sql  -- wires file_objects into discussion
 V11__notification_outbox.sql      -- transactional outbox (enqueue side)
 V12__audit_log.sql                -- audit schema + append-only audit_log
 V13__fcm_tokens.sql               -- device push tokens (dispatch side, registration API)
+V14__notification_preferences.sql -- per-account push opt-outs (API_STANDARDS §9.8)
 ```
 
-Still pending: nothing schema-side for Phase 1 notifications; the outbox poller +
-FCM adapter are application code (no further migration).
+Still pending: nothing schema-side remaining for Phase 1 notifications. The outbox poller +
+FCM adapter are application code (no migration), and per-account opt-outs landed in V14.
 
 ---
 
