@@ -23,9 +23,9 @@ class FilesRepository {
     required String mimeType,
     required String originalFilename,
     required List<int> bytes,
-  }) {
-    return _guard(() async {
-      final presigned = await _api.presign(
+  }) async {
+    final presigned = await _guard(
+      () => _api.presign(
         PresignRequest(
           patientId: patientId,
           appointmentId: appointmentId,
@@ -34,10 +34,13 @@ class FilesRepository {
           sizeBytes: bytes.length,
           originalFilename: originalFilename,
         ),
-      );
-      await _api.putBytes(presigned.upload, bytes);
-      return _api.complete(presigned.fileId);
-    });
+      ),
+    );
+    // The PUT goes straight to object storage — a different host than the API.
+    // Surface its failures distinctly so an unreachable storage endpoint reads
+    // as an upload problem, not a vague API error.
+    await _guardUpload(() => _api.putBytes(presigned.upload, bytes));
+    return _guard(() => _api.complete(presigned.fileId));
   }
 
   /// Resolves a stored file to a short-lived presigned GET URL the caller opens.
@@ -50,6 +53,22 @@ class FilesRepository {
       return await body();
     } on DioException catch (e) {
       throw ApiException.fromDio(e);
+    }
+  }
+
+  /// The direct-to-storage PUT has no Healyn error envelope, so [ApiException.fromDio]
+  /// would surface a generic transport message. Map it to a clear upload failure
+  /// (the usual cause is a storage endpoint the device can't reach).
+  Future<void> _guardUpload(Future<void> Function() body) async {
+    try {
+      await body();
+    } on DioException catch (e) {
+      throw ApiException(
+        code: 'upload_failed',
+        message:
+            "Couldn't upload the file to storage. Check your connection and try again.",
+        statusCode: e.response?.statusCode,
+      );
     }
   }
 }

@@ -9,6 +9,7 @@ import io.minio.RemoveObjectArgs;
 import io.minio.StatObjectArgs;
 import io.minio.errors.ErrorResponseException;
 import io.minio.http.Method;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
 import java.io.InputStream;
@@ -22,17 +23,21 @@ public class MinioFileStore implements FileStorePort {
     private static final String NO_SUCH_KEY = "NoSuchKey";
 
     private final MinioClient client;
+    private final MinioClient presignClient;
     private final String bucket;
 
-    public MinioFileStore(MinioClient client, HealynS3Properties props) {
+    public MinioFileStore(MinioClient client,
+                          @Qualifier("minioPresignClient") MinioClient presignClient,
+                          HealynS3Properties props) {
         this.client = client;
+        this.presignClient = presignClient;
         this.bucket = props.bucket();
     }
 
     @Override
     public String presignPut(String key, String contentType, Duration ttl) {
         try {
-            return client.getPresignedObjectUrl(GetPresignedObjectUrlArgs.builder()
+            return presignClient.getPresignedObjectUrl(GetPresignedObjectUrlArgs.builder()
                     .method(Method.PUT)
                     .bucket(bucket)
                     .object(key)
@@ -46,7 +51,7 @@ public class MinioFileStore implements FileStorePort {
     @Override
     public String presignGet(String key, String downloadFilename, Duration ttl) {
         try {
-            return client.getPresignedObjectUrl(GetPresignedObjectUrlArgs.builder()
+            return presignClient.getPresignedObjectUrl(GetPresignedObjectUrlArgs.builder()
                     .method(Method.GET)
                     .bucket(bucket)
                     .object(key)
