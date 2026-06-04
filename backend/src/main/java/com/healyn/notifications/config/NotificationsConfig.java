@@ -13,12 +13,14 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.env.Environment;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Set;
 
 @Configuration
 @EnableScheduling
@@ -27,20 +29,31 @@ public class NotificationsConfig {
 
     private static final Logger log = LoggerFactory.getLogger(NotificationsConfig.class);
 
+    /** Profiles where falling back to the logging sender (no real push) is acceptable. */
+    private static final Set<String> EPHEMERAL_PROFILES = Set.of("local", "test");
+
     /**
      * Real FCM delivery when {@code healyn.fcm.credentials-path} points at a service-account
      * file; otherwise the logging sender (no push leaves the system). A blank value counts as
      * "not configured" — the dev {@code .env} carries {@code HEALYN_FCM_CREDENTIALS_PATH=} to
      * mean exactly that, mirroring how {@code JwtKeyProvider} treats blank key paths.
      *
-     * <p>Note: this fails open to logging if creds are missing. A prod profile should add a
-     * fail-fast guard so a misconfigured deploy can't silently stop delivering push.
+     * <p>Outside the {@code local}/{@code test} profiles this fails fast rather than open: a
+     * deploy with no credentials would silently stop delivering push, so we refuse to start
+     * instead. This mirrors {@link com.healyn.auth.service.JwtKeyProvider}'s key-path guard.
      */
     @Bean
     @ConditionalOnMissingBean(FcmSenderPort.class)
-    public FcmSenderPort fcmSenderPort(FcmProperties props) throws IOException {
+    public FcmSenderPort fcmSenderPort(FcmProperties props, Environment env) throws IOException {
         String credentialsPath = props.credentialsPath();
         if (credentialsPath == null || credentialsPath.isBlank()) {
+            boolean ephemeralOk = false;
+            for (String p : env.getActiveProfiles()) if (EPHEMERAL_PROFILES.contains(p)) ephemeralOk = true;
+            if (!ephemeralOk) {
+                throw new IllegalStateException(
+                        "healyn.fcm.credentials-path must be configured outside the local/test profiles; "
+                                + "refusing to start with the logging sender, which would silently drop all push.");
+            }
             log.info("FCM credentials-path not configured — using logging sender (no push delivery).");
             return new LoggingFcmSender();
         }
