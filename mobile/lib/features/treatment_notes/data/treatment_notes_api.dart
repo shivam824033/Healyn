@@ -19,6 +19,23 @@ class TreatmentNotesApi {
     );
     return TreatmentNote.fromJson(res.data!);
   }
+
+  /// One cursor page of a patient's treatment notes (newest-first) from
+  /// `/patients/{patientId}/treatment_notes`.
+  Future<TreatmentNotePage> listForPatient(
+    String patientId, {
+    String? cursor,
+    int? limit,
+  }) async {
+    final res = await _dio.get<Map<String, dynamic>>(
+      '/patients/$patientId/treatment_notes',
+      queryParameters: {
+        'cursor': ?cursor,
+        'limit': ?limit,
+      },
+    );
+    return TreatmentNotePage.fromJson(res.data!);
+  }
 }
 
 final treatmentNotesApiProvider = Provider<TreatmentNotesApi>(

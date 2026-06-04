@@ -35,3 +35,17 @@ Map<String, dynamic> _$TreatmentNoteToJson(_TreatmentNote instance) =>
       'created_at': instance.createdAt.toIso8601String(),
       'updated_at': instance.updatedAt.toIso8601String(),
     };
+
+_TreatmentNotePage _$TreatmentNotePageFromJson(Map<String, dynamic> json) =>
+    _TreatmentNotePage(
+      items: (json['items'] as List<dynamic>)
+          .map((e) => TreatmentNote.fromJson(e as Map<String, dynamic>))
+          .toList(),
+      nextCursor: json['next_cursor'] as String?,
+    );
+
+Map<String, dynamic> _$TreatmentNotePageToJson(_TreatmentNotePage instance) =>
+    <String, dynamic>{
+      'items': instance.items.map((e) => e.toJson()).toList(),
+      'next_cursor': ?instance.nextCursor,
+    };

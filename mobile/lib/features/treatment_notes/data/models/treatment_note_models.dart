@@ -27,3 +27,17 @@ abstract class TreatmentNote with _$TreatmentNote {
   factory TreatmentNote.fromJson(Map<String, dynamic> json) =>
       _$TreatmentNoteFromJson(json);
 }
+
+/// One cursor page of a patient's treatment notes, newest-first (the backend
+/// order). [nextCursor] is null on the last (oldest) page. Mirrors the backend
+/// `TreatmentNotePage`.
+@freezed
+abstract class TreatmentNotePage with _$TreatmentNotePage {
+  const factory TreatmentNotePage({
+    required List<TreatmentNote> items,
+    String? nextCursor,
+  }) = _TreatmentNotePage;
+
+  factory TreatmentNotePage.fromJson(Map<String, dynamic> json) =>
+      _$TreatmentNotePageFromJson(json);
+}

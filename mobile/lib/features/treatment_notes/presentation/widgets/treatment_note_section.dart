@@ -6,24 +6,8 @@ import '../../../shared/design/spacing.dart';
 import '../../../shared/design/typography.dart';
 import '../../../shared/widgets/section_card.dart';
 import '../../data/models/treatment_note_models.dart';
+import '../treatment_notes_format.dart';
 import '../treatment_notes_providers.dart';
-
-const _months = [
-  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
-];
-const _weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-
-/// Local when-line for the review date: `Wed, 10 Jun 2026 · 9:00 AM`.
-String _formatReviewWhen(DateTime instant) {
-  final d = instant.toLocal();
-  final hour12 = d.hour % 12 == 0 ? 12 : d.hour % 12;
-  final minute = d.minute.toString().padLeft(2, '0');
-  final period = d.hour < 12 ? 'AM' : 'PM';
-  final date = '${_weekdays[d.weekday - 1]}, ${d.day} ${_months[d.month - 1]} '
-      '${d.year}';
-  return '$date · $hour12:$minute $period';
-}
 
 /// The physiotherapist's note for a COMPLETED appointment, surfaced read-only on
 /// the appointment detail screen. Shows an empty state until the physio writes
@@ -112,7 +96,7 @@ class _NoteCard extends StatelessWidget {
       if (note.nextReviewAt != null)
         _Field(
           label: 'Next review',
-          value: _formatReviewWhen(note.nextReviewAt!),
+          value: formatReviewWhen(note.nextReviewAt!),
         ),
     ];
 

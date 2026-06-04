@@ -24,6 +24,19 @@ class TreatmentNotesRepository {
       throw ex;
     }
   }
+
+  /// One cursor page of [patientId]'s treatment notes, newest-first.
+  Future<TreatmentNotePage> forPatient(
+    String patientId, {
+    String? cursor,
+    int? limit,
+  }) async {
+    try {
+      return await _api.listForPatient(patientId, cursor: cursor, limit: limit);
+    } on DioException catch (e) {
+      throw ApiException.fromDio(e);
+    }
+  }
 }
 
 final treatmentNotesRepositoryProvider = Provider<TreatmentNotesRepository>(

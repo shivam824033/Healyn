@@ -46,4 +46,26 @@ void main() {
     expect(n.nextReviewAt, isNull);
     expect(n.notes, 'Responding well to mobilisation.');
   });
+
+  test('TreatmentNotePage parses its items and the next cursor', () {
+    final page = TreatmentNotePage.fromJson(<String, dynamic>{
+      'items': [noteJson(), noteJson(diagnosis: 'Patellar tendinopathy')],
+      'next_cursor': 'eyJpZCI6IjEifQ',
+    });
+
+    expect(page.items, hasLength(2));
+    expect(page.items.first.diagnosis, 'Lumbar strain');
+    expect(page.items[1].diagnosis, 'Patellar tendinopathy');
+    expect(page.nextCursor, 'eyJpZCI6IjEifQ');
+  });
+
+  test('TreatmentNotePage tolerates a null next cursor (last page)', () {
+    final page = TreatmentNotePage.fromJson(<String, dynamic>{
+      'items': <dynamic>[],
+      'next_cursor': null,
+    });
+
+    expect(page.items, isEmpty);
+    expect(page.nextCursor, isNull);
+  });
 }

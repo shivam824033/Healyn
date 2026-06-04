@@ -6,6 +6,7 @@ import '../../../auth/data/auth_repository.dart';
 import '../../../auth/data/models/auth_models.dart';
 import '../../../auth/presentation/controllers/auth_controller.dart';
 import '../../../shared/design/colors.dart';
+import '../../../shared/design/radii.dart';
 import '../../../shared/design/spacing.dart';
 import '../../../shared/design/typography.dart';
 import '../../../shared/widgets/error_banner.dart';
@@ -116,6 +117,10 @@ class _ProfileBody extends ConsumerWidget {
           _DetailCard(rows: medical),
         ],
         const SizedBox(height: HealynSpacing.s6),
+        const _SectionTitle('Care'),
+        const SizedBox(height: HealynSpacing.s3),
+        _TreatmentHistoryCard(patient: patient),
+        const SizedBox(height: HealynSpacing.s6),
         const _SectionTitle('Signed-in devices'),
         const SizedBox(height: HealynSpacing.s3),
         const _Sessions(),
@@ -188,6 +193,55 @@ class _SectionTitle extends StatelessWidget {
   @override
   Widget build(BuildContext context) =>
       Text(text.toUpperCase(), style: HealynTypography.overline);
+}
+
+/// Entry to the patient's treatment-note history (F1.17). The patient's name
+/// rides in `extra` so the timeline's app bar can show it.
+class _TreatmentHistoryCard extends StatelessWidget {
+  const _TreatmentHistoryCard({required this.patient});
+
+  final Patient patient;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: HealynColors.surfaceBase,
+        borderRadius: HealynRadii.brLg,
+        border: Border.all(color: HealynColors.borderSubtle),
+      ),
+      child: Material(
+        type: MaterialType.transparency,
+        child: InkWell(
+          borderRadius: HealynRadii.brLg,
+          onTap: () => context.push(
+            '/patients/${patient.id}/treatment_notes',
+            extra: patient.fullName,
+          ),
+          child: const Padding(
+            padding: EdgeInsets.all(HealynSpacing.s4),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.assignment_outlined,
+                  size: 20,
+                  color: HealynColors.textSecondary,
+                ),
+                SizedBox(width: HealynSpacing.s3),
+                Expanded(
+                  child: Text(
+                    'Treatment history',
+                    style: HealynTypography.bodyStrong,
+                  ),
+                ),
+                Icon(Icons.chevron_right, color: HealynColors.textMuted),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class _DetailCard extends StatelessWidget {

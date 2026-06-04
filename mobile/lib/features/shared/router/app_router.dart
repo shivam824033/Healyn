@@ -22,6 +22,7 @@ import '../../patients/presentation/patients_providers.dart';
 import '../../patients/presentation/screens/family_screen.dart';
 import '../../patients/presentation/screens/patient_form_screen.dart';
 import '../../patients/presentation/screens/profile_screen.dart';
+import '../../treatment_notes/presentation/screens/treatment_notes_timeline_screen.dart';
 
 /// The app router. Redirect is driven by [AuthStatus]:
 /// - unknown        → splash (`/`) while the token store is read
@@ -129,6 +130,15 @@ final routerProvider = Provider<GoRouter>((ref) {
           // No object passed (e.g. a refresh) — resolve it from the list.
           return _EditPatientRoute(id: state.pathParameters['id']!);
         },
+      ),
+      // A patient's treatment-note history. `extra` carries the patient's name
+      // for the app-bar subtitle; absent on a refresh, which is fine.
+      GoRoute(
+        path: '/patients/:id/treatment_notes',
+        builder: (_, state) => TreatmentNotesTimelineScreen(
+          patientId: state.pathParameters['id']!,
+          patientName: state.extra is String ? state.extra as String : null,
+        ),
       ),
       // Appointment booking + detail also live outside the shell. `book` is
       // matched before `:id` so it isn't captured as an appointment id.
