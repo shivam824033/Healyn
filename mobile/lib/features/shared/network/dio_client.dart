@@ -27,3 +27,18 @@ final dioProvider = Provider<Dio>((ref) {
   return Dio(_baseOptions(baseUrl))
     ..interceptors.add(AuthInterceptor(tokenStore, refreshClient));
 });
+
+/// A bare Dio for uploading bytes straight to object storage via a presigned
+/// PUT. Deliberately has **no** [AuthInterceptor] (the presigned URL carries its
+/// own signature; an `Authorization` header would break it), no `baseUrl` (the
+/// URL is absolute), and no default content type (the caller sets the exact
+/// Content-Type the presign signed). Generous timeouts cover larger files.
+final uploadDioProvider = Provider<Dio>(
+  (ref) => Dio(
+    BaseOptions(
+      connectTimeout: const Duration(seconds: 10),
+      sendTimeout: const Duration(minutes: 2),
+      receiveTimeout: const Duration(seconds: 30),
+    ),
+  ),
+);
