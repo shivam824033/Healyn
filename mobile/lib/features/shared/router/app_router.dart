@@ -9,6 +9,7 @@ import '../../appointments/presentation/screens/appointments_screen.dart';
 import '../../appointments/presentation/screens/book_appointment_screen.dart';
 import '../../appointments/presentation/screens/reschedule_appointment_screen.dart';
 import '../../discussion/presentation/screens/discussion_screen.dart';
+import '../../discussion/presentation/screens/unread_discussions_screen.dart';
 import '../../auth/domain/auth_status.dart';
 import '../../auth/presentation/controllers/auth_controller.dart';
 import '../../auth/presentation/screens/login_screen.dart';
@@ -145,6 +146,11 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/notifications/preferences',
         builder: (_, _) => const NotificationPreferencesScreen(),
+      ),
+      // Index of appointments with unread messages, reached from Home.
+      GoRoute(
+        path: '/discussions/unread',
+        builder: (_, _) => const UnreadDiscussionsScreen(),
       ),
       // Appointment booking + detail also live outside the shell. `book` is
       // matched before `:id` so it isn't captured as an appointment id.

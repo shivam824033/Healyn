@@ -6,6 +6,7 @@ import '../../appointments/data/models/appointment_models.dart';
 import '../../appointments/presentation/appointment_format.dart';
 import '../../appointments/presentation/appointments_providers.dart';
 import '../../appointments/presentation/widgets/appointment_status_chip.dart';
+import '../../discussion/presentation/unread_providers.dart';
 import '../../patients/presentation/active_patient_provider.dart';
 import '../../patients/presentation/patients_providers.dart';
 import '../../patients/presentation/widgets/patient_switcher.dart';
@@ -48,8 +49,62 @@ class HomeScreen extends ConsumerWidget {
             const SizedBox(height: HealynSpacing.s5),
             const PatientSwitcher(),
             const SizedBox(height: HealynSpacing.s5),
+            const _UnreadMessagesCard(),
             const _UpcomingSummary(),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Account-wide unread roll-up (DISCUSSION_SYSTEM_DESIGN §9): a single count
+/// that opens an index of appointments with unread messages. Renders nothing
+/// while loading/failed or when there is nothing unread, so Home stays calm.
+class _UnreadMessagesCard extends ConsumerWidget {
+  const _UnreadMessagesCard();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final summary = ref.watch(unreadSummaryProvider).valueOrNull;
+    if (summary == null || summary.total == 0) return const SizedBox.shrink();
+
+    final count = summary.total;
+    final threads = summary.threads.length;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: HealynSpacing.s5),
+      child: SectionCard(
+        child: InkWell(
+          onTap: () => context.push('/discussions/unread'),
+          child: Row(
+            children: [
+              const Icon(
+                Icons.mark_email_unread_outlined,
+                size: 20,
+                color: HealynColors.brandPrimary,
+              ),
+              const SizedBox(width: HealynSpacing.s3),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      count == 1 ? '1 unread message' : '$count unread messages',
+                      style: HealynTypography.bodyStrong,
+                    ),
+                    const SizedBox(height: HealynSpacing.s1),
+                    Text(
+                      threads == 1
+                          ? 'In 1 appointment'
+                          : 'Across $threads appointments',
+                      style: HealynTypography.caption,
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(Icons.chevron_right, color: HealynColors.textMuted),
+            ],
+          ),
         ),
       ),
     );

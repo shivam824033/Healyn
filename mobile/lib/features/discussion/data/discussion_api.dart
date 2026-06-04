@@ -64,6 +64,14 @@ class DiscussionApi {
       data: <String, dynamic>{'message_id': messageId},
     );
   }
+
+  /// The caller's unread message count for [appointmentId] (excludes own messages).
+  Future<int> unreadCount(String appointmentId) async {
+    final res = await _dio.get<Map<String, dynamic>>(
+      '${_base(appointmentId)}/unread-count',
+    );
+    return (res.data!['unread_count'] as num).toInt();
+  }
 }
 
 final discussionApiProvider = Provider<DiscussionApi>(

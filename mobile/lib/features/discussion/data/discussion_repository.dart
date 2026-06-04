@@ -64,6 +64,10 @@ class DiscussionRepository {
     return _guard(() => _api.markRead(appointmentId, messageId));
   }
 
+  Future<int> unreadCount(String appointmentId) {
+    return _guard(() => _api.unreadCount(appointmentId));
+  }
+
   Future<T> _guard<T>(Future<T> Function() body) async {
     try {
       return await body();
