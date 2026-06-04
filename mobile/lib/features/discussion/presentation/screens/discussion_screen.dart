@@ -8,6 +8,7 @@ import '../../../files/data/file_picker_service.dart';
 import '../../../files/data/file_types.dart';
 import '../../../files/data/files_repository.dart';
 import '../../../files/data/models/file_models.dart';
+import '../../../files/data/url_opener.dart';
 import '../../../shared/auth/current_account.dart';
 import '../../../shared/design/colors.dart';
 import '../../../shared/design/radii.dart';
@@ -24,9 +25,9 @@ import '../widgets/message_bubble.dart';
 /// messages, lets the patient post a question or attach files, and edit/delete
 /// their own text message within the 5-minute window. Attaching uploads via the
 /// `files` feature (F1.15) and stages the file to send with the next message.
-/// The composer is hidden (read-only) when the appointment is CANCELLED or
-/// NO_SHOW — mirroring the backend `DiscussionAccessPolicy`. Opening/downloading
-/// an attachment's bytes is the next increment.
+/// Tapping an attachment resolves it to a short-lived presigned URL and opens it
+/// externally. The composer is hidden (read-only) when the appointment is
+/// CANCELLED or NO_SHOW — mirroring the backend `DiscussionAccessPolicy`.
 class DiscussionScreen extends ConsumerStatefulWidget {
   const DiscussionScreen({required this.appointment, super.key});
 
@@ -264,6 +265,20 @@ class _DiscussionScreenState extends ConsumerState<DiscussionScreen> {
     setState(() => _attachments.removeWhere((f) => f.id == file.id));
   }
 
+  /// Resolves a tapped attachment to a presigned URL and opens it externally
+  /// (browser/native viewer); no bytes touch local storage and the URL expires.
+  Future<void> _openAttachment(MessageAttachment attachment) async {
+    final repo = ref.read(filesRepositoryProvider);
+    final opener = ref.read(urlOpenerProvider);
+    try {
+      final target = await repo.download(attachment.fileId);
+      final opened = await opener.open(target.url);
+      if (!opened && mounted) _toast("Couldn't open this attachment.");
+    } on ApiException catch (e) {
+      if (mounted) _toast(e.message);
+    }
+  }
+
   Future<void> _editMessage(DiscussionMessage m) async {
     final controller = TextEditingController(text: m.body ?? '');
     final newBody = await showDialog<String>(
@@ -454,7 +469,11 @@ class _DiscussionScreenState extends ConsumerState<DiscussionScreen> {
         children.add(_DaySeparator(label: daySeparatorLabel(m.createdAt)));
       }
       final isOutgoing = m.senderRole == DiscussionSenderRole.patientSide;
-      Widget bubble = MessageBubble(message: m, isOutgoing: isOutgoing);
+      Widget bubble = MessageBubble(
+        message: m,
+        isOutgoing: isOutgoing,
+        onOpenAttachment: _openAttachment,
+      );
       if (_canModify(m)) {
         bubble = GestureDetector(
           onLongPress: () => _showActions(m),

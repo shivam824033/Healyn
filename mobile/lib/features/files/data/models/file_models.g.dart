@@ -55,6 +55,18 @@ Map<String, dynamic> _$UploadTargetToJson(_UploadTarget instance) =>
       'expires_in_seconds': instance.expiresInSeconds,
     };
 
+_DownloadTarget _$DownloadTargetFromJson(Map<String, dynamic> json) =>
+    _DownloadTarget(
+      url: json['url'] as String,
+      expiresInSeconds: (json['expires_in_seconds'] as num).toInt(),
+    );
+
+Map<String, dynamic> _$DownloadTargetToJson(_DownloadTarget instance) =>
+    <String, dynamic>{
+      'url': instance.url,
+      'expires_in_seconds': instance.expiresInSeconds,
+    };
+
 _PresignResponse _$PresignResponseFromJson(Map<String, dynamic> json) =>
     _PresignResponse(
       fileId: json['file_id'] as String,

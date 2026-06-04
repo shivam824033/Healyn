@@ -54,6 +54,10 @@ dependencies:
   # Windows-desktop path only — irrelevant to the Android-first Phase 1 target.
   image_picker: 1.2.2
   file_picker: 8.1.0
+  # Opening a downloaded attachment (F1.15 increment 3): hands the short-lived
+  # presigned GET URL to the OS browser/native viewer. BSD-3-Clause (Flutter
+  # team). No PHI bytes touch app storage — the URL self-expires (TTL ≤5 min).
+  url_launcher: 6.3.0
 
 dev_dependencies:
   flutter_test:

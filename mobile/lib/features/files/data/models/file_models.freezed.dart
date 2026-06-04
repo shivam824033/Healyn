@@ -569,6 +569,272 @@ as int,
 
 
 /// @nodoc
+mixin _$DownloadTarget {
+
+ String get url; int get expiresInSeconds;
+/// Create a copy of DownloadTarget
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$DownloadTargetCopyWith<DownloadTarget> get copyWith => _$DownloadTargetCopyWithImpl<DownloadTarget>(this as DownloadTarget, _$identity);
+
+  /// Serializes this DownloadTarget to a JSON map.
+  Map<String, dynamic> toJson();
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is DownloadTarget&&(identical(other.url, url) || other.url == url)&&(identical(other.expiresInSeconds, expiresInSeconds) || other.expiresInSeconds == expiresInSeconds));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,url,expiresInSeconds);
+
+@override
+String toString() {
+  return 'DownloadTarget(url: $url, expiresInSeconds: $expiresInSeconds)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $DownloadTargetCopyWith<$Res>  {
+  factory $DownloadTargetCopyWith(DownloadTarget value, $Res Function(DownloadTarget) _then) = _$DownloadTargetCopyWithImpl;
+@useResult
+$Res call({
+ String url, int expiresInSeconds
+});
+
+
+
+
+}
+/// @nodoc
+class _$DownloadTargetCopyWithImpl<$Res>
+    implements $DownloadTargetCopyWith<$Res> {
+  _$DownloadTargetCopyWithImpl(this._self, this._then);
+
+  final DownloadTarget _self;
+  final $Res Function(DownloadTarget) _then;
+
+/// Create a copy of DownloadTarget
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? url = null,Object? expiresInSeconds = null,}) {
+  return _then(_self.copyWith(
+url: null == url ? _self.url : url // ignore: cast_nullable_to_non_nullable
+as String,expiresInSeconds: null == expiresInSeconds ? _self.expiresInSeconds : expiresInSeconds // ignore: cast_nullable_to_non_nullable
+as int,
+  ));
+}
+
+}
+
+
+/// Adds pattern-matching-related methods to [DownloadTarget].
+extension DownloadTargetPatterns on DownloadTarget {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _DownloadTarget value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _DownloadTarget() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _DownloadTarget value)  $default,){
+final _that = this;
+switch (_that) {
+case _DownloadTarget():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _DownloadTarget value)?  $default,){
+final _that = this;
+switch (_that) {
+case _DownloadTarget() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String url,  int expiresInSeconds)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _DownloadTarget() when $default != null:
+return $default(_that.url,_that.expiresInSeconds);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String url,  int expiresInSeconds)  $default,) {final _that = this;
+switch (_that) {
+case _DownloadTarget():
+return $default(_that.url,_that.expiresInSeconds);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String url,  int expiresInSeconds)?  $default,) {final _that = this;
+switch (_that) {
+case _DownloadTarget() when $default != null:
+return $default(_that.url,_that.expiresInSeconds);case _:
+  return null;
+
+}
+}
+
+}
+
+/// @nodoc
+@JsonSerializable()
+
+class _DownloadTarget implements DownloadTarget {
+  const _DownloadTarget({required this.url, required this.expiresInSeconds});
+  factory _DownloadTarget.fromJson(Map<String, dynamic> json) => _$DownloadTargetFromJson(json);
+
+@override final  String url;
+@override final  int expiresInSeconds;
+
+/// Create a copy of DownloadTarget
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$DownloadTargetCopyWith<_DownloadTarget> get copyWith => __$DownloadTargetCopyWithImpl<_DownloadTarget>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$DownloadTargetToJson(this, );
+}
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _DownloadTarget&&(identical(other.url, url) || other.url == url)&&(identical(other.expiresInSeconds, expiresInSeconds) || other.expiresInSeconds == expiresInSeconds));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,url,expiresInSeconds);
+
+@override
+String toString() {
+  return 'DownloadTarget(url: $url, expiresInSeconds: $expiresInSeconds)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$DownloadTargetCopyWith<$Res> implements $DownloadTargetCopyWith<$Res> {
+  factory _$DownloadTargetCopyWith(_DownloadTarget value, $Res Function(_DownloadTarget) _then) = __$DownloadTargetCopyWithImpl;
+@override @useResult
+$Res call({
+ String url, int expiresInSeconds
+});
+
+
+
+
+}
+/// @nodoc
+class __$DownloadTargetCopyWithImpl<$Res>
+    implements _$DownloadTargetCopyWith<$Res> {
+  __$DownloadTargetCopyWithImpl(this._self, this._then);
+
+  final _DownloadTarget _self;
+  final $Res Function(_DownloadTarget) _then;
+
+/// Create a copy of DownloadTarget
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? url = null,Object? expiresInSeconds = null,}) {
+  return _then(_DownloadTarget(
+url: null == url ? _self.url : url // ignore: cast_nullable_to_non_nullable
+as String,expiresInSeconds: null == expiresInSeconds ? _self.expiresInSeconds : expiresInSeconds // ignore: cast_nullable_to_non_nullable
+as int,
+  ));
+}
+
+
+}
+
+
+/// @nodoc
 mixin _$PresignResponse {
 
  String get fileId; UploadTarget get upload;

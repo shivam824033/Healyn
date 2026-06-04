@@ -11,6 +11,7 @@ import 'package:healyn/features/files/data/file_picker_service.dart';
 import 'package:healyn/features/files/data/files_api.dart';
 import 'package:healyn/features/files/data/files_repository.dart';
 import 'package:healyn/features/files/data/models/file_models.dart';
+import 'package:healyn/features/files/data/url_opener.dart';
 import 'package:healyn/features/shared/auth/current_account.dart';
 
 /// Serves a fixed page and records writes without hitting the network.
@@ -62,9 +63,11 @@ class _FakePicker implements FilePickerService {
   Future<PickedFile?> pick(PickSource source) async => result;
 }
 
-/// Returns a fixed AVAILABLE file without touching the network.
+/// Returns a fixed AVAILABLE file / download target without the network.
 class _FakeFilesRepo extends FilesRepository {
   _FakeFilesRepo() : super(FilesApi(Dio(), Dio()));
+
+  String? downloadedFileId;
 
   @override
   Future<FileObjectView> upload({
@@ -84,6 +87,26 @@ class _FakeFilesRepo extends FilesRepository {
     sizeBytes: bytes.length,
     status: FileStatus.available,
   );
+
+  @override
+  Future<DownloadTarget> download(String fileId) async {
+    downloadedFileId = fileId;
+    return const DownloadTarget(
+      url: 'https://store.example/get?sig=xyz',
+      expiresInSeconds: 300,
+    );
+  }
+}
+
+/// Records the URL the screen asked to open instead of hitting a platform channel.
+class _FakeUrlOpener implements UrlOpener {
+  String? openedUrl;
+
+  @override
+  Future<bool> open(String url) async {
+    openedUrl = url;
+    return true;
+  }
 }
 
 DiscussionMessage _msg({
@@ -118,6 +141,7 @@ Future<void> _pump(
   required _FakeDiscussionRepo repo,
   FilePickerService? picker,
   FilesRepository? filesRepo,
+  UrlOpener? urlOpener,
 }) {
   return tester.pumpWidget(
     ProviderScope(
@@ -128,6 +152,8 @@ Future<void> _pump(
           filePickerServiceProvider.overrideWithValue(picker),
         if (filesRepo != null)
           filesRepositoryProvider.overrideWithValue(filesRepo),
+        if (urlOpener != null)
+          urlOpenerProvider.overrideWithValue(urlOpener),
       ],
       child: MaterialApp(home: DiscussionScreen(appointment: _appt(status))),
     ),
@@ -204,6 +230,50 @@ void main() {
     expect(repo.lastFileIds, ['file-1']);
     // The staged chip clears once sent.
     expect(find.text('spine.pdf'), findsNothing);
+  });
+
+  testWidgets('tapping an attachment opens its presigned url', (tester) async {
+    final repo = _FakeDiscussionRepo(
+      MessagePage(
+        items: [
+          DiscussionMessage(
+            id: 'm1',
+            appointmentId: 'ap1',
+            senderAccountId: 'phys',
+            senderRole: DiscussionSenderRole.physio,
+            messageType: DiscussionMessageType.reply,
+            body: 'Here is your plan.',
+            attachments: const [
+              MessageAttachment(
+                fileId: 'file-9',
+                kind: 'EXERCISE_PLAN',
+                mimeType: 'application/pdf',
+                originalFilename: 'plan.pdf',
+                sizeBytes: 1024,
+              ),
+            ],
+            createdAt: DateTime.utc(2026, 6, 10, 9),
+          ),
+        ],
+      ),
+    );
+    final filesRepo = _FakeFilesRepo();
+    final opener = _FakeUrlOpener();
+    await _pump(
+      tester,
+      AppointmentStatus.confirmed,
+      repo: repo,
+      filesRepo: filesRepo,
+      urlOpener: opener,
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('plan.pdf'));
+    await tester.pumpAndSettle();
+
+    // The chip resolves its file id to a presigned URL and opens that URL.
+    expect(filesRepo.downloadedFileId, 'file-9');
+    expect(opener.openedUrl, 'https://store.example/get?sig=xyz');
   });
 
   testWidgets('a cancelled appointment is read-only — no composer', (

@@ -38,6 +38,16 @@ void main() {
     expect(res.upload.expiresInSeconds, 300);
   });
 
+  test('DownloadTarget parses the presigned GET url and ttl', () {
+    final t = DownloadTarget.fromJson(<String, dynamic>{
+      'url': 'https://store.example/get?sig=xyz',
+      'expires_in_seconds': 300,
+    });
+
+    expect(t.url, 'https://store.example/get?sig=xyz');
+    expect(t.expiresInSeconds, 300);
+  });
+
   test('FileObjectView parses kind/status enums and timestamps', () {
     final v = FileObjectView.fromJson(<String, dynamic>{
       'id': 'f1',

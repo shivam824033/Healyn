@@ -40,6 +40,11 @@ class FilesRepository {
     });
   }
 
+  /// Resolves a stored file to a short-lived presigned GET URL the caller opens.
+  Future<DownloadTarget> download(String fileId) {
+    return _guard(() => _api.download(fileId));
+  }
+
   Future<T> _guard<T>(Future<T> Function() body) async {
     try {
       return await body();

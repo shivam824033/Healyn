@@ -44,6 +44,13 @@ class FilesApi {
     final res = await _dio.post<Map<String, dynamic>>('/files/$fileId/complete');
     return FileObjectView.fromJson(res.data!);
   }
+
+  /// Resolves a file to a short-lived presigned GET URL (the server enforces the
+  /// per-patient access policy and records a DOWNLOAD audit event).
+  Future<DownloadTarget> download(String fileId) async {
+    final res = await _dio.get<Map<String, dynamic>>('/files/$fileId/download');
+    return DownloadTarget.fromJson(res.data!);
+  }
 }
 
 final filesApiProvider = Provider<FilesApi>(

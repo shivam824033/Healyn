@@ -66,6 +66,19 @@ abstract class UploadTarget with _$UploadTarget {
       _$UploadTargetFromJson(json);
 }
 
+/// The presigned GET from `GET /files/{id}/download` (the backend `DownloadView`):
+/// a short-lived [url] the client opens directly (TTL ≤5 min). Never persist it.
+@freezed
+abstract class DownloadTarget with _$DownloadTarget {
+  const factory DownloadTarget({
+    required String url,
+    required int expiresInSeconds,
+  }) = _DownloadTarget;
+
+  factory DownloadTarget.fromJson(Map<String, dynamic> json) =>
+      _$DownloadTargetFromJson(json);
+}
+
 /// Response of `POST /files/presign`: the new file's id (referenced by a message
 /// via `file_ids` once it is AVAILABLE) plus where to PUT its bytes.
 @freezed

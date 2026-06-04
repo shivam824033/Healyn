@@ -15,11 +15,16 @@ class MessageBubble extends StatelessWidget {
   const MessageBubble({
     required this.message,
     required this.isOutgoing,
+    this.onOpenAttachment,
     super.key,
   });
 
   final DiscussionMessage message;
   final bool isOutgoing;
+
+  /// Invoked when an attachment chip is tapped; the host resolves the file to a
+  /// presigned URL and opens it. When null the chips are non-interactive.
+  final void Function(MessageAttachment attachment)? onOpenAttachment;
 
   bool get _isInstruction =>
       message.messageType == DiscussionMessageType.instruction;
@@ -112,7 +117,11 @@ class MessageBubble extends StatelessWidget {
       for (final a in message.attachments)
         Padding(
           padding: const EdgeInsets.only(top: HealynSpacing.s1),
-          child: _AttachmentChip(attachment: a, onLight: onLight),
+          child: _AttachmentChip(
+            attachment: a,
+            onLight: onLight,
+            onTap: onOpenAttachment == null ? null : () => onOpenAttachment!(a),
+          ),
         ),
     ];
   }
@@ -126,13 +135,18 @@ class MessageBubble extends StatelessWidget {
   }
 }
 
-/// A non-interactive chip naming an attached file. Tapping to view/download is
-/// the `files` feature (F1.15); here it is metadata only.
+/// A chip naming an attached file. When [onTap] is set, tapping resolves the
+/// file to a presigned URL and opens it (F1.15); otherwise it is metadata only.
 class _AttachmentChip extends StatelessWidget {
-  const _AttachmentChip({required this.attachment, required this.onLight});
+  const _AttachmentChip({
+    required this.attachment,
+    required this.onLight,
+    this.onTap,
+  });
 
   final MessageAttachment attachment;
   final bool onLight;
+  final VoidCallback? onTap;
 
   IconData get _icon {
     final mime = attachment.mimeType.toLowerCase();
@@ -147,7 +161,7 @@ class _AttachmentChip extends StatelessWidget {
     final border = onLight
         ? HealynColors.borderSubtle
         : HealynColors.textInverse.withValues(alpha: 0.4);
-    return Container(
+    final chip = Container(
       padding: const EdgeInsets.symmetric(
         horizontal: HealynSpacing.s2,
         vertical: HealynSpacing.s2,
@@ -180,8 +194,18 @@ class _AttachmentChip extends StatelessWidget {
               fontSize: 11,
             ),
           ),
+          if (onTap != null) ...[
+            const SizedBox(width: HealynSpacing.s2),
+            Icon(Icons.open_in_new, size: 14, color: fg),
+          ],
         ],
       ),
+    );
+    if (onTap == null) return chip;
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: chip,
     );
   }
 }

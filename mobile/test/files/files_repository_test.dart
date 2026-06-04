@@ -33,6 +33,18 @@ class _FakeFilesApi extends FilesApi {
     putBytesData = bytes;
   }
 
+  String? downloadedFileId;
+
+  @override
+  Future<DownloadTarget> download(String fileId) async {
+    calls.add('download');
+    downloadedFileId = fileId;
+    return const DownloadTarget(
+      url: 'https://store.example/get?sig=xyz',
+      expiresInSeconds: 300,
+    );
+  }
+
   @override
   Future<FileObjectView> complete(String fileId) async {
     calls.add('complete');
@@ -69,5 +81,16 @@ void main() {
     expect(api.putBytesData, bytes);
     expect(file.id, 'f1');
     expect(file.status, FileStatus.available);
+  });
+
+  test('download resolves a file id to its presigned GET target', () async {
+    final api = _FakeFilesApi();
+
+    final target = await FilesRepository(api).download('f1');
+
+    expect(api.calls, ['download']);
+    expect(api.downloadedFileId, 'f1');
+    expect(target.url, 'https://store.example/get?sig=xyz');
+    expect(target.expiresInSeconds, 300);
   });
 }
