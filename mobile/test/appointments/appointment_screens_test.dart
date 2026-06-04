@@ -47,6 +47,34 @@ class _RecordingApptRepo extends AppointmentsRepository {
   }
 }
 
+/// Seeds the appointments list with a fixed set and no further pages, so the
+/// screens render without hitting the network.
+class _FakeAppointmentsNotifier extends AppointmentsNotifier {
+  _FakeAppointmentsNotifier(this._appointments);
+
+  final List<Appointment> _appointments;
+
+  @override
+  Future<AppointmentsState> build() async =>
+      AppointmentsState(items: _appointments, hasMore: false);
+}
+
+/// Reports another page is available and records whether the screen asked for
+/// it, so the load-more footer can be tested without the network.
+class _PagedAppointmentsNotifier extends AppointmentsNotifier {
+  _PagedAppointmentsNotifier(this._appointments);
+
+  final List<Appointment> _appointments;
+  bool loadMoreCalled = false;
+
+  @override
+  Future<AppointmentsState> build() async =>
+      AppointmentsState(items: _appointments, hasMore: true);
+
+  @override
+  Future<void> loadMore() async => loadMoreCalled = true;
+}
+
 /// The detail screen loads a treatment note for COMPLETED appointments; this
 /// resolves it to "none yet" so the section settles to its empty state offline.
 class _FakeTreatmentNotesRepo extends TreatmentNotesRepository {
@@ -97,7 +125,9 @@ Future<void> _pump(
       overrides: [
         patientsProvider.overrideWith((ref) => [_asha]),
         if (appointments != null)
-          appointmentsProvider.overrideWith((ref) => appointments),
+          appointmentsProvider.overrideWith(
+            () => _FakeAppointmentsNotifier(appointments),
+          ),
         if (repo != null) appointmentsRepositoryProvider.overrideWithValue(repo),
         treatmentNotesRepositoryProvider.overrideWithValue(
           _FakeTreatmentNotesRepo(),
@@ -146,6 +176,33 @@ void main() {
         find.widgetWithText(OutlinedButton, 'Book appointment'),
         findsOneWidget,
       );
+    });
+
+    testWidgets('offers Load more and pages when more is available', (
+      tester,
+    ) async {
+      final notifier = _PagedAppointmentsNotifier([
+        _appt(
+          id: 'a',
+          status: AppointmentStatus.completed,
+          scheduledAt: DateTime.now().subtract(const Duration(days: 1)),
+        ),
+      ]);
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            patientsProvider.overrideWith((ref) => [_asha]),
+            appointmentsProvider.overrideWith(() => notifier),
+          ],
+          child: const MaterialApp(home: AppointmentsScreen()),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final loadMore = find.widgetWithText(TextButton, 'Load more');
+      expect(loadMore, findsOneWidget);
+      await tester.tap(loadMore);
+      expect(notifier.loadMoreCalled, isTrue);
     });
   });
 

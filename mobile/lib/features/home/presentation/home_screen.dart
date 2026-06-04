@@ -99,7 +99,8 @@ class _UpcomingSummary extends ConsumerWidget {
             ),
             // Scoped to the active Patient context (PATIENT_RELATIONSHIP_MODEL
             // §7): switching the patient up top refetches this card.
-            data: (all) {
+            data: (state) {
+              final all = state.items;
               final scoped = active == null
                   ? all
                   : all.where((a) => a.patientId == active.id).toList();

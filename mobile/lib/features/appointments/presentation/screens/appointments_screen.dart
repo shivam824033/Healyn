@@ -52,32 +52,50 @@ class AppointmentsScreen extends ConsumerWidget {
                 ),
               ],
             ),
-            data: (all) {
+            data: (state) {
+              final all = state.items;
               if (all.isEmpty) return const _EmptyAppointments();
               final upcoming = upcomingOf(all);
               final past = pastOf(all);
-              return ListView(
-                padding: const EdgeInsets.all(HealynSpacing.screenEdge),
-                children: [
-                  if (upcoming.isNotEmpty) ...[
-                    const _SectionTitle('Upcoming'),
-                    const SizedBox(height: HealynSpacing.s3),
-                    for (final a in upcoming) ...[
-                      _AppointmentTile(appointment: a, patientName: names[a.patientId]),
+              // Auto-load the next cursor page as the list nears its bottom.
+              return NotificationListener<ScrollNotification>(
+                onNotification: (n) {
+                  if (state.hasMore &&
+                      !state.isLoadingMore &&
+                      n.metrics.pixels >= n.metrics.maxScrollExtent - 200) {
+                    ref.read(appointmentsProvider.notifier).loadMore();
+                  }
+                  return false;
+                },
+                child: ListView(
+                  padding: const EdgeInsets.all(HealynSpacing.screenEdge),
+                  children: [
+                    if (upcoming.isNotEmpty) ...[
+                      const _SectionTitle('Upcoming'),
                       const SizedBox(height: HealynSpacing.s3),
+                      for (final a in upcoming) ...[
+                        _AppointmentTile(appointment: a, patientName: names[a.patientId]),
+                        const SizedBox(height: HealynSpacing.s3),
+                      ],
                     ],
-                  ],
-                  if (past.isNotEmpty) ...[
-                    if (upcoming.isNotEmpty)
-                      const SizedBox(height: HealynSpacing.s4),
-                    const _SectionTitle('Past'),
-                    const SizedBox(height: HealynSpacing.s3),
-                    for (final a in past) ...[
-                      _AppointmentTile(appointment: a, patientName: names[a.patientId]),
+                    if (past.isNotEmpty) ...[
+                      if (upcoming.isNotEmpty)
+                        const SizedBox(height: HealynSpacing.s4),
+                      const _SectionTitle('Past'),
                       const SizedBox(height: HealynSpacing.s3),
+                      for (final a in past) ...[
+                        _AppointmentTile(appointment: a, patientName: names[a.patientId]),
+                        const SizedBox(height: HealynSpacing.s3),
+                      ],
                     ],
+                    if (state.hasMore)
+                      _LoadMoreFooter(
+                        isLoading: state.isLoadingMore,
+                        onLoadMore: () =>
+                            ref.read(appointmentsProvider.notifier).loadMore(),
+                      ),
                   ],
-                ],
+                ),
               );
             },
           ),
@@ -138,6 +156,35 @@ class _AppointmentTile extends StatelessWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Footer shown when more appointments can be paged in. Auto-loading on scroll
+/// drives most paging; the button is the fallback when the list is too short
+/// to scroll.
+class _LoadMoreFooter extends StatelessWidget {
+  const _LoadMoreFooter({required this.isLoading, required this.onLoadMore});
+
+  final bool isLoading;
+  final VoidCallback onLoadMore;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: HealynSpacing.s3),
+      child: Center(
+        child: isLoading
+            ? const SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : TextButton(
+                onPressed: onLoadMore,
+                child: const Text('Load more'),
+              ),
       ),
     );
   }
