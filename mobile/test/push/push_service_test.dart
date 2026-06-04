@@ -46,6 +46,10 @@ class _FakeMessaging implements FcmMessaging {
   @override
   Future<void> deleteToken() async => deleted = true;
 
+  // No test drives a foreground message; an empty stream satisfies the seam.
+  @override
+  Stream<Map<String, String>> get onMessage => const Stream.empty();
+
   @override
   Stream<Map<String, String>> get onMessageOpenedApp => _opened.stream;
 
