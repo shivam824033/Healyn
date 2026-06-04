@@ -52,16 +52,33 @@ class AppointmentsRepository {
     return _guard(() => _api.reschedule(id, body));
   }
 
-  Future<Appointment> cancel(String id, {String? note}) async {
+  /// Drives a status transition. The physiotherapist confirms / starts /
+  /// completes / marks no-show and may cancel; [reason] and [note] are only
+  /// meaningful when [to] is [AppointmentStatus.cancelled] (the backend requires
+  /// a reason then, and a note when the physio cancels). Returns the updated
+  /// appointment.
+  Future<Appointment> transition(
+    String id, {
+    required AppointmentStatus to,
+    AppointmentCancelReason? reason,
+    String? note,
+  }) async {
     return _guard(
       () => _api.transition(
         id,
-        TransitionRequest(
-          to: AppointmentStatus.cancelled,
-          cancelReason: AppointmentCancelReason.patientCancelled,
-          cancelNote: note,
-        ),
+        TransitionRequest(to: to, cancelReason: reason, cancelNote: note),
       ),
+    );
+  }
+
+  /// Patient-side cancel: shorthand for [transition] to cancelled with the
+  /// patient reason.
+  Future<Appointment> cancel(String id, {String? note}) async {
+    return transition(
+      id,
+      to: AppointmentStatus.cancelled,
+      reason: AppointmentCancelReason.patientCancelled,
+      note: note,
     );
   }
 

@@ -1,0 +1,218 @@
+import 'package:dio/dio.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:healyn/features/appointments/data/appointments_api.dart';
+import 'package:healyn/features/appointments/data/appointments_repository.dart';
+import 'package:healyn/features/appointments/data/models/appointment_models.dart';
+import 'package:healyn/features/patients/data/models/patient_models.dart';
+import 'package:healyn/features/patients/presentation/patients_providers.dart';
+import 'package:healyn/features/physio/presentation/physio_appointment_actions.dart';
+import 'package:healyn/features/physio/presentation/physio_schedule_providers.dart';
+import 'package:healyn/features/physio/presentation/screens/physio_appointment_detail_screen.dart';
+
+class _Call {
+  _Call({required this.id, required this.to, this.reason, this.note});
+  final String id;
+  final AppointmentStatus to;
+  final AppointmentCancelReason? reason;
+  final String? note;
+}
+
+/// Records transition calls and echoes the appointment with the new status, so
+/// the screen can re-render its updated state without touching the network.
+class _RecordingRepo extends AppointmentsRepository {
+  _RecordingRepo(this._template) : super(AppointmentsApi(Dio()));
+
+  final Appointment _template;
+  final List<_Call> calls = [];
+
+  @override
+  Future<Appointment> transition(
+    String id, {
+    required AppointmentStatus to,
+    AppointmentCancelReason? reason,
+    String? note,
+  }) async {
+    calls.add(_Call(id: id, to: to, reason: reason, note: note));
+    return _template.copyWith(status: to, cancelReason: reason, cancelNote: note);
+  }
+}
+
+final _asha = Patient(
+  id: 'pt1',
+  fullName: 'Asha Rao',
+  dateOfBirth: DateTime(1990, 5, 21),
+  relationship: PatientRelationship.self,
+  primary: true,
+);
+
+Appointment _appt(AppointmentStatus status) => Appointment(
+  id: 'ap1',
+  patientId: 'pt1',
+  bookedByAccountId: 'ac1',
+  physiotherapistId: 'ph1',
+  scheduledAt: DateTime.now().add(const Duration(hours: 2)),
+  scheduledEndAt: DateTime.now().add(const Duration(hours: 2, minutes: 45)),
+  durationMinutes: 45,
+  status: status,
+);
+
+Future<_RecordingRepo> _pump(
+  WidgetTester tester,
+  Appointment appointment,
+) async {
+  // A tall surface so the full action stack is on-screen (default is 800x600).
+  tester.view.physicalSize = const Size(1000, 2000);
+  tester.view.devicePixelRatio = 1.0;
+  addTearDown(tester.view.resetPhysicalSize);
+  addTearDown(tester.view.resetDevicePixelRatio);
+
+  final repo = _RecordingRepo(appointment);
+  await tester.pumpWidget(
+    ProviderScope(
+      overrides: [
+        appointmentsRepositoryProvider.overrideWithValue(repo),
+        patientsProvider.overrideWith((ref) => [_asha]),
+        physioScheduleProvider.overrideWith((ref) async => <Appointment>[]),
+      ],
+      child: MaterialApp(
+        home: PhysioAppointmentDetailScreen(appointment: appointment),
+      ),
+    ),
+  );
+  await tester.pumpAndSettle();
+  return repo;
+}
+
+void main() {
+  group('physioActionsFor', () {
+    test('mirrors the allowed-transition matrix', () {
+      expect(physioActionsFor(AppointmentStatus.requested), [
+        PhysioAppointmentAction.confirm,
+        PhysioAppointmentAction.reject,
+      ]);
+      expect(physioActionsFor(AppointmentStatus.confirmed), [
+        PhysioAppointmentAction.start,
+        PhysioAppointmentAction.noShow,
+        PhysioAppointmentAction.cancel,
+      ]);
+      expect(physioActionsFor(AppointmentStatus.inProgress), [
+        PhysioAppointmentAction.complete,
+        PhysioAppointmentAction.cancel,
+      ]);
+      expect(physioActionsFor(AppointmentStatus.completed), isEmpty);
+      expect(physioActionsFor(AppointmentStatus.cancelled), isEmpty);
+    });
+
+    test('cancel reason is OTHER mid-session, else PHYSIO_CANCELLED', () {
+      expect(
+        physioCancelReasonFor(AppointmentStatus.inProgress),
+        AppointmentCancelReason.other,
+      );
+      expect(
+        physioCancelReasonFor(AppointmentStatus.confirmed),
+        AppointmentCancelReason.physioCancelled,
+      );
+      expect(
+        physioCancelReasonFor(AppointmentStatus.requested),
+        AppointmentCancelReason.physioCancelled,
+      );
+    });
+  });
+
+  group('physio appointment detail actions', () {
+    testWidgets('a requested appointment offers Confirm and Reject', (
+      tester,
+    ) async {
+      await _pump(tester, _appt(AppointmentStatus.requested));
+
+      expect(find.widgetWithText(ElevatedButton, 'Confirm'), findsOneWidget);
+      expect(find.widgetWithText(OutlinedButton, 'Reject'), findsOneWidget);
+      expect(find.text('Start session'), findsNothing);
+    });
+
+    testWidgets('a confirmed appointment offers Start, no-show and Cancel', (
+      tester,
+    ) async {
+      await _pump(tester, _appt(AppointmentStatus.confirmed));
+
+      expect(find.text('Start session'), findsOneWidget);
+      expect(find.text('Mark no-show'), findsOneWidget);
+      expect(find.text('Cancel appointment'), findsOneWidget);
+      expect(find.text('Confirm'), findsNothing);
+    });
+
+    testWidgets('an in-progress appointment offers Complete and Cancel', (
+      tester,
+    ) async {
+      await _pump(tester, _appt(AppointmentStatus.inProgress));
+
+      expect(find.text('Mark completed'), findsOneWidget);
+      expect(find.text('Cancel appointment'), findsOneWidget);
+      expect(find.text('Start session'), findsNothing);
+    });
+
+    testWidgets('a completed appointment offers no actions', (tester) async {
+      await _pump(tester, _appt(AppointmentStatus.completed));
+
+      expect(find.text('Confirm'), findsNothing);
+      expect(find.text('Start session'), findsNothing);
+      expect(find.text('Cancel appointment'), findsNothing);
+    });
+
+    testWidgets('confirming fires a CONFIRMED transition and re-renders', (
+      tester,
+    ) async {
+      final repo = await _pump(tester, _appt(AppointmentStatus.requested));
+
+      await tester.tap(find.widgetWithText(ElevatedButton, 'Confirm'));
+      await tester.pumpAndSettle();
+      // The confirmation dialog's action is a TextButton, distinct from the
+      // ElevatedButton behind it.
+      await tester.tap(find.widgetWithText(TextButton, 'Confirm'));
+      await tester.pumpAndSettle();
+
+      expect(repo.calls, hasLength(1));
+      expect(repo.calls.single.to, AppointmentStatus.confirmed);
+      expect(repo.calls.single.reason, isNull);
+      // State updated: the screen now shows the confirmed-state actions.
+      expect(find.text('Start session'), findsOneWidget);
+
+      // Flush the success snackbar's auto-dismiss timer before teardown.
+      await tester.pumpAndSettle(const Duration(seconds: 5));
+    });
+
+    testWidgets('cancel needs a note before it can be sent', (tester) async {
+      final repo = await _pump(tester, _appt(AppointmentStatus.confirmed));
+
+      final cancelButton = find.widgetWithText(
+        OutlinedButton,
+        'Cancel appointment',
+      );
+      await tester.ensureVisible(cancelButton);
+      await tester.tap(cancelButton);
+      await tester.pumpAndSettle();
+
+      // The dialog's submit (a TextButton) is disabled while the note is empty.
+      final submit = find.widgetWithText(TextButton, 'Cancel appointment');
+      expect(tester.widget<TextButton>(submit).onPressed, isNull);
+      expect(repo.calls, isEmpty);
+
+      await tester.enterText(find.byType(TextField), 'Clinic closed today');
+      await tester.pump();
+      expect(tester.widget<TextButton>(submit).onPressed, isNotNull);
+
+      await tester.tap(submit);
+      await tester.pumpAndSettle();
+
+      expect(repo.calls, hasLength(1));
+      expect(repo.calls.single.to, AppointmentStatus.cancelled);
+      expect(repo.calls.single.reason, AppointmentCancelReason.physioCancelled);
+      expect(repo.calls.single.note, 'Clinic closed today');
+
+      // Flush the success snackbar's auto-dismiss timer before teardown.
+      await tester.pumpAndSettle(const Duration(seconds: 5));
+    });
+  });
+}
