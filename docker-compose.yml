@@ -1,0 +1,73 @@
+# Local development backing services for the Healyn backend: PostgreSQL, Redis, MinIO.
+# Connection settings here match the `local` profile defaults in
+# backend/src/main/resources/application.yml, so the backend needs no extra env:
+#
+#   docker compose up -d
+#   cd backend && ./gradlew bootRun     # local profile; Flyway applies V1-V13 on boot
+#
+# Data persists in named volumes. `docker compose down` stops the stack;
+# `docker compose down -v` also wipes the volumes (fresh DB on next up).
+
+name: healyn
+
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: healyn
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      # V1 enables citext / btree_gist / pg_trgm / pgcrypto, all present in this image.
+      test: ["CMD-SHELL", "pg_isready -U postgres -d healyn"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  minio:
+    image: minio/minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    ports:
+      - "9000:9000"   # S3 API (healyn.s3.endpoint)
+      - "9001:9001"   # web console
+    volumes:
+      - miniodata:/data
+
+  # One-shot: wait for MinIO, then create the bucket the files module expects.
+  # The app does not auto-create it. Exits 0 once the bucket exists.
+  createbuckets:
+    image: minio/mc
+    depends_on:
+      - minio
+    entrypoint: >
+      /bin/sh -c "
+      until mc alias set local http://minio:9000 minioadmin minioadmin; do
+        echo 'waiting for minio...'; sleep 2;
+      done &&
+      mc mb --ignore-existing local/healyn-files-dev &&
+      echo 'bucket healyn-files-dev ready'
+      "
+
+volumes:
+  pgdata:
+  redisdata:
+  miniodata:

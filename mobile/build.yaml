@@ -1,0 +1,12 @@
+# json_serializable defaults for the whole package. The backend speaks
+# snake_case (CLAUDE.md §11 / API is snake_case), so Dart camelCase fields map
+# to snake_case JSON automatically; nested objects emit full toJson; nulls are
+# omitted so optional request fields (fcm_token, email/phone) drop out cleanly.
+targets:
+  $default:
+    builders:
+      json_serializable:
+        options:
+          field_rename: snake
+          explicit_to_json: true
+          include_if_null: false

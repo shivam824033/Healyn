@@ -17,6 +17,8 @@ logging:
     com.healyn: INFO
 
 healyn:
+  notifications:
+    poller-enabled: false
   password:
     pepper: test-pepper-not-for-prod-test-pepper-not-for-prod
   jwt:

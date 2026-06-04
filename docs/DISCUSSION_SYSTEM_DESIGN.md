@@ -166,6 +166,7 @@ Unread count = `COUNT(*) WHERE appointment_id = ? AND id > last_read_message_id`
 
 - Discussion is a tab inside the appointment detail screen, not a separate top-level inbox.
 - The home screen surfaces a single "Unread messages" count aggregated across all the patient's appointments — tapping it opens an *index* of appointments with unread, **not** a merged feed.
+  - *Phase 1 implementation note*: there is no server-side aggregate endpoint. The mobile app computes the roll-up by fanning out the per-appointment `unread-count` calls in parallel over the account's **live** appointments (cancelled / no-show / rescheduled threads are skipped to bound the fan-out; a failed count counts as 0). For a patient account this set is small. A server-side aggregate endpoint is the enabler to add when the physiotherapist inbox (many appointments) needs it.
 - Composer supports: text (up to 2,000 chars), attach files (up to 10), tag `INSTRUCTION` (physio-side only).
 - A `RESCHEDULED` appointment's discussion is read-only and visually marked.
 - Cancelled/no-show appointments show their discussion in a faded, read-only state.

@@ -140,11 +140,20 @@ Every non-2xx response uses this shape:
 | `appointments.slot_unavailable` | 409 | Slot taken or outside availability |
 | `appointments.invalid_transition` | 409 | Status transition not allowed |
 | `appointments.in_past` | 422 | Cannot book in the past |
-| `discussion.appointment_terminal` | 403 | Appointment is cancelled/no-show |
+| `discussion.appointment_terminal` | 403 | Appointment is cancelled/no-show — patient side may not write |
 | `discussion.edit_window_expired` | 409 | 5-minute edit window passed |
-| `files.upload_too_large` | 400 | File exceeds size limit |
-| `files.unsupported_type` | 400 | MIME type not supported |
-| `files.not_available` | 409 | File still pending upload |
+| `discussion.not_sender` | 403 | Only the original sender may edit/delete |
+| `discussion.message_not_found` | 404 | Message not found in this appointment |
+| `discussion.empty_message` | 422 | Body required, or `ATTACHMENT_ONLY` with no attachment |
+| `discussion.body_too_long` | 422 | Body exceeds 2,000 characters |
+| `discussion.too_many_attachments` | 422 | More than 10 attachments |
+| `discussion.attachment_not_found` | 404 | Referenced file does not exist |
+| `discussion.attachment_patient_mismatch` | 403 | File belongs to a different patient |
+| `discussion.attachment_not_ready` | 409 | File is not `AVAILABLE` yet |
+| `files.unsupported_mime` | 422 | MIME type not supported |
+| `files.too_large` | 422 | File exceeds the per-type size cap |
+| `files.invalid_state` | 409 | File not in the required status |
+| `files.referenced` | 409 | File referenced by a message; cannot delete |
 
 ---
 
@@ -225,7 +234,13 @@ GET /api/v1/appointments?cursor=eyJpZCI6Ii4uLiJ9&limit=20
 | `POST` | `/api/v1/auth/password_reset/verify` | Verify OTP + set new password |
 | `GET`  | `/api/v1/auth/sessions` | List active device sessions |
 | `DELETE` | `/api/v1/auth/sessions/{id}` | Revoke a session |
-| `POST` | `/api/v1/auth/fcm_tokens` | Register / update FCM token |
+| `POST` | `/api/v1/auth/fcm_tokens` | Register / update FCM token (auth required) |
+
+> `POST /auth/fcm_tokens` body: `{ token (required), platform? ("android", default), device_id? }`.
+> Idempotent upsert keyed on `token`: re-posting a known token rebinds it to the caller's
+> account and refreshes metadata. Returns `200` with `{ "id": "<fcm_token_uuid>" }`. The
+> resource is owned by the notifications module; the controller lives there but serves the
+> `/auth/fcm_tokens` path (served unprefixed by the running backend — see §9.4 note).
 
 ### 9.2 Patients
 
@@ -241,58 +256,169 @@ GET /api/v1/appointments?cursor=eyJpZCI6Ii4uLiJ9&limit=20
 
 | Method | Path | Purpose |
 |---|---|---|
-| `GET` | `/api/v1/availability?from=...&to=...` | Computed bookable slots |
+| `GET` | `/api/v1/availability?physiotherapistId=...&from=YYYY-MM-DD&to=YYYY-MM-DD` | Computed bookable slots. `physiotherapistId` is optional in Phase 1 (resolves to the lone `ROLE_PHYSIO` account); `to - from` must be < 31 days. Open to any authenticated account. |
 | `GET` | `/api/v1/availability/rules` | (Physio) List own rules |
-| `POST` | `/api/v1/availability/rules` | (Physio) Create rule |
-| `PATCH` | `/api/v1/availability/rules/{id}` | (Physio) Update rule |
-| `DELETE` | `/api/v1/availability/rules/{id}` | (Physio) Archive rule |
-| `POST` | `/api/v1/availability/blackouts` | (Physio) Add blackout |
-| `DELETE` | `/api/v1/availability/blackouts/{id}` | (Physio) Remove blackout |
+| `POST` | `/api/v1/availability/rules` | (Physio) Create rule. Body: `{day_of_week (0–6, 0=Sun), start_time, end_time, slot_minutes (5–240), timezone (IANA), effective_from, effective_to?}`. `start_time`/`end_time` must align on `slot_minutes` boundaries from `00:00`. |
+| `PATCH` | `/api/v1/availability/rules/{id}` | (Physio) Update rule (partial) |
+| `DELETE` | `/api/v1/availability/rules/{id}` | (Physio) Archive rule — sets `effective_to = today` in the rule's own timezone. |
+| `GET` | `/api/v1/availability/blackouts` | (Physio) List own blackouts |
+| `POST` | `/api/v1/availability/blackouts` | (Physio) Add blackout. Body: `{starts_at (TIMESTAMPTZ), ends_at (TIMESTAMPTZ), reason?}`. Overlapping windows for the same physio → 409 `availability.blackout_overlap`. |
+| `DELETE` | `/api/v1/availability/blackouts/{id}` | (Physio) Remove blackout (hard delete) |
+
+> **Note** — the `/api/v1` URL prefix is documented here for the eventual production deployment. Spring Boot controllers in the repo currently use the bare paths (e.g. `/availability`, `/availability/rules`). The mismatch will be reconciled either by introducing `server.servlet.context-path=/api/v1` or by dropping the prefix from the docs; tracked in `MODULE_STATUS_TRACKER.md` cross-cutting tasks.
 
 ### 9.4 Appointments
 
+> Note: paths below are written with the `/api/v1` prefix for forward-compatibility, but the running
+> backend currently serves them unprefixed (`/appointments`) to match `/auth`, `/patients`, `/availability`.
+> A project-wide `server.servlet.context-path` decision is an open follow-up.
+
 | Method | Path | Purpose |
 |---|---|---|
-| `GET`  | `/api/v1/appointments?patient_id=...&status=...&from=...&to=...` | List |
-| `POST` | `/api/v1/appointments` | Book (requires `Idempotency-Key`) |
-| `GET`  | `/api/v1/appointments/{id}` | Get |
-| `POST` | `/api/v1/appointments/{id}/transitions` | Move status (see [APPOINTMENT_FLOW.md](./APPOINTMENT_FLOW.md)) |
-| `POST` | `/api/v1/appointments/{id}/reschedule` | Reschedule (creates new) |
+| `GET`  | `/appointments?patientId=&status=&from=&to=&cursor=&limit=` | List (cursor pagination, `limit ≤ 50`, default 20) |
+| `POST` | `/appointments` | Book (requires `Idempotency-Key` header) |
+| `GET`  | `/appointments/{id}` | Get |
+| `POST` | `/appointments/{id}/transitions` | Move status — body: `{to, cancelReason?, cancelNote?}` (see [APPOINTMENT_FLOW.md](./APPOINTMENT_FLOW.md)) |
+| `POST` | `/appointments/{id}/reschedule` | Reschedule — body: `{scheduledAt, durationMinutes, reason?}`; creates new `REQUESTED` row, old → `RESCHEDULED` |
+
+`POST /appointments` body:
+
+```json
+{
+  "patientId": "uuid",
+  "scheduledAt": "2026-06-15T09:00:00+05:30",
+  "durationMinutes": 30,
+  "reason": "Lower-back follow-up"
+}
+```
+
+`GET /appointments` response envelope:
+
+```json
+{
+  "items": [ { "...AppointmentView" } ],
+  "nextCursor": "opaque-base64-or-null"
+}
+```
+
+Status values: `REQUESTED`, `CONFIRMED`, `IN_PROGRESS`, `COMPLETED`, `CANCELLED`, `NO_SHOW`, `RESCHEDULED`.
+Cancel reasons: `PATIENT_CANCELLED`, `PHYSIO_CANCELLED`, `CLINIC_CLOSED`, `OTHER`.
 
 ### 9.5 Discussion
 
-| Method | Path | Purpose |
-|---|---|---|
-| `GET`  | `/api/v1/appointments/{id}/messages` | List messages |
-| `POST` | `/api/v1/appointments/{id}/messages` | Create |
-| `PATCH` | `/api/v1/appointments/{id}/messages/{msg_id}` | Edit (≤ 5 min) |
-| `DELETE` | `/api/v1/appointments/{id}/messages/{msg_id}` | Soft-delete (≤ 5 min) |
-| `POST` | `/api/v1/appointments/{id}/messages/read` | Mark read |
-| `GET`  | `/api/v1/appointments/{id}/messages/unread_count` | Count |
+> Paths are unprefixed (no `/api/v1`) — see the open follow-up in §9.4.
+
+| Method | Path | Purpose | Body |
+|---|---|---|---|
+| `GET`    | `/appointments/{id}/messages?cursor=&limit=` | List messages (cursor, default 20, max 50) | — |
+| `POST`   | `/appointments/{id}/messages` | Create | `{ messageType: "QUESTION"\|"REPLY"\|"INSTRUCTION"\|"ATTACHMENT_ONLY", body: string, fileIds?: uuid[] }` |
+| `PATCH`  | `/appointments/{id}/messages/{msgId}` | Edit (≤ 5 min, original sender only) | `{ body: string }` |
+| `DELETE` | `/appointments/{id}/messages/{msgId}` | Soft-delete (≤ 5 min, original sender only) | — |
+| `POST`   | `/appointments/{id}/messages/read` | Advance the caller's last-read marker | `{ messageId: uuid }` |
+| `GET`    | `/appointments/{id}/messages/unread-count` | Count unread (excludes own messages) | — |
+
+List response envelope:
+```json
+{ "items": [ { "id": "…", "appointmentId": "…", "senderAccountId": "…",
+               "senderRole": "PATIENT_SIDE", "messageType": "REPLY",
+               "body": "…",
+               "attachments": [ { "fileId": "…", "kind": "REPORT",
+                                  "mimeType": "application/pdf",
+                                  "originalFilename": "spine-mri.pdf", "sizeBytes": 1843204 } ],
+               "createdAt": "…", "editedAt": null } ],
+  "nextCursor": "…or null" }
+```
+
+Rules:
+- `INSTRUCTION` is rejected for non-physio callers.
+- For patient-side callers, write is rejected on `CANCELLED` / `NO_SHOW` appointments (`discussion.appointment_terminal`).
+- Body is required for `QUESTION` / `REPLY` / `INSTRUCTION` (max 2,000 chars). `ATTACHMENT_ONLY` must carry no body and at least one attachment.
+- `fileIds` carries 0–10 file ids (>10 → `discussion.too_many_attachments`). Each must exist (`discussion.attachment_not_found`), belong to the appointment's patient (`discussion.attachment_patient_mismatch`, 403), and be `AVAILABLE` (`discussion.attachment_not_ready`, 409). Files are pre-uploaded via §9.6.
+- Edit/delete beyond 5 minutes returns `discussion.edit_window_expired`. Non-sender returns `discussion.not_sender`.
 
 ### 9.6 Files
 
-| Method | Path | Purpose |
-|---|---|---|
-| `POST` | `/api/v1/files/presign` | Get presigned PUT URL |
-| `GET`  | `/api/v1/files/{id}/download` | Get short-lived presigned GET URL |
-| `GET`  | `/api/v1/files/{id}` | File metadata |
-| `DELETE` | `/api/v1/files/{id}` | Soft-delete (only if not referenced) |
+| Method | Path | Purpose | Body |
+|---|---|---|---|
+| `POST` | `/api/v1/files/presign` | Create a `PENDING_UPLOAD` record + presigned PUT URL | `{ patientId, appointmentId, kind, mimeType, sizeBytes, originalFilename }` |
+| `POST` | `/api/v1/files/{id}/complete` | Client signals upload done; server verifies size + magic bytes, promotes to `AVAILABLE` | — |
+| `GET`  | `/api/v1/files/{id}/download` | Short-lived presigned GET URL (TTL ≤ 5 min, `Content-Disposition` set) | — |
+| `GET`  | `/api/v1/files/{id}` | File metadata | — |
+| `DELETE` | `/api/v1/files/{id}` | Soft-delete (only if not referenced) | — |
+
+Presign response (bare, consistent with the rest of the API):
+```json
+{ "fileId": "…",
+  "upload": { "method": "PUT", "url": "https://…", "headers": { "Content-Type": "application/pdf" }, "expiresInSeconds": 300 } }
+```
+
+Rules:
+- `mimeType` whitelist: `application/pdf`, `image/jpeg`, `image/png` (`files.unsupported_mime`, 422). Per-type size caps: PDF 20 MB, JPEG/PNG 10 MB (`files.too_large`, 422).
+- Write (presign / complete / delete) needs write access to `patientId`; `appointmentId` is required in Phase 1 and must belong to that patient (`files.appointment_required` / `files.patient_mismatch`, 422). Per-account cap 100 files/day (`files.daily_cap_exceeded`, 409).
+- `complete` requires `PENDING_UPLOAD` (`files.invalid_state`, 409) and the uploaded object present (`files.object_missing`, 409). Size/magic-byte mismatch moves the file to `QUARANTINED` and returns `files.magic_byte_mismatch` (422). Download requires `AVAILABLE`.
+- The server never streams bytes: upload is direct-to-S3 via the presigned PUT, download via the presigned GET. Keys are UUID-based; user filenames are display-only.
+- `DELETE` is blocked while any discussion message references the file (`files.referenced`, 409); detach/soft-delete the message first.
 
 ### 9.7 Treatment Notes
 
-| Method | Path | Purpose |
-|---|---|---|
-| `GET`  | `/api/v1/appointments/{id}/treatment_note` | Get note |
-| `PUT`  | `/api/v1/appointments/{id}/treatment_note` | Create/replace (physio only) |
-| `GET`  | `/api/v1/patients/{id}/treatment_notes` | Patient timeline |
+| Method | Path | Purpose | Body |
+|---|---|---|---|
+| `GET`  | `/api/v1/appointments/{id}/treatment_note` | Get the note for an appointment | — |
+| `PUT`  | `/api/v1/appointments/{id}/treatment_note` | Create / replace (physio only) | `{ diagnosis?, notes?, recoveryInstructions?, nextReviewAt? }` |
+| `GET`  | `/api/v1/patients/{id}/treatment_notes?cursor=&limit=` | Patient timeline (cursor, default 20, max 50) | — |
+
+Rules:
+- Exactly one note per appointment (`PUT` is an idempotent upsert; replacing keeps the same `id`).
+- Write is physio-only and is gated on the appointment being `COMPLETED` (`treatment_notes.appointment_not_completed`, 409). Completing the appointment unlocks the note — see [APPOINTMENT_FLOW.md §3.1](./APPOINTMENT_FLOW.md#31-allowed-transitions).
+- At least one of `diagnosis` / `notes` / `recoveryInstructions` must be non-blank (`treatment_notes.empty`, 422); each field ≤ 8,000 chars (`treatment_notes.field_too_long`, 422).
+- Read is allowed to the physio and to patient-side accounts with read access to the patient; `GET` on an appointment with no note returns `treatment_notes.not_found` (404).
 
 ### 9.8 Notifications
 
 | Method | Path | Purpose |
 |---|---|---|
-| `GET`  | `/api/v1/notifications/preferences` | View user preferences |
-| `PATCH` | `/api/v1/notifications/preferences` | Update preferences |
+| `GET`  | `/api/v1/notifications/preferences` | View the account's push opt-outs |
+| `PATCH` | `/api/v1/notifications/preferences` | Update the account's push opt-outs |
+
+Preferences are account-scoped (the subject claim is the only identity needed). They are
+expressed as user-facing **categories**, each a boolean that is `true` when the account wants
+push for it:
+
+| Field | Covers (`notification_kind`) |
+|---|---|
+| `appointment_updates` | `BOOKING_REQUESTED`, `BOOKING_CONFIRMED`, `BOOKING_CANCELLED` |
+| `appointment_reminders` | `APPOINTMENT_REMINDER` |
+| `messages` | `DISCUSSION_NEW_MESSAGE` |
+| `treatment_notes` | `TREATMENT_NOTE_ADDED` |
+
+```http
+PATCH /api/v1/notifications/preferences HTTP/1.1
+Authorization: Bearer eyJhbGciOiJSUzI1NiIs...
+Content-Type: application/json
+
+{ "messages": false }
+```
+
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{
+  "appointment_updates": true,
+  "appointment_reminders": true,
+  "messages": false,
+  "treatment_notes": true
+}
+```
+
+Rules:
+- The default is **opted-in to everything**. An account with no stored row gets all-`true`
+  from `GET`; the row is created lazily on the first `PATCH`.
+- `PATCH` is partial — an **omitted** field leaves that category unchanged. The response is the
+  full resulting snapshot (every field present).
+- Enforcement is at enqueue: `NotificationPublisher` skips writing an outbox row for a recipient
+  who has opted out of that kind's category, so an opt-out is honoured before dispatch and never
+  produces a suppressed row.
 
 ### 9.9 Health
 

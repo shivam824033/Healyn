@@ -130,6 +130,45 @@ flutter run
 
 Once running, the backend exposes `/actuator/health` and the API is documented per [docs/API_STANDARDS.md](./docs/API_STANDARDS.md).
 
+### 5.1 Push notifications (FCM) — optional, for real delivery
+
+The mobile app and backend are fully wired for push, but delivery is **dormant until you supply
+Firebase config** — the app degrades to push-disabled when it is absent, so the steps below are only
+needed to receive real notifications on a device. Config files are per-environment and **gitignored**
+(`google-services.json`, `GoogleService-Info.plist`, the backend service-account JSON) — never commit them.
+
+```text
+A. Firebase project
+   console.firebase.google.com → Add project (e.g. "Healyn").
+
+B. Android app (easiest: FlutterFire CLI — it places config + patches Gradle)
+   npm i -g firebase-tools && firebase login
+   dart pub global activate flutterfire_cli
+   cd mobile && flutterfire configure      # pick the project; package = com.healyn.healyn
+   # ↳ downloads android/app/google-services.json, generates lib/firebase_options.dart,
+   #   and adds the com.google.gms.google-services Gradle plugin.
+   # If a build complains about SDK level, set minSdk = 23 in android/app/build.gradle.kts.
+
+C. iOS (needs a Mac + Apple Developer account)
+   - Add the iOS app in Firebase; drop GoogleService-Info.plist into the ios/Runner target.
+   - Create an APNs Auth Key (.p8) in the Apple Developer portal → upload under
+     Firebase → Project settings → Cloud Messaging → APNs.
+   - Xcode → Signing & Capabilities → add Push Notifications + Background Modes (Remote notifications).
+
+D. Backend sender credential (so the server can SEND)
+   Firebase → Project settings → Service accounts → Generate new private key.
+   Save to backend/secrets/fcm-service-account.json (gitignored) and set in .env:
+     HEALYN_FCM_CREDENTIALS_PATH=./secrets/fcm-service-account.json
+   Restart the backend → FirebaseFcmSender activates (else it logs only).
+
+E. Verify end-to-end
+   Run the backend (credential set) and `flutter run --dart-define=HEALYN_API_BASE_URL=...`
+   on a REAL device or a Google-APIs emulator (FCM needs Google Play services; the iOS
+   simulator can't receive push). Log in → grant the permission → a row lands in fcm_tokens.
+   Book/confirm an appointment → the device receives a data-only push → tapping it opens
+   that appointment (payloads carry IDs only, per the PHI rule).
+```
+
 ---
 
 ## 6. Day-to-Day Development

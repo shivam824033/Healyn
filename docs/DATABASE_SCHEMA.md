@@ -234,6 +234,7 @@ CREATE TABLE appointments (
     booked_by_account_id UUID NOT NULL REFERENCES accounts(id) ON DELETE RESTRICT,
     physiotherapist_id  UUID NOT NULL REFERENCES accounts(id) ON DELETE RESTRICT,
     scheduled_at        TIMESTAMPTZ NOT NULL,
+    scheduled_end_at    TIMESTAMPTZ NOT NULL,                -- stored, = scheduled_at + duration; keeps the EXCLUDE index expression IMMUTABLE
     duration_minutes    SMALLINT NOT NULL DEFAULT 30,
     status              appointment_status NOT NULL DEFAULT 'REQUESTED',
     reason              VARCHAR(280),                       -- "Lower back pain", etc.
@@ -248,18 +249,19 @@ CREATE TABLE appointments (
     updated_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     deleted_at          TIMESTAMPTZ,
 
-    CHECK (duration_minutes BETWEEN 5 AND 240)
+    CHECK (duration_minutes BETWEEN 5 AND 240),
+    CONSTRAINT appointments_end_after_start CHECK (scheduled_end_at > scheduled_at)
 );
 
 -- Conflict prevention: no two confirmed/in-progress appointments overlap for the same physio.
+-- The range is built from the two stored columns (both plain references are IMMUTABLE);
+-- timestamptz arithmetic is only STABLE and cannot appear directly in an index/EXCLUDE expression.
 CREATE EXTENSION IF NOT EXISTS btree_gist;
 ALTER TABLE appointments
-    ADD CONSTRAINT excl_physio_overlap
+    ADD CONSTRAINT appointments_no_physio_overlap
     EXCLUDE USING gist (
         physiotherapist_id WITH =,
-        tstzrange(scheduled_at,
-                  scheduled_at + (duration_minutes || ' minutes')::interval,
-                  '[)') WITH &&
+        tstzrange(scheduled_at, scheduled_end_at, '[)') WITH &&
     )
     WHERE (status IN ('CONFIRMED', 'IN_PROGRESS'));
 
@@ -342,7 +344,7 @@ CREATE TABLE file_objects (
     owner_account_id    UUID NOT NULL REFERENCES accounts(id),
     patient_id          UUID NOT NULL REFERENCES patients(id),
     kind                file_kind NOT NULL,
-    mime_type           file_mime NOT NULL,
+    mime_type           VARCHAR(64) NOT NULL,                 -- value set mirrors the file_mime enum (see note)
     original_filename   VARCHAR(255) NOT NULL,
     storage_key         VARCHAR(512) NOT NULL UNIQUE,         -- S3 key
     size_bytes          BIGINT NOT NULL,
@@ -352,12 +354,22 @@ CREATE TABLE file_objects (
     available_at        TIMESTAMPTZ,
     deleted_at          TIMESTAMPTZ,
 
-    CHECK (size_bytes > 0 AND size_bytes <= 20 * 1024 * 1024)
+    CHECK (size_bytes > 0 AND size_bytes <= 20 * 1024 * 1024),
+    CONSTRAINT file_mime_whitelist
+        CHECK (mime_type IN ('application/pdf', 'image/jpeg', 'image/png'))
 );
 
 CREATE INDEX idx_file_patient ON file_objects(patient_id) WHERE deleted_at IS NULL;
 CREATE INDEX idx_file_status ON file_objects(status) WHERE status = 'PENDING_UPLOAD';
+CREATE INDEX idx_file_owner_created ON file_objects(owner_account_id, created_at);  -- daily upload-cap count
 ```
+
+> **`mime_type` storage note (V9).** The `file_mime` enum's labels contain `/`
+> (`application/pdf`, …), which cannot map to a Hibernate `@JdbcTypeCode(NAMED_ENUM)`
+> Java enum the way every other enum in this schema does. Rather than add a global
+> `stringtype=unspecified` JDBC setting for one column, `mime_type` is `VARCHAR(64)`
+> constrained by `file_mime_whitelist` to exactly the `file_mime` value set, which
+> remains the documented source of truth for allowed types.
 
 See [FILE_STORAGE_GUIDELINES.md](./FILE_STORAGE_GUIDELINES.md).
 
@@ -384,6 +396,57 @@ CREATE INDEX idx_notif_due
     ON notification_outbox(next_attempt_at)
     WHERE status = 'PENDING';
 ```
+
+### 3.13a `fcm_tokens` — device push registration tokens
+
+```sql
+CREATE TABLE fcm_tokens (
+    id            UUID PRIMARY KEY,
+    account_id    UUID NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+    token         TEXT NOT NULL,
+    platform      VARCHAR(16) NOT NULL DEFAULT 'android',     -- 'ios' added Phase 2
+    device_id     VARCHAR(128),
+    created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    last_seen_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    deleted_at    TIMESTAMPTZ
+);
+
+CREATE UNIQUE INDEX idx_fcm_tokens_token   ON fcm_tokens(token)      WHERE deleted_at IS NULL;
+CREATE INDEX        idx_fcm_tokens_account ON fcm_tokens(account_id) WHERE deleted_at IS NULL;
+```
+
+Owned by the notifications module (the entity is `FcmToken`). One row per app install;
+a token is unique while live. Re-registering a known token rebinds it to the current
+account (device re-login / handover). The outbox dispatcher resolves an account's live
+tokens at send time and retires any that FCM reports as unregistered (soft-delete).
+
+> The legacy `device_sessions.fcm_token` column (V3) predates this table and is not the
+> dispatch source of truth; `fcm_tokens` is. The column is retained (dropping it needs
+> approval per the migration rules) and may be removed in a later cleanup.
+
+### 3.13b `notification_preferences` — per-account push opt-outs
+
+```sql
+CREATE TABLE notification_preferences (
+    account_id              UUID PRIMARY KEY REFERENCES accounts(id) ON DELETE CASCADE,
+    appointment_updates     BOOLEAN NOT NULL DEFAULT TRUE,
+    appointment_reminders   BOOLEAN NOT NULL DEFAULT TRUE,
+    messages                BOOLEAN NOT NULL DEFAULT TRUE,
+    treatment_notes         BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at              TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at              TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+```
+
+Owned by the notifications module (the entity is `NotificationPreferences`). One row per
+account; every column is a user-facing **category** (each maps to one or more
+`notification_kind` values via `NotificationCategory`). The default is opted-in to
+everything, so a **missing row means all-enabled** — `GET /notifications/preferences`
+synthesises defaults rather than persisting on read, and a row is created lazily the first
+time the account changes a default (`PATCH`). `NotificationPublisher` consults this at enqueue
+time and skips writing an outbox row for a recipient who has opted out of that kind's category.
+Config rather than clinical data, so there is no `deleted_at` (Hard Rule #7 does not apply).
+See [API_STANDARDS.md §9.8](./API_STANDARDS.md#98-notifications).
 
 ### 3.14 `audit.audit_log` — separate schema, append-only
 
@@ -472,18 +535,28 @@ Phase 1 ships as plain tables. Migrations to partitioned layout are scripted but
 - Every migration must be **idempotent** where possible (`CREATE TABLE IF NOT EXISTS`, `ALTER TABLE ... ADD COLUMN IF NOT EXISTS`).
 - Destructive changes (`DROP COLUMN`, `DROP TABLE`) are forbidden in Phase 1.
 
-Bootstrap migrations (V1 → V8 approx):
+Bootstrap migrations as applied (one bounded context per file; the early plan's
+combined files were split as modules landed):
 
 ```
 V1__enable_extensions.sql        -- citext, btree_gist, pg_trgm, pgcrypto
 V2__create_enums.sql
-V3__create_accounts_and_auth.sql
-V4__create_patients.sql
-V5__create_availability_and_appointments.sql
-V6__create_files_and_attachments.sql
-V7__create_discussion.sql
-V8__create_notifications_and_audit.sql
+V3__auth_schema.sql
+V4__patients_schema.sql
+V5__availability_schema.sql
+V6__appointments_schema.sql
+V7__discussion_schema.sql        -- messages + read markers (attachments deferred)
+V8__treatment_notes_schema.sql
+V9__file_objects_schema.sql      -- file metadata (bytes in S3)
+V10__discussion_message_attachments.sql  -- wires file_objects into discussion
+V11__notification_outbox.sql      -- transactional outbox (enqueue side)
+V12__audit_log.sql                -- audit schema + append-only audit_log
+V13__fcm_tokens.sql               -- device push tokens (dispatch side, registration API)
+V14__notification_preferences.sql -- per-account push opt-outs (API_STANDARDS §9.8)
 ```
+
+Still pending: nothing schema-side remaining for Phase 1 notifications. The outbox poller +
+FCM adapter are application code (no migration), and per-account opt-outs landed in V14.
 
 ---
 

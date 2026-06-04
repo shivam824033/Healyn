@@ -9,7 +9,7 @@
 
 1. **Layered, not entangled.** Mobile → API gateway → service layer → repository → DB. No layer skips downward; no layer reaches sideways.
 2. **Feature-first on mobile.** Each feature is a self-contained Flutter folder with its own data/domain/presentation layers.
-3. **Domain-driven on backend.** Each bounded context (`auth`, `patients`, `appointments`, `discussion`, `files`, `notifications`, `treatment-notes`, `audit`) is a top-level package with its own controller / service / repository / domain model.
+3. **Domain-driven on backend.** Each bounded context (`auth`, `patients`, `availability`, `appointments`, `discussion`, `files`, `notifications`, `treatment-notes`, `audit`) is a top-level package with its own controller / service / repository / domain model.
 4. **Ports & adapters at the edges.** External systems (S3, FCM, SMS/email OTP) are accessed through interfaces. The implementation is swappable; the call site is not.
 5. **Stateless application servers.** All state lives in PostgreSQL, S3, or Redis (cache + token blacklist). Any application instance can serve any request.
 6. **Single source of truth for time.** All timestamps are stored as `TIMESTAMPTZ` in UTC. Clients render in the user's local timezone.
@@ -66,12 +66,13 @@ Each module is a top-level Java package: `com.healyn.<module>`.
 |---|---|---|---|
 | `auth` | Registration, login, OTP, JWT issue/refresh, device sessions | `Account`, `DeviceSession`, `OtpChallenge` | Redis (token blacklist), SMS/email OTP adapter |
 | `patients` | Patient CRUD, account↔patient links, relationships | `Patient`, `AccountPatient` | `auth` (account context) |
-| `appointments` | Slot availability, booking, lifecycle transitions | `Appointment`, `AvailabilityRule`, `BlackoutWindow` | `patients`, `discussion`, `notifications` |
-| `discussion` | Appointment-scoped messages, read receipts | `DiscussionMessage`, `MessageReadReceipt` | `appointments`, `files`, `notifications` |
+| `availability` | Physiotherapist availability rules, blackout windows, slot expansion (pure-function `SlotExpansionService` consumed by `appointments`) | `AvailabilityRule`, `BlackoutWindow` | `auth` (physio account) |
+| `appointments` | Booking, state-machine transitions, reschedule, cursor-paginated listing, idempotency on book | `Appointment` | `patients` (access policy), `availability` (slot validation), `discussion`, `notifications`, `treatment-notes` |
+| `discussion` | Appointment-scoped messages, 5-min edit/delete window, cursor list, per-account read markers, unread count | `DiscussionMessage`, `DiscussionReadMarker` | `appointments`, `patients` (access policy), `files` (attachments — deferred), `notifications` |
 | `files` | Presigned upload/download URLs, file validation | `FileObject` | S3 adapter, `discussion`, `treatment-notes` |
 | `treatment-notes` | Physiotherapist's clinical notes per appointment | `TreatmentNote` | `appointments`, `files` |
 | `notifications` | Outbound notification dispatch (FCM in Phase 1) | `NotificationOutbox`, `FcmToken` | FCM adapter, all modules (via events) |
-| `audit` | Clinical access audit log (append-only) | `AuditLogEntry` | All modules (via aspect) |
+| `audit` | Clinical access audit log (append-only) | `AuditLogEntry` | Called explicitly by modules via `AuditLogger` (REQUIRES_NEW); a web interceptor for READ paths is a later add |
 | `common` | Shared types, exception mapper, JSON config, validation | (cross-cutting) | — |
 
 ### 3.2 Mobile Modules (Flutter features)

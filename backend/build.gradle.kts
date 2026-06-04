@@ -17,7 +17,12 @@ repositories {
     mavenCentral()
 }
 
-extra["testcontainersVersion"] = "1.20.3"
+extra["testcontainersVersion"] = "1.20.6"
+// Override the Spring Boot BOM's managed Testcontainers version (1.19.8). That
+// version ships docker-java 3.3.6 (Engine API 1.43), which Docker Engine 28+
+// rejects after the minimum API version was raised to 1.44. 1.20.6 carries a
+// docker-java that negotiates a supported API version.
+extra["testcontainers.version"] = "1.20.6"
 extra["springdocVersion"] = "2.6.0"
 extra["nimbusJoseVersion"] = "9.41.2"
 
@@ -37,6 +42,7 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-security")
     implementation("org.springframework.boot:spring-boot-starter-oauth2-resource-server")
     implementation("com.nimbusds:nimbus-jose-jwt:${property("nimbusJoseVersion")}")
+    implementation("org.bouncycastle:bcprov-jdk18on:1.78.1")
 
     // Observability
     implementation("org.springframework.boot:spring-boot-starter-actuator")
@@ -44,6 +50,12 @@ dependencies {
 
     // OpenAPI
     implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:${property("springdocVersion")}")
+
+    // Object storage (S3-compatible: MinIO local, AWS S3 / R2 in prod) — Apache 2.0
+    implementation("io.minio:minio:8.5.14")
+
+    // Push notifications (FCM dispatch adapter) — Apache 2.0
+    implementation("com.google.firebase:firebase-admin:9.4.3")
 
     // Test
     testImplementation("org.springframework.boot:spring-boot-starter-test") {
@@ -67,8 +79,37 @@ tasks.withType<Test> {
         events("passed", "skipped", "failed")
         showStandardStreams = false
     }
+    // Testcontainers/docker-java picks an Engine API version that the Docker
+    // Desktop for Windows npipe/TCP proxy reports as higher than the daemon
+    // actually serves, so the daemon rejects /info with HTTP 400 and discovery
+    // fails. Pin a broadly-supported version on Windows only; Linux CI keeps
+    // auto-negotiation. An exported DOCKER_API_VERSION still wins.
+    val pinnedApiVersion = System.getenv("DOCKER_API_VERSION")
+        ?: "1.44".takeIf { System.getProperty("os.name").startsWith("Windows", ignoreCase = true) }
+    pinnedApiVersion?.let {
+        environment("DOCKER_API_VERSION", it)
+        systemProperty("api.version", it)
+    }
 }
 
 springBoot {
     mainClass.set("com.healyn.HealynApplication")
+}
+
+// Load repo-root `.env` into `bootRun` so local dev picks up HEALYN_* without
+// the developer having to export them. Production runs supply env vars through
+// the deployment platform, so this only affects the dev task.
+tasks.named<org.springframework.boot.gradle.tasks.run.BootRun>("bootRun") {
+    val envFile = rootProject.file("../.env")
+    if (envFile.exists()) {
+        envFile.readLines()
+            .map { it.trim() }
+            .filter { it.isNotEmpty() && !it.startsWith("#") && it.contains("=") }
+            .forEach {
+                val idx = it.indexOf('=')
+                val key = it.substring(0, idx).trim()
+                val value = it.substring(idx + 1).trim().removeSurrounding("\"").removeSurrounding("'")
+                environment(key, value)
+            }
+    }
 }

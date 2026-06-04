@@ -132,7 +132,7 @@ The hard guarantee: **no two appointments for the same physiotherapist may overl
 
 ### 4.1 The DB-Level Guard
 
-The `excl_physio_overlap` exclusion constraint on `appointments` (see [DATABASE_SCHEMA.md §3.8](./DATABASE_SCHEMA.md)) uses a GIST index over `tstzrange` to reject any overlapping `CONFIRMED` / `IN_PROGRESS` row.
+The `appointments_no_physio_overlap` exclusion constraint on `appointments` (see [DATABASE_SCHEMA.md §3.8](./DATABASE_SCHEMA.md)) uses a GIST index over `tstzrange(scheduled_at, scheduled_end_at, '[)')` to reject any overlapping `CONFIRMED` / `IN_PROGRESS` row.
 
 This means: even if two requests slip past the service layer simultaneously, **the database itself prevents the conflict**. The second one gets a `23P01` error which the service layer translates to `409 Conflict`.
 

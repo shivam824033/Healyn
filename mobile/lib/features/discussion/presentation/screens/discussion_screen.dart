@@ -1,0 +1,690 @@
+import 'dart:async';
+
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../../appointments/data/models/appointment_models.dart';
+import '../../../files/data/file_picker_service.dart';
+import '../../../files/data/file_types.dart';
+import '../../../files/data/files_repository.dart';
+import '../../../files/data/models/file_models.dart';
+import '../../../files/data/url_opener.dart';
+import '../../../shared/auth/current_account.dart';
+import '../../../shared/design/colors.dart';
+import '../../../shared/design/radii.dart';
+import '../../../shared/design/spacing.dart';
+import '../../../shared/design/typography.dart';
+import '../../../shared/network/api_exception.dart';
+import '../../../shared/widgets/error_banner.dart';
+import '../../data/discussion_repository.dart';
+import '../../data/models/discussion_models.dart';
+import '../discussion_format.dart';
+import '../widgets/message_bubble.dart';
+
+/// The appointment-scoped discussion thread (F1.14). Loads the newest page of
+/// messages, lets the patient post a question or attach files, and edit/delete
+/// their own text message within the 5-minute window. Attaching uploads via the
+/// `files` feature (F1.15) and stages the file to send with the next message.
+/// Tapping an attachment resolves it to a short-lived presigned URL and opens it
+/// externally. The composer is hidden (read-only) when the appointment is
+/// CANCELLED or NO_SHOW — mirroring the backend `DiscussionAccessPolicy`.
+class DiscussionScreen extends ConsumerStatefulWidget {
+  const DiscussionScreen({required this.appointment, super.key});
+
+  final Appointment appointment;
+
+  @override
+  ConsumerState<DiscussionScreen> createState() => _DiscussionScreenState();
+}
+
+class _DiscussionScreenState extends ConsumerState<DiscussionScreen> {
+  final _scroll = ScrollController();
+  final _composer = TextEditingController();
+
+  /// Oldest-first (the backend lists newest-first; we reverse for display).
+  final List<DiscussionMessage> _messages = [];
+
+  /// Files already uploaded (AVAILABLE) and staged to send with the next message.
+  final List<FileObjectView> _attachments = [];
+  String? _nextCursor;
+  String? _myAccountId;
+
+  bool _loading = true;
+  bool _loadingOlder = false;
+  bool _posting = false;
+  bool _attaching = false;
+  String? _loadError;
+
+  Appointment get _appt => widget.appointment;
+  String get _appointmentId => _appt.id;
+
+  /// Patient-side writes are blocked only on terminal statuses — every other
+  /// status (incl. COMPLETED) stays writable, matching the server policy.
+  bool get _writable =>
+      _appt.status != AppointmentStatus.cancelled &&
+      _appt.status != AppointmentStatus.noShow;
+
+  @override
+  void initState() {
+    super.initState();
+    _bootstrap();
+  }
+
+  @override
+  void dispose() {
+    _scroll.dispose();
+    _composer.dispose();
+    super.dispose();
+  }
+
+  Future<void> _bootstrap() async {
+    _myAccountId = await ref.read(currentAccountIdProvider.future);
+    await _loadInitial();
+  }
+
+  Future<void> _loadInitial() async {
+    setState(() {
+      _loading = true;
+      _loadError = null;
+    });
+    try {
+      final page = await ref
+          .read(discussionRepositoryProvider)
+          .list(_appointmentId, limit: 30);
+      if (!mounted) return;
+      setState(() {
+        _messages
+          ..clear()
+          ..addAll(page.items.reversed);
+        _nextCursor = page.nextCursor;
+        _loading = false;
+      });
+      _markNewestRead();
+      _jumpToBottomSoon();
+    } on ApiException catch (e) {
+      if (mounted) {
+        setState(() {
+          _loadError = e.message;
+          _loading = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _loadOlder() async {
+    if (_loadingOlder || _nextCursor == null) return;
+    setState(() => _loadingOlder = true);
+    try {
+      final page = await ref
+          .read(discussionRepositoryProvider)
+          .list(_appointmentId, cursor: _nextCursor, limit: 30);
+      if (!mounted) return;
+      setState(() {
+        _messages.insertAll(0, page.items.reversed);
+        _nextCursor = page.nextCursor;
+        _loadingOlder = false;
+      });
+    } on ApiException catch (e) {
+      if (mounted) {
+        setState(() => _loadingOlder = false);
+        _toast(e.message);
+      }
+    }
+  }
+
+  /// Advances the read marker to the newest message so unread counts clear.
+  /// Fire-and-forget: a failed mark must not block reading the thread.
+  void _markNewestRead() {
+    if (_messages.isEmpty) return;
+    final newest = _messages.last.id;
+    unawaited(
+      ref
+          .read(discussionRepositoryProvider)
+          .markRead(_appointmentId, newest)
+          .catchError((_) {}),
+    );
+  }
+
+  Future<void> _send() async {
+    final text = _composer.text.trim();
+    final fileIds = _attachments.map((f) => f.id).toList();
+    if ((text.isEmpty && fileIds.isEmpty) || _posting) return;
+    setState(() => _posting = true);
+    try {
+      final saved = await ref
+          .read(discussionRepositoryProvider)
+          .postMessage(
+            _appointmentId,
+            body: text.isEmpty ? null : text,
+            fileIds: fileIds,
+          );
+      if (!mounted) return;
+      setState(() {
+        _messages.add(saved);
+        _composer.clear();
+        _attachments.clear();
+        _posting = false;
+      });
+      _markNewestRead();
+      _jumpToBottomSoon();
+    } on ApiException catch (e) {
+      // Keep the typed text and staged attachments so the patient can retry.
+      if (mounted) {
+        setState(() => _posting = false);
+        _toast(e.message);
+      }
+    }
+  }
+
+  /// Offers the three attachment sources; the chosen one picks, validates, and
+  /// uploads the file, staging it on success.
+  void _chooseAttachmentSource() {
+    showModalBottomSheet<void>(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.photo_camera_outlined),
+              title: const Text('Take photo'),
+              onTap: () {
+                Navigator.pop(ctx);
+                _pickAndUpload(PickSource.camera);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library_outlined),
+              title: const Text('Choose photo'),
+              onTap: () {
+                Navigator.pop(ctx);
+                _pickAndUpload(PickSource.gallery);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.insert_drive_file_outlined),
+              title: const Text('Choose file'),
+              onTap: () {
+                Navigator.pop(ctx);
+                _pickAndUpload(PickSource.file);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _pickAndUpload(PickSource source) async {
+    if (_attaching) return;
+    PickedFile? picked;
+    try {
+      picked = await ref.read(filePickerServiceProvider).pick(source);
+    } catch (_) {
+      _toast("Couldn't open the picker.");
+      return;
+    }
+    if (picked == null || !mounted) return;
+
+    final type = uploadTypeForFilename(picked.filename);
+    if (type == null) {
+      _toast('Only PDF, JPG, and PNG files can be attached.');
+      return;
+    }
+    if (picked.bytes.length > type.maxBytes) {
+      _toast('That file is too large.');
+      return;
+    }
+
+    setState(() => _attaching = true);
+    try {
+      final file = await ref
+          .read(filesRepositoryProvider)
+          .upload(
+            patientId: _appt.patientId,
+            appointmentId: _appointmentId,
+            kind: FileKind.other,
+            mimeType: type.mimeType,
+            originalFilename: picked.filename,
+            bytes: picked.bytes,
+          );
+      if (!mounted) return;
+      setState(() {
+        _attachments.add(file);
+        _attaching = false;
+      });
+    } on ApiException catch (e) {
+      if (mounted) {
+        setState(() => _attaching = false);
+        _toast(e.message);
+      }
+    }
+  }
+
+  void _removeAttachment(FileObjectView file) {
+    setState(() => _attachments.removeWhere((f) => f.id == file.id));
+  }
+
+  /// Resolves a tapped attachment to a presigned URL and opens it externally
+  /// (browser/native viewer); no bytes touch local storage and the URL expires.
+  Future<void> _openAttachment(MessageAttachment attachment) async {
+    final repo = ref.read(filesRepositoryProvider);
+    final opener = ref.read(urlOpenerProvider);
+    try {
+      final target = await repo.download(attachment.fileId);
+      final opened = await opener.open(target.url);
+      if (!opened && mounted) _toast("Couldn't open this attachment.");
+    } on ApiException catch (e) {
+      if (mounted) _toast(e.message);
+    }
+  }
+
+  Future<void> _editMessage(DiscussionMessage m) async {
+    final controller = TextEditingController(text: m.body ?? '');
+    final newBody = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Edit message'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          maxLines: null,
+          maxLength: 2000,
+          decoration: const InputDecoration(hintText: 'Your message'),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, controller.text.trim()),
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    if (newBody == null || newBody.isEmpty || newBody == m.body || !mounted) {
+      return;
+    }
+    try {
+      final updated = await ref
+          .read(discussionRepositoryProvider)
+          .edit(_appointmentId, m.id, newBody);
+      if (!mounted) return;
+      setState(() {
+        final i = _messages.indexWhere((x) => x.id == m.id);
+        if (i != -1) _messages[i] = updated;
+      });
+    } on ApiException catch (e) {
+      if (mounted) _toast(e.message);
+    }
+  }
+
+  Future<void> _deleteMessage(DiscussionMessage m) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete message?'),
+        content: const Text('This removes your message from the discussion.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Keep it'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(
+              foregroundColor: HealynColors.statusDanger,
+            ),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    try {
+      await ref
+          .read(discussionRepositoryProvider)
+          .delete(_appointmentId, m.id);
+      if (!mounted) return;
+      setState(() => _messages.removeWhere((x) => x.id == m.id));
+    } on ApiException catch (e) {
+      if (mounted) _toast(e.message);
+    }
+  }
+
+  void _showActions(DiscussionMessage m) {
+    showModalBottomSheet<void>(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.edit_outlined),
+              title: const Text('Edit'),
+              onTap: () {
+                Navigator.pop(ctx);
+                _editMessage(m);
+              },
+            ),
+            ListTile(
+              leading: const Icon(
+                Icons.delete_outline,
+                color: HealynColors.statusDanger,
+              ),
+              title: const Text('Delete'),
+              onTap: () {
+                Navigator.pop(ctx);
+                _deleteMessage(m);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Within the 5-minute window, this account's own text messages can be
+  /// edited or deleted — mirrors the backend so we don't offer a doomed action.
+  bool _canModify(DiscussionMessage m) {
+    if (!_writable) return false;
+    if (m.senderRole != DiscussionSenderRole.patientSide) return false;
+    if (m.messageType == DiscussionMessageType.attachmentOnly) return false;
+    if (_myAccountId == null || m.senderAccountId != _myAccountId) return false;
+    return DateTime.now().difference(m.createdAt).inSeconds < 300;
+  }
+
+  void _jumpToBottomSoon() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scroll.hasClients) {
+        _scroll.jumpTo(_scroll.position.maxScrollExtent);
+      }
+    });
+  }
+
+  void _toast(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Discussion')),
+      body: SafeArea(
+        child: Column(
+          children: [
+            Expanded(child: _body()),
+            _writable ? _buildComposer() : const _ReadOnlyNotice(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _body() {
+    if (_loading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (_loadError != null) {
+      return _LoadError(message: _loadError!, onRetry: _loadInitial);
+    }
+    if (_messages.isEmpty) {
+      return const _EmptyThread();
+    }
+    return ListView(
+      controller: _scroll,
+      padding: const EdgeInsets.all(HealynSpacing.screenEdge),
+      children: _streamChildren(),
+    );
+  }
+
+  List<Widget> _streamChildren() {
+    final children = <Widget>[];
+    if (_nextCursor != null) {
+      children.add(
+        Center(
+          child: _loadingOlder
+              ? const Padding(
+                  padding: EdgeInsets.all(HealynSpacing.s3),
+                  child: SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                )
+              : TextButton(
+                  onPressed: _loadOlder,
+                  child: const Text('Load earlier messages'),
+                ),
+        ),
+      );
+    }
+    for (var i = 0; i < _messages.length; i++) {
+      final m = _messages[i];
+      final prev = i == 0 ? null : _messages[i - 1];
+      if (prev == null || !sameLocalDay(prev.createdAt, m.createdAt)) {
+        children.add(_DaySeparator(label: daySeparatorLabel(m.createdAt)));
+      }
+      final isOutgoing = m.senderRole == DiscussionSenderRole.patientSide;
+      Widget bubble = MessageBubble(
+        message: m,
+        isOutgoing: isOutgoing,
+        onOpenAttachment: _openAttachment,
+      );
+      if (_canModify(m)) {
+        bubble = GestureDetector(
+          onLongPress: () => _showActions(m),
+          child: bubble,
+        );
+      }
+      children.add(
+        Padding(
+          padding: const EdgeInsets.only(bottom: HealynSpacing.s3),
+          child: bubble,
+        ),
+      );
+    }
+    return children;
+  }
+
+  Widget _buildComposer() {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(
+        HealynSpacing.s4,
+        HealynSpacing.s2,
+        HealynSpacing.s2,
+        HealynSpacing.s2,
+      ),
+      decoration: const BoxDecoration(
+        color: HealynColors.surfaceBase,
+        border: Border(top: BorderSide(color: HealynColors.borderSubtle)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (_attachments.isNotEmpty || _attaching) _buildAttachmentBar(),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              IconButton(
+                onPressed: (_attaching || _posting)
+                    ? null
+                    : _chooseAttachmentSource,
+                icon: const Icon(Icons.attach_file),
+                color: HealynColors.brandPrimary,
+                tooltip: 'Attach',
+              ),
+              Expanded(
+                child: TextField(
+                  controller: _composer,
+                  minLines: 1,
+                  maxLines: 5,
+                  maxLength: 2000,
+                  textCapitalization: TextCapitalization.sentences,
+                  decoration: const InputDecoration(
+                    hintText: 'Write a message',
+                    counterText: '',
+                    border: OutlineInputBorder(borderRadius: HealynRadii.brMd),
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: HealynSpacing.s3,
+                      vertical: HealynSpacing.s2,
+                    ),
+                  ),
+                ),
+              ),
+              IconButton(
+                onPressed: _posting ? null : _send,
+                icon: _posting
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.send_rounded),
+                color: HealynColors.brandPrimary,
+                tooltip: 'Send',
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAttachmentBar() {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Padding(
+        padding: const EdgeInsets.only(
+          left: HealynSpacing.s2,
+          bottom: HealynSpacing.s2,
+        ),
+        child: Wrap(
+          spacing: HealynSpacing.s2,
+          runSpacing: HealynSpacing.s2,
+          children: [
+            for (final f in _attachments)
+              InputChip(
+                label: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 180),
+                  child: Text(
+                    f.originalFilename,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                onDeleted: _posting ? null : () => _removeAttachment(f),
+              ),
+            if (_attaching)
+              const Chip(
+                avatar: SizedBox(
+                  width: 14,
+                  height: 14,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+                label: Text('Uploading…'),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _DaySeparator extends StatelessWidget {
+  const _DaySeparator({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: HealynSpacing.s2),
+      child: Center(
+        child: Text(label.toUpperCase(), style: HealynTypography.overline),
+      ),
+    );
+  }
+}
+
+class _EmptyThread extends StatelessWidget {
+  const _EmptyThread();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Center(
+      child: Padding(
+        padding: EdgeInsets.all(HealynSpacing.s7),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.forum_outlined,
+              size: 40,
+              color: HealynColors.textMuted,
+            ),
+            SizedBox(height: HealynSpacing.s3),
+            Text(
+              'No messages yet',
+              style: HealynTypography.h3,
+              textAlign: TextAlign.center,
+            ),
+            SizedBox(height: HealynSpacing.s1),
+            Text(
+              'Ask your physiotherapist a question about this appointment.',
+              style: HealynTypography.caption,
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _LoadError extends StatelessWidget {
+  const _LoadError({required this.message, required this.onRetry});
+
+  final String message;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(HealynSpacing.s6),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ErrorBanner(message: message),
+            const SizedBox(height: HealynSpacing.s4),
+            TextButton(onPressed: onRetry, child: const Text('Retry')),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ReadOnlyNotice extends StatelessWidget {
+  const _ReadOnlyNotice();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(HealynSpacing.s4),
+      decoration: const BoxDecoration(
+        color: HealynColors.surfaceAlt,
+        border: Border(top: BorderSide(color: HealynColors.borderSubtle)),
+      ),
+      child: const Text(
+        'This appointment is closed — the discussion is read-only.',
+        style: HealynTypography.caption,
+        textAlign: TextAlign.center,
+      ),
+    );
+  }
+}
