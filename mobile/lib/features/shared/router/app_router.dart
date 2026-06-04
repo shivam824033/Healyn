@@ -22,6 +22,7 @@ import '../../patient_shell/presentation/patient_shell.dart';
 import '../../physio/presentation/physio_shell.dart';
 import '../../physio/presentation/screens/physio_appointment_detail_screen.dart';
 import '../../physio/presentation/screens/physio_availability_screen.dart';
+import '../../physio/presentation/screens/physio_patient_detail_screen.dart';
 import '../../physio/presentation/screens/physio_patients_screen.dart';
 import '../../physio/presentation/screens/physio_profile_screen.dart';
 import '../../physio/presentation/screens/physio_today_screen.dart';
@@ -216,6 +217,28 @@ final routerProvider = Provider<GoRouter>((ref) {
           return _PhysioAppointmentDetailRoute(id: state.pathParameters['id']!);
         },
       ),
+      // The physiotherapist's patient detail + treatment history, pushed over
+      // the physio shell. Under /physio/* so the role redirect keeps non-physios
+      // out. `treatment_notes` is matched before the bare detail.
+      GoRoute(
+        path: '/physio/patients/:id/treatment_notes',
+        builder: (_, state) => TreatmentNotesTimelineScreen(
+          patientId: state.pathParameters['id']!,
+          patientName: state.extra is String ? state.extra as String : null,
+          viewer: TreatmentHistoryViewer.physio,
+        ),
+      ),
+      GoRoute(
+        path: '/physio/patients/:id',
+        builder: (_, state) {
+          final extra = state.extra;
+          if (extra is Patient) {
+            return PhysioPatientDetailScreen(patient: extra);
+          }
+          // No object passed (deep link / refresh) — resolve from the roster.
+          return _PhysioPatientDetailRoute(id: state.pathParameters['id']!);
+        },
+      ),
       // Patient create/edit forms live outside the shell so they cover the
       // bottom nav as a focused sub-flow (pushed, not switched).
       GoRoute(
@@ -368,6 +391,37 @@ class _RescheduleRoute extends ConsumerWidget {
         body: const Center(child: Text('Could not load this appointment.')),
       ),
       data: (a) => RescheduleAppointmentScreen(appointment: a),
+    );
+  }
+}
+
+/// Resolves the patient for the physiotherapist's detail from the roster
+/// (`patientsProvider`) when the route was entered without the [Patient] object
+/// in `extra` (deep link / refresh).
+class _PhysioPatientDetailRoute extends ConsumerWidget {
+  const _PhysioPatientDetailRoute({required this.id});
+
+  final String id;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final patients = ref.watch(patientsProvider);
+    return patients.when(
+      loading: () =>
+          const Scaffold(body: Center(child: CircularProgressIndicator())),
+      error: (_, _) => Scaffold(
+        appBar: AppBar(),
+        body: const Center(child: Text('Could not load this patient.')),
+      ),
+      data: (all) {
+        for (final p in all) {
+          if (p.id == id) return PhysioPatientDetailScreen(patient: p);
+        }
+        return Scaffold(
+          appBar: AppBar(),
+          body: const Center(child: Text('Patient not found.')),
+        );
+      },
     );
   }
 }
