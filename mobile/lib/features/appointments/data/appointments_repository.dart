@@ -12,8 +12,24 @@ class AppointmentsRepository {
 
   final AppointmentsApi _api;
 
-  Future<AppointmentPage> list({String? cursor, int? limit}) async {
-    return _guard(() => _api.list(cursor: cursor, limit: limit));
+  Future<AppointmentPage> list({
+    String? patientId,
+    String? statusCsv,
+    DateTime? from,
+    DateTime? to,
+    String? cursor,
+    int? limit,
+  }) async {
+    return _guard(
+      () => _api.list(
+        patientId: patientId,
+        statusCsv: statusCsv,
+        from: from,
+        to: to,
+        cursor: cursor,
+        limit: limit,
+      ),
+    );
   }
 
   Future<Appointment> get(String id) async {

@@ -20,6 +20,7 @@ import '../../home/presentation/home_screen.dart';
 import '../../notifications/presentation/screens/notification_preferences_screen.dart';
 import '../../patient_shell/presentation/patient_shell.dart';
 import '../../physio/presentation/physio_shell.dart';
+import '../../physio/presentation/screens/physio_appointment_detail_screen.dart';
 import '../../physio/presentation/screens/physio_availability_screen.dart';
 import '../../physio/presentation/screens/physio_patients_screen.dart';
 import '../../physio/presentation/screens/physio_profile_screen.dart';
@@ -171,6 +172,19 @@ final routerProvider = Provider<GoRouter>((ref) {
             ],
           ),
         ],
+      ),
+      // The physiotherapist's read-only appointment detail, pushed over the
+      // physio shell. Under /physio/* so the redirect keeps non-physios out.
+      GoRoute(
+        path: '/physio/appointments/:id',
+        builder: (_, state) {
+          final extra = state.extra;
+          if (extra is Appointment) {
+            return PhysioAppointmentDetailScreen(appointment: extra);
+          }
+          // No object passed (deep link / refresh) — fetch it by id.
+          return _PhysioAppointmentDetailRoute(id: state.pathParameters['id']!);
+        },
       ),
       // Patient create/edit forms live outside the shell so they cover the
       // bottom nav as a focused sub-flow (pushed, not switched).
@@ -324,6 +338,28 @@ class _RescheduleRoute extends ConsumerWidget {
         body: const Center(child: Text('Could not load this appointment.')),
       ),
       data: (a) => RescheduleAppointmentScreen(appointment: a),
+    );
+  }
+}
+
+/// Fetches the appointment for the physiotherapist's detail when the route was
+/// entered without the [Appointment] in `extra` (deep link / refresh).
+class _PhysioAppointmentDetailRoute extends ConsumerWidget {
+  const _PhysioAppointmentDetailRoute({required this.id});
+
+  final String id;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final appointment = ref.watch(appointmentByIdProvider(id));
+    return appointment.when(
+      loading: () =>
+          const Scaffold(body: Center(child: CircularProgressIndicator())),
+      error: (_, _) => Scaffold(
+        appBar: AppBar(),
+        body: const Center(child: Text('Could not load this appointment.')),
+      ),
+      data: (a) => PhysioAppointmentDetailScreen(appointment: a),
     );
   }
 }

@@ -3,8 +3,12 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:healyn/features/appointments/data/models/appointment_models.dart';
 import 'package:healyn/features/auth/domain/auth_status.dart';
 import 'package:healyn/features/auth/presentation/controllers/auth_controller.dart';
+import 'package:healyn/features/patients/data/models/patient_models.dart';
+import 'package:healyn/features/patients/presentation/patients_providers.dart';
+import 'package:healyn/features/physio/presentation/physio_schedule_providers.dart';
 import 'package:healyn/features/shared/auth/account_role.dart';
 import 'package:healyn/features/shared/router/app_router.dart';
 
@@ -57,6 +61,9 @@ void main() {
               ),
             ),
           ),
+          // Keep the physio Schedule screen off the network so the shell settles.
+          physioScheduleProvider.overrideWith((ref) async => <Appointment>[]),
+          patientsProvider.overrideWith((ref) => <Patient>[]),
         ],
       );
       addTearDown(container.dispose);
@@ -73,10 +80,9 @@ void main() {
     testWidgets('lands a physiotherapist in the physio shell', (tester) async {
       await pumpPhysio(tester);
 
-      expect(
-        find.text("Today's schedule lands in the next update."),
-        findsOneWidget,
-      );
+      // The Schedule screen, not a patient screen.
+      expect(find.text('Schedule'), findsOneWidget);
+      expect(find.text('Nothing scheduled'), findsOneWidget);
       // Physio nav, not the patient nav.
       expect(find.text('Availability'), findsOneWidget);
       expect(find.text('Family'), findsNothing);
@@ -89,10 +95,8 @@ void main() {
       await tester.pumpAndSettle();
 
       // Redirected back into the physio app rather than the patient Home.
-      expect(
-        find.text("Today's schedule lands in the next update."),
-        findsOneWidget,
-      );
+      expect(find.text('Schedule'), findsOneWidget);
+      expect(find.text('Availability'), findsOneWidget);
     });
   });
 }

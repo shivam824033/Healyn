@@ -13,10 +13,14 @@ class AppointmentsApi {
   final Dio _dio;
 
   /// A page of the account's appointments, newest schedule first. Optional
-  /// filters mirror the backend query params (snake_case on the wire).
+  /// filters mirror the backend query params (snake_case on the wire). [from]
+  /// and [to] bound `scheduledAt` (`>= from`, `< to`) and are sent as UTC
+  /// instants — the physiotherapist's day schedule uses them to fetch one day.
   Future<AppointmentPage> list({
     String? patientId,
     String? statusCsv,
+    DateTime? from,
+    DateTime? to,
     String? cursor,
     int? limit,
   }) async {
@@ -25,6 +29,8 @@ class AppointmentsApi {
       queryParameters: <String, dynamic>{
         'patient_id': ?patientId,
         if (statusCsv != null && statusCsv.isNotEmpty) 'status': statusCsv,
+        if (from != null) 'from': from.toUtc().toIso8601String(),
+        if (to != null) 'to': to.toUtc().toIso8601String(),
         if (cursor != null && cursor.isNotEmpty) 'cursor': cursor,
         'limit': ?limit,
       },
