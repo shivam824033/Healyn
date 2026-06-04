@@ -9,6 +9,7 @@ import '../../../shared/design/typography.dart';
 import '../../../shared/network/api_exception.dart';
 import '../../../shared/widgets/error_banner.dart';
 import '../../../shared/widgets/section_card.dart';
+import '../../../treatment_notes/presentation/widgets/treatment_note_section.dart';
 import '../../data/appointments_repository.dart';
 import '../../data/models/appointment_models.dart';
 import '../appointment_format.dart';
@@ -165,6 +166,10 @@ class _AppointmentDetailScreenState
                 minimumSize: const Size.fromHeight(48),
               ),
             ),
+            if (_appt.status == AppointmentStatus.completed) ...[
+              const SizedBox(height: HealynSpacing.s6),
+              TreatmentNoteSection(appointmentId: _appt.id),
+            ],
             if (cancellation.isNotEmpty) ...[
               const SizedBox(height: HealynSpacing.s6),
               const _SectionTitle('Cancellation'),

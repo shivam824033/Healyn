@@ -1,0 +1,26 @@
+import 'package:dio/dio.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../shared/network/dio_client.dart';
+import 'models/treatment_note_models.dart';
+
+/// Thin transport for an appointment's treatment note — the nested
+/// `/appointments/{appointmentId}/treatment_note` endpoint. Returns the typed
+/// model; DioErrors propagate and are mapped to [ApiException] in the
+/// repository (a 404 means "no note yet" and is handled there).
+class TreatmentNotesApi {
+  TreatmentNotesApi(this._dio);
+
+  final Dio _dio;
+
+  Future<TreatmentNote> getForAppointment(String appointmentId) async {
+    final res = await _dio.get<Map<String, dynamic>>(
+      '/appointments/$appointmentId/treatment_note',
+    );
+    return TreatmentNote.fromJson(res.data!);
+  }
+}
+
+final treatmentNotesApiProvider = Provider<TreatmentNotesApi>(
+  (ref) => TreatmentNotesApi(ref.watch(dioProvider)),
+);

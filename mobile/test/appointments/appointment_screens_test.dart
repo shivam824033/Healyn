@@ -14,6 +14,9 @@ import 'package:healyn/features/appointments/presentation/screens/book_appointme
 import 'package:healyn/features/appointments/presentation/screens/reschedule_appointment_screen.dart';
 import 'package:healyn/features/patients/data/models/patient_models.dart';
 import 'package:healyn/features/patients/presentation/patients_providers.dart';
+import 'package:healyn/features/treatment_notes/data/models/treatment_note_models.dart';
+import 'package:healyn/features/treatment_notes/data/treatment_notes_api.dart';
+import 'package:healyn/features/treatment_notes/data/treatment_notes_repository.dart';
 
 /// Records book/reschedule calls but never completes them, so the submit-guard
 /// tests can assert the call was *not* made without the screen navigating away.
@@ -42,6 +45,15 @@ class _RecordingApptRepo extends AppointmentsRepository {
     rescheduleCalled = true;
     return Completer<Appointment>().future;
   }
+}
+
+/// The detail screen loads a treatment note for COMPLETED appointments; this
+/// resolves it to "none yet" so the section settles to its empty state offline.
+class _FakeTreatmentNotesRepo extends TreatmentNotesRepository {
+  _FakeTreatmentNotesRepo() : super(TreatmentNotesApi(Dio()));
+
+  @override
+  Future<TreatmentNote?> forAppointment(String appointmentId) async => null;
 }
 
 Slot _slot(DateTime startsAt, {int duration = 45}) => Slot(
@@ -87,6 +99,9 @@ Future<void> _pump(
         if (appointments != null)
           appointmentsProvider.overrideWith((ref) => appointments),
         if (repo != null) appointmentsRepositoryProvider.overrideWithValue(repo),
+        treatmentNotesRepositoryProvider.overrideWithValue(
+          _FakeTreatmentNotesRepo(),
+        ),
       ],
       child: MaterialApp(home: home),
     ),
