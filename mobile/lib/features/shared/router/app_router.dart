@@ -8,6 +8,8 @@ import '../../appointments/presentation/screens/appointment_detail_screen.dart';
 import '../../appointments/presentation/screens/appointments_screen.dart';
 import '../../appointments/presentation/screens/book_appointment_screen.dart';
 import '../../appointments/presentation/screens/reschedule_appointment_screen.dart';
+import '../../availability/presentation/screens/availability_blackout_form_screen.dart';
+import '../../availability/presentation/screens/availability_rule_form_screen.dart';
 import '../../discussion/presentation/screens/discussion_screen.dart';
 import '../../discussion/presentation/screens/unread_discussions_screen.dart';
 import '../../auth/domain/auth_status.dart';
@@ -238,6 +240,17 @@ final routerProvider = Provider<GoRouter>((ref) {
           // No object passed (deep link / refresh) — resolve from the roster.
           return _PhysioPatientDetailRoute(id: state.pathParameters['id']!);
         },
+      ),
+      // The physiotherapist's availability add-forms, pushed over the physio
+      // shell. Under /physio/* so the role redirect keeps non-physios out. Each
+      // returns `true` on a successful add so the hub refetches.
+      GoRoute(
+        path: '/physio/availability/rules/new',
+        builder: (_, _) => const AvailabilityRuleFormScreen(),
+      ),
+      GoRoute(
+        path: '/physio/availability/blackouts/new',
+        builder: (_, _) => const AvailabilityBlackoutFormScreen(),
       ),
       // Patient create/edit forms live outside the shell so they cover the
       // bottom nav as a focused sub-flow (pushed, not switched).
