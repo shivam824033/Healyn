@@ -25,6 +25,8 @@ import '../../physio/presentation/screens/physio_availability_screen.dart';
 import '../../physio/presentation/screens/physio_patients_screen.dart';
 import '../../physio/presentation/screens/physio_profile_screen.dart';
 import '../../physio/presentation/screens/physio_today_screen.dart';
+import '../../physio/presentation/screens/physio_treatment_note_screen.dart';
+import '../../treatment_notes/data/models/treatment_note_models.dart';
 import '../auth/account_role.dart';
 import '../../patients/data/models/patient_models.dart';
 import '../../patients/presentation/patients_providers.dart';
@@ -174,8 +176,9 @@ final routerProvider = Provider<GoRouter>((ref) {
         ],
       ),
       // The physiotherapist's appointment detail, pushed over the physio shell.
-      // Under /physio/* so the redirect keeps non-physios out. `discussion` is
-      // matched before the bare detail so it isn't captured as a detail view.
+      // Under /physio/* so the redirect keeps non-physios out. `discussion` and
+      // `treatment_note` are matched before the bare detail so they aren't
+      // captured as a detail view.
       GoRoute(
         path: '/physio/appointments/:id/discussion',
         builder: (_, state) {
@@ -189,6 +192,18 @@ final routerProvider = Provider<GoRouter>((ref) {
           // No object passed (notification deep link / refresh) — fetch by id.
           return _PhysioDiscussionRoute(id: state.pathParameters['id']!);
         },
+      ),
+      // The treatment-note editor. `extra` carries the existing note when editing
+      // (prefill without a refetch); null/absent means a first write. The editor
+      // reads/writes the note by appointment id, so no fetch fallback is needed.
+      GoRoute(
+        path: '/physio/appointments/:id/treatment_note',
+        builder: (_, state) => PhysioTreatmentNoteScreen(
+          appointmentId: state.pathParameters['id']!,
+          existing: state.extra is TreatmentNote
+              ? state.extra as TreatmentNote
+              : null,
+        ),
       ),
       GoRoute(
         path: '/physio/appointments/:id',

@@ -573,4 +573,276 @@ as String?,
 
 }
 
+
+/// @nodoc
+mixin _$UpsertTreatmentNoteRequest {
+
+ String? get diagnosis; String? get notes; String? get recoveryInstructions; DateTime? get nextReviewAt;
+/// Create a copy of UpsertTreatmentNoteRequest
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$UpsertTreatmentNoteRequestCopyWith<UpsertTreatmentNoteRequest> get copyWith => _$UpsertTreatmentNoteRequestCopyWithImpl<UpsertTreatmentNoteRequest>(this as UpsertTreatmentNoteRequest, _$identity);
+
+  /// Serializes this UpsertTreatmentNoteRequest to a JSON map.
+  Map<String, dynamic> toJson();
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is UpsertTreatmentNoteRequest&&(identical(other.diagnosis, diagnosis) || other.diagnosis == diagnosis)&&(identical(other.notes, notes) || other.notes == notes)&&(identical(other.recoveryInstructions, recoveryInstructions) || other.recoveryInstructions == recoveryInstructions)&&(identical(other.nextReviewAt, nextReviewAt) || other.nextReviewAt == nextReviewAt));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,diagnosis,notes,recoveryInstructions,nextReviewAt);
+
+@override
+String toString() {
+  return 'UpsertTreatmentNoteRequest(diagnosis: $diagnosis, notes: $notes, recoveryInstructions: $recoveryInstructions, nextReviewAt: $nextReviewAt)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $UpsertTreatmentNoteRequestCopyWith<$Res>  {
+  factory $UpsertTreatmentNoteRequestCopyWith(UpsertTreatmentNoteRequest value, $Res Function(UpsertTreatmentNoteRequest) _then) = _$UpsertTreatmentNoteRequestCopyWithImpl;
+@useResult
+$Res call({
+ String? diagnosis, String? notes, String? recoveryInstructions, DateTime? nextReviewAt
+});
+
+
+
+
+}
+/// @nodoc
+class _$UpsertTreatmentNoteRequestCopyWithImpl<$Res>
+    implements $UpsertTreatmentNoteRequestCopyWith<$Res> {
+  _$UpsertTreatmentNoteRequestCopyWithImpl(this._self, this._then);
+
+  final UpsertTreatmentNoteRequest _self;
+  final $Res Function(UpsertTreatmentNoteRequest) _then;
+
+/// Create a copy of UpsertTreatmentNoteRequest
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? diagnosis = freezed,Object? notes = freezed,Object? recoveryInstructions = freezed,Object? nextReviewAt = freezed,}) {
+  return _then(_self.copyWith(
+diagnosis: freezed == diagnosis ? _self.diagnosis : diagnosis // ignore: cast_nullable_to_non_nullable
+as String?,notes: freezed == notes ? _self.notes : notes // ignore: cast_nullable_to_non_nullable
+as String?,recoveryInstructions: freezed == recoveryInstructions ? _self.recoveryInstructions : recoveryInstructions // ignore: cast_nullable_to_non_nullable
+as String?,nextReviewAt: freezed == nextReviewAt ? _self.nextReviewAt : nextReviewAt // ignore: cast_nullable_to_non_nullable
+as DateTime?,
+  ));
+}
+
+}
+
+
+/// Adds pattern-matching-related methods to [UpsertTreatmentNoteRequest].
+extension UpsertTreatmentNoteRequestPatterns on UpsertTreatmentNoteRequest {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _UpsertTreatmentNoteRequest value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _UpsertTreatmentNoteRequest() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _UpsertTreatmentNoteRequest value)  $default,){
+final _that = this;
+switch (_that) {
+case _UpsertTreatmentNoteRequest():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _UpsertTreatmentNoteRequest value)?  $default,){
+final _that = this;
+switch (_that) {
+case _UpsertTreatmentNoteRequest() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String? diagnosis,  String? notes,  String? recoveryInstructions,  DateTime? nextReviewAt)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _UpsertTreatmentNoteRequest() when $default != null:
+return $default(_that.diagnosis,_that.notes,_that.recoveryInstructions,_that.nextReviewAt);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String? diagnosis,  String? notes,  String? recoveryInstructions,  DateTime? nextReviewAt)  $default,) {final _that = this;
+switch (_that) {
+case _UpsertTreatmentNoteRequest():
+return $default(_that.diagnosis,_that.notes,_that.recoveryInstructions,_that.nextReviewAt);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String? diagnosis,  String? notes,  String? recoveryInstructions,  DateTime? nextReviewAt)?  $default,) {final _that = this;
+switch (_that) {
+case _UpsertTreatmentNoteRequest() when $default != null:
+return $default(_that.diagnosis,_that.notes,_that.recoveryInstructions,_that.nextReviewAt);case _:
+  return null;
+
+}
+}
+
+}
+
+/// @nodoc
+@JsonSerializable()
+
+class _UpsertTreatmentNoteRequest implements UpsertTreatmentNoteRequest {
+  const _UpsertTreatmentNoteRequest({this.diagnosis, this.notes, this.recoveryInstructions, this.nextReviewAt});
+  factory _UpsertTreatmentNoteRequest.fromJson(Map<String, dynamic> json) => _$UpsertTreatmentNoteRequestFromJson(json);
+
+@override final  String? diagnosis;
+@override final  String? notes;
+@override final  String? recoveryInstructions;
+@override final  DateTime? nextReviewAt;
+
+/// Create a copy of UpsertTreatmentNoteRequest
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$UpsertTreatmentNoteRequestCopyWith<_UpsertTreatmentNoteRequest> get copyWith => __$UpsertTreatmentNoteRequestCopyWithImpl<_UpsertTreatmentNoteRequest>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$UpsertTreatmentNoteRequestToJson(this, );
+}
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _UpsertTreatmentNoteRequest&&(identical(other.diagnosis, diagnosis) || other.diagnosis == diagnosis)&&(identical(other.notes, notes) || other.notes == notes)&&(identical(other.recoveryInstructions, recoveryInstructions) || other.recoveryInstructions == recoveryInstructions)&&(identical(other.nextReviewAt, nextReviewAt) || other.nextReviewAt == nextReviewAt));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,diagnosis,notes,recoveryInstructions,nextReviewAt);
+
+@override
+String toString() {
+  return 'UpsertTreatmentNoteRequest(diagnosis: $diagnosis, notes: $notes, recoveryInstructions: $recoveryInstructions, nextReviewAt: $nextReviewAt)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$UpsertTreatmentNoteRequestCopyWith<$Res> implements $UpsertTreatmentNoteRequestCopyWith<$Res> {
+  factory _$UpsertTreatmentNoteRequestCopyWith(_UpsertTreatmentNoteRequest value, $Res Function(_UpsertTreatmentNoteRequest) _then) = __$UpsertTreatmentNoteRequestCopyWithImpl;
+@override @useResult
+$Res call({
+ String? diagnosis, String? notes, String? recoveryInstructions, DateTime? nextReviewAt
+});
+
+
+
+
+}
+/// @nodoc
+class __$UpsertTreatmentNoteRequestCopyWithImpl<$Res>
+    implements _$UpsertTreatmentNoteRequestCopyWith<$Res> {
+  __$UpsertTreatmentNoteRequestCopyWithImpl(this._self, this._then);
+
+  final _UpsertTreatmentNoteRequest _self;
+  final $Res Function(_UpsertTreatmentNoteRequest) _then;
+
+/// Create a copy of UpsertTreatmentNoteRequest
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? diagnosis = freezed,Object? notes = freezed,Object? recoveryInstructions = freezed,Object? nextReviewAt = freezed,}) {
+  return _then(_UpsertTreatmentNoteRequest(
+diagnosis: freezed == diagnosis ? _self.diagnosis : diagnosis // ignore: cast_nullable_to_non_nullable
+as String?,notes: freezed == notes ? _self.notes : notes // ignore: cast_nullable_to_non_nullable
+as String?,recoveryInstructions: freezed == recoveryInstructions ? _self.recoveryInstructions : recoveryInstructions // ignore: cast_nullable_to_non_nullable
+as String?,nextReviewAt: freezed == nextReviewAt ? _self.nextReviewAt : nextReviewAt // ignore: cast_nullable_to_non_nullable
+as DateTime?,
+  ));
+}
+
+
+}
+
 // dart format on

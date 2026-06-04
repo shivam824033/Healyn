@@ -15,12 +15,14 @@ import '../../../shared/widgets/error_banner.dart';
 import '../../../shared/widgets/section_card.dart';
 import '../physio_appointment_actions.dart';
 import '../physio_schedule_providers.dart';
+import '../widgets/physio_treatment_note_section.dart';
 
 /// One appointment from the physiotherapist's side, with the lifecycle actions
 /// legal for its current status (C3): confirm / reject a request, start / mark
 /// no-show / cancel a confirmed visit, complete / cancel one in progress. Each
 /// fires `POST /appointments/{id}/transitions`; cancellations collect a
-/// mandatory note. Discussion (C4) and treatment notes (C5) land later.
+/// mandatory note. Links out to the discussion thread (C4); once COMPLETED, the
+/// treatment-note section lets the physio write or revise the note (C5).
 class PhysioAppointmentDetailScreen extends ConsumerStatefulWidget {
   const PhysioAppointmentDetailScreen({required this.appointment, super.key});
 
@@ -224,6 +226,10 @@ class _PhysioAppointmentDetailScreenState
                 side: const BorderSide(color: HealynColors.borderSubtle),
               ),
             ),
+            if (_appt.status == AppointmentStatus.completed) ...[
+              const SizedBox(height: HealynSpacing.s6),
+              PhysioTreatmentNoteSection(appointmentId: _appt.id),
+            ],
             if (actions.isNotEmpty) ...[
               const SizedBox(height: HealynSpacing.s7),
               for (var i = 0; i < actions.length; i++) ...[

@@ -10,6 +10,9 @@ import 'package:healyn/features/patients/presentation/patients_providers.dart';
 import 'package:healyn/features/physio/presentation/physio_appointment_actions.dart';
 import 'package:healyn/features/physio/presentation/physio_schedule_providers.dart';
 import 'package:healyn/features/physio/presentation/screens/physio_appointment_detail_screen.dart';
+import 'package:healyn/features/treatment_notes/data/models/treatment_note_models.dart';
+import 'package:healyn/features/treatment_notes/data/treatment_notes_api.dart';
+import 'package:healyn/features/treatment_notes/data/treatment_notes_repository.dart';
 
 class _Call {
   _Call({required this.id, required this.to, this.reason, this.note});
@@ -37,6 +40,15 @@ class _RecordingRepo extends AppointmentsRepository {
     calls.add(_Call(id: id, to: to, reason: reason, note: note));
     return _template.copyWith(status: to, cancelReason: reason, cancelNote: note);
   }
+}
+
+/// A COMPLETED appointment mounts the treatment-note section, which reads this
+/// repo. Stub it so it resolves to "no note yet" instead of hitting the network.
+class _StubNotesRepo extends TreatmentNotesRepository {
+  _StubNotesRepo() : super(TreatmentNotesApi(Dio()));
+
+  @override
+  Future<TreatmentNote?> forAppointment(String appointmentId) async => null;
 }
 
 final _asha = Patient(
@@ -75,6 +87,7 @@ Future<_RecordingRepo> _pump(
         appointmentsRepositoryProvider.overrideWithValue(repo),
         patientsProvider.overrideWith((ref) => [_asha]),
         physioScheduleProvider.overrideWith((ref) async => <Appointment>[]),
+        treatmentNotesRepositoryProvider.overrideWithValue(_StubNotesRepo()),
       ],
       child: MaterialApp(
         home: PhysioAppointmentDetailScreen(appointment: appointment),

@@ -49,3 +49,23 @@ Map<String, dynamic> _$TreatmentNotePageToJson(_TreatmentNotePage instance) =>
       'items': instance.items.map((e) => e.toJson()).toList(),
       'next_cursor': ?instance.nextCursor,
     };
+
+_UpsertTreatmentNoteRequest _$UpsertTreatmentNoteRequestFromJson(
+  Map<String, dynamic> json,
+) => _UpsertTreatmentNoteRequest(
+  diagnosis: json['diagnosis'] as String?,
+  notes: json['notes'] as String?,
+  recoveryInstructions: json['recovery_instructions'] as String?,
+  nextReviewAt: json['next_review_at'] == null
+      ? null
+      : DateTime.parse(json['next_review_at'] as String),
+);
+
+Map<String, dynamic> _$UpsertTreatmentNoteRequestToJson(
+  _UpsertTreatmentNoteRequest instance,
+) => <String, dynamic>{
+  'diagnosis': ?instance.diagnosis,
+  'notes': ?instance.notes,
+  'recovery_instructions': ?instance.recoveryInstructions,
+  'next_review_at': ?instance.nextReviewAt?.toIso8601String(),
+};
