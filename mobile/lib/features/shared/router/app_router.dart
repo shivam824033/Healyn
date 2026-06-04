@@ -173,8 +173,23 @@ final routerProvider = Provider<GoRouter>((ref) {
           ),
         ],
       ),
-      // The physiotherapist's read-only appointment detail, pushed over the
-      // physio shell. Under /physio/* so the redirect keeps non-physios out.
+      // The physiotherapist's appointment detail, pushed over the physio shell.
+      // Under /physio/* so the redirect keeps non-physios out. `discussion` is
+      // matched before the bare detail so it isn't captured as a detail view.
+      GoRoute(
+        path: '/physio/appointments/:id/discussion',
+        builder: (_, state) {
+          final extra = state.extra;
+          if (extra is Appointment) {
+            return DiscussionScreen(
+              appointment: extra,
+              viewer: DiscussionViewer.physio,
+            );
+          }
+          // No object passed (notification deep link / refresh) — fetch by id.
+          return _PhysioDiscussionRoute(id: state.pathParameters['id']!);
+        },
+      ),
       GoRoute(
         path: '/physio/appointments/:id',
         builder: (_, state) {
@@ -382,6 +397,29 @@ class _DiscussionRoute extends ConsumerWidget {
         body: const Center(child: Text('Could not load this appointment.')),
       ),
       data: (a) => DiscussionScreen(appointment: a),
+    );
+  }
+}
+
+/// Like [_DiscussionRoute] but opens the thread from the physiotherapist's side
+/// (a notification deep link into a physio thread).
+class _PhysioDiscussionRoute extends ConsumerWidget {
+  const _PhysioDiscussionRoute({required this.id});
+
+  final String id;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final appointment = ref.watch(appointmentByIdProvider(id));
+    return appointment.when(
+      loading: () =>
+          const Scaffold(body: Center(child: CircularProgressIndicator())),
+      error: (_, _) => Scaffold(
+        appBar: AppBar(),
+        body: const Center(child: Text('Could not load this appointment.')),
+      ),
+      data: (a) =>
+          DiscussionScreen(appointment: a, viewer: DiscussionViewer.physio),
     );
   }
 }

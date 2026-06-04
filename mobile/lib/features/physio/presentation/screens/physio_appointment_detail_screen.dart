@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../appointments/data/appointments_repository.dart';
 import '../../../appointments/data/models/appointment_models.dart';
@@ -209,6 +210,20 @@ class _PhysioAppointmentDetailScreenState
             const _SectionTitle('Details'),
             const SizedBox(height: HealynSpacing.s3),
             _DetailCard(rows: rows),
+            const SizedBox(height: HealynSpacing.s6),
+            OutlinedButton.icon(
+              onPressed: () => context.push(
+                '/physio/appointments/${_appt.id}/discussion',
+                extra: _appt,
+              ),
+              icon: const Icon(Icons.forum_outlined),
+              label: const Text('Discussion'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: HealynColors.textPrimary,
+                minimumSize: const Size.fromHeight(48),
+                side: const BorderSide(color: HealynColors.borderSubtle),
+              ),
+            ),
             if (actions.isNotEmpty) ...[
               const SizedBox(height: HealynSpacing.s7),
               for (var i = 0; i < actions.length; i++) ...[
