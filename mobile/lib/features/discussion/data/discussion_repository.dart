@@ -20,15 +20,27 @@ class DiscussionRepository {
     return _guard(() => _api.list(appointmentId, cursor: cursor, limit: limit));
   }
 
-  /// Posts a patient text message as a [DiscussionMessageType.question] (the
-  /// patient side raises questions; the physiotherapist replies/instructs).
-  Future<DiscussionMessage> post(String appointmentId, String body) {
+  /// Posts a patient-side message. With [body] text it is a
+  /// [DiscussionMessageType.question]; with only [fileIds] and no text it is a
+  /// [DiscussionMessageType.attachmentOnly] (the backend rejects a QUESTION with
+  /// no body and an ATTACHMENT_ONLY that carries a body). The caller ensures at
+  /// least one of text or attachments is present.
+  Future<DiscussionMessage> postMessage(
+    String appointmentId, {
+    String? body,
+    List<String> fileIds = const [],
+  }) {
+    final text = body?.trim() ?? '';
+    final hasText = text.isNotEmpty;
     return _guard(
       () => _api.post(
         appointmentId,
         PostMessageRequest(
-          messageType: DiscussionMessageType.question,
-          body: body,
+          messageType: hasText
+              ? DiscussionMessageType.question
+              : DiscussionMessageType.attachmentOnly,
+          body: hasText ? text : null,
+          fileIds: fileIds,
         ),
       ),
     );

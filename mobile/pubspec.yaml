@@ -48,6 +48,12 @@ dependencies:
   firebase_messaging: ^16.3.0
   # Local notification display for data-only FCM messages. BSD-3-Clause.
   flutter_local_notifications: ^18.0.0
+  # Attachment picking for discussion files (F1.15). image_picker (BSD-3-Clause,
+  # Flutter team) for camera capture + gallery; file_picker (MIT) for PDFs.
+  # file_picker 8.x keeps its transitive win32 / secure_storage_windows on the
+  # Windows-desktop path only — irrelevant to the Android-first Phase 1 target.
+  image_picker: 1.2.2
+  file_picker: 8.1.0
 
 dev_dependencies:
   flutter_test:

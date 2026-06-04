@@ -4,6 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../appointments/data/models/appointment_models.dart';
+import '../../../files/data/file_picker_service.dart';
+import '../../../files/data/file_types.dart';
+import '../../../files/data/files_repository.dart';
+import '../../../files/data/models/file_models.dart';
 import '../../../shared/auth/current_account.dart';
 import '../../../shared/design/colors.dart';
 import '../../../shared/design/radii.dart';
@@ -17,11 +21,12 @@ import '../discussion_format.dart';
 import '../widgets/message_bubble.dart';
 
 /// The appointment-scoped discussion thread (F1.14). Loads the newest page of
-/// messages, lets the patient post a question, and edit/delete their own
-/// message within the 5-minute window. The composer is hidden (read-only) when
-/// the appointment is CANCELLED or NO_SHOW — mirroring the backend
-/// `DiscussionAccessPolicy`. Attachments are shown but not yet openable
-/// (upload/download is the `files` feature, F1.15).
+/// messages, lets the patient post a question or attach files, and edit/delete
+/// their own text message within the 5-minute window. Attaching uploads via the
+/// `files` feature (F1.15) and stages the file to send with the next message.
+/// The composer is hidden (read-only) when the appointment is CANCELLED or
+/// NO_SHOW — mirroring the backend `DiscussionAccessPolicy`. Opening/downloading
+/// an attachment's bytes is the next increment.
 class DiscussionScreen extends ConsumerStatefulWidget {
   const DiscussionScreen({required this.appointment, super.key});
 
@@ -37,12 +42,16 @@ class _DiscussionScreenState extends ConsumerState<DiscussionScreen> {
 
   /// Oldest-first (the backend lists newest-first; we reverse for display).
   final List<DiscussionMessage> _messages = [];
+
+  /// Files already uploaded (AVAILABLE) and staged to send with the next message.
+  final List<FileObjectView> _attachments = [];
   String? _nextCursor;
   String? _myAccountId;
 
   bool _loading = true;
   bool _loadingOlder = false;
   bool _posting = false;
+  bool _attaching = false;
   String? _loadError;
 
   Appointment get _appt => widget.appointment;
@@ -137,27 +146,122 @@ class _DiscussionScreenState extends ConsumerState<DiscussionScreen> {
 
   Future<void> _send() async {
     final text = _composer.text.trim();
-    if (text.isEmpty || _posting) return;
+    final fileIds = _attachments.map((f) => f.id).toList();
+    if ((text.isEmpty && fileIds.isEmpty) || _posting) return;
     setState(() => _posting = true);
     try {
       final saved = await ref
           .read(discussionRepositoryProvider)
-          .post(_appointmentId, text);
+          .postMessage(
+            _appointmentId,
+            body: text.isEmpty ? null : text,
+            fileIds: fileIds,
+          );
       if (!mounted) return;
       setState(() {
         _messages.add(saved);
         _composer.clear();
+        _attachments.clear();
         _posting = false;
       });
       _markNewestRead();
       _jumpToBottomSoon();
     } on ApiException catch (e) {
-      // Keep the typed text so the patient can retry.
+      // Keep the typed text and staged attachments so the patient can retry.
       if (mounted) {
         setState(() => _posting = false);
         _toast(e.message);
       }
     }
+  }
+
+  /// Offers the three attachment sources; the chosen one picks, validates, and
+  /// uploads the file, staging it on success.
+  void _chooseAttachmentSource() {
+    showModalBottomSheet<void>(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.photo_camera_outlined),
+              title: const Text('Take photo'),
+              onTap: () {
+                Navigator.pop(ctx);
+                _pickAndUpload(PickSource.camera);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library_outlined),
+              title: const Text('Choose photo'),
+              onTap: () {
+                Navigator.pop(ctx);
+                _pickAndUpload(PickSource.gallery);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.insert_drive_file_outlined),
+              title: const Text('Choose file'),
+              onTap: () {
+                Navigator.pop(ctx);
+                _pickAndUpload(PickSource.file);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _pickAndUpload(PickSource source) async {
+    if (_attaching) return;
+    PickedFile? picked;
+    try {
+      picked = await ref.read(filePickerServiceProvider).pick(source);
+    } catch (_) {
+      _toast("Couldn't open the picker.");
+      return;
+    }
+    if (picked == null || !mounted) return;
+
+    final type = uploadTypeForFilename(picked.filename);
+    if (type == null) {
+      _toast('Only PDF, JPG, and PNG files can be attached.');
+      return;
+    }
+    if (picked.bytes.length > type.maxBytes) {
+      _toast('That file is too large.');
+      return;
+    }
+
+    setState(() => _attaching = true);
+    try {
+      final file = await ref
+          .read(filesRepositoryProvider)
+          .upload(
+            patientId: _appt.patientId,
+            appointmentId: _appointmentId,
+            kind: FileKind.other,
+            mimeType: type.mimeType,
+            originalFilename: picked.filename,
+            bytes: picked.bytes,
+          );
+      if (!mounted) return;
+      setState(() {
+        _attachments.add(file);
+        _attaching = false;
+      });
+    } on ApiException catch (e) {
+      if (mounted) {
+        setState(() => _attaching = false);
+        _toast(e.message);
+      }
+    }
+  }
+
+  void _removeAttachment(FileObjectView file) {
+    setState(() => _attachments.removeWhere((f) => f.id == file.id));
   }
 
   Future<void> _editMessage(DiscussionMessage m) async {
@@ -379,40 +483,92 @@ class _DiscussionScreenState extends ConsumerState<DiscussionScreen> {
         color: HealynColors.surfaceBase,
         border: Border(top: BorderSide(color: HealynColors.borderSubtle)),
       ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.end,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Expanded(
-            child: TextField(
-              controller: _composer,
-              minLines: 1,
-              maxLines: 5,
-              maxLength: 2000,
-              textCapitalization: TextCapitalization.sentences,
-              decoration: const InputDecoration(
-                hintText: 'Write a message',
-                counterText: '',
-                border: OutlineInputBorder(borderRadius: HealynRadii.brMd),
-                contentPadding: EdgeInsets.symmetric(
-                  horizontal: HealynSpacing.s3,
-                  vertical: HealynSpacing.s2,
+          if (_attachments.isNotEmpty || _attaching) _buildAttachmentBar(),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              IconButton(
+                onPressed: (_attaching || _posting)
+                    ? null
+                    : _chooseAttachmentSource,
+                icon: const Icon(Icons.attach_file),
+                color: HealynColors.brandPrimary,
+                tooltip: 'Attach',
+              ),
+              Expanded(
+                child: TextField(
+                  controller: _composer,
+                  minLines: 1,
+                  maxLines: 5,
+                  maxLength: 2000,
+                  textCapitalization: TextCapitalization.sentences,
+                  decoration: const InputDecoration(
+                    hintText: 'Write a message',
+                    counterText: '',
+                    border: OutlineInputBorder(borderRadius: HealynRadii.brMd),
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: HealynSpacing.s3,
+                      vertical: HealynSpacing.s2,
+                    ),
+                  ),
                 ),
               ),
-            ),
-          ),
-          IconButton(
-            onPressed: _posting ? null : _send,
-            icon: _posting
-                ? const SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.send_rounded),
-            color: HealynColors.brandPrimary,
-            tooltip: 'Send',
+              IconButton(
+                onPressed: _posting ? null : _send,
+                icon: _posting
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.send_rounded),
+                color: HealynColors.brandPrimary,
+                tooltip: 'Send',
+              ),
+            ],
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildAttachmentBar() {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Padding(
+        padding: const EdgeInsets.only(
+          left: HealynSpacing.s2,
+          bottom: HealynSpacing.s2,
+        ),
+        child: Wrap(
+          spacing: HealynSpacing.s2,
+          runSpacing: HealynSpacing.s2,
+          children: [
+            for (final f in _attachments)
+              InputChip(
+                label: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 180),
+                  child: Text(
+                    f.originalFilename,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                onDeleted: _posting ? null : () => _removeAttachment(f),
+              ),
+            if (_attaching)
+              const Chip(
+                avatar: SizedBox(
+                  width: 14,
+                  height: 14,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+                label: Text('Uploading…'),
+              ),
+          ],
+        ),
       ),
     );
   }
