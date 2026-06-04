@@ -87,6 +87,14 @@ healyn:
     public-key-path: ${HEALYN_JWT_PUBLIC_KEY_PATH:}
   password:
     pepper: ${HEALYN_PASSWORD_PEPPER:}
+  # Local/dev only: DevPhysioSeeder upserts one ROLE_PHYSIO login so the
+  # physiotherapist app is reachable. Never used in prod, where the physio is
+  # provisioned by an operator (README §5.1). The password is a dev default —
+  # not a real secret.
+  dev:
+    physio:
+      email: ${HEALYN_DEV_PHYSIO_EMAIL:physio@healyn.local}
+      password: ${HEALYN_DEV_PHYSIO_PASSWORD:Physio!Dev123}
   notifications:
     poller-enabled: ${HEALYN_NOTIFICATIONS_POLLER_ENABLED:true}
     poll-interval-ms: ${HEALYN_NOTIFICATIONS_POLL_INTERVAL_MS:2000}

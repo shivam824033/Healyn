@@ -169,6 +169,21 @@ E. Verify end-to-end
    that appointment (payloads carry IDs only, per the PHI rule).
 ```
 
+### 5.2 Physiotherapist account
+
+There is **no physiotherapist self-registration** — the clinic owner is the single `ROLE_PHYSIO`
+account (PROJECT_CONTEXT §5.2). In `local`/`dev` profiles the backend seeds one automatically on
+startup (`DevPhysioSeeder`) so the physio app is reachable; sign in with:
+
+```text
+email:    physio@healyn.local           (override: HEALYN_DEV_PHYSIO_EMAIL)
+password: Physio!Dev123                 (override: HEALYN_DEV_PHYSIO_PASSWORD)
+```
+
+The seed is idempotent and **never runs in prod**, where the physiotherapist is provisioned by an
+operator (e.g. a one-off admin task that inserts an `accounts` row with `role = ROLE_PHYSIO` and an
+Argon2id password hash). The dev password above is a placeholder, not a real secret.
+
 ---
 
 ## 6. Day-to-Day Development
