@@ -16,6 +16,7 @@ import '../../auth/presentation/screens/register_start_screen.dart';
 import '../../auth/presentation/screens/register_verify_screen.dart';
 import '../../auth/presentation/screens/splash_screen.dart';
 import '../../home/presentation/home_screen.dart';
+import '../../notifications/presentation/screens/notification_preferences_screen.dart';
 import '../../patient_shell/presentation/patient_shell.dart';
 import '../../patients/data/models/patient_models.dart';
 import '../../patients/presentation/patients_providers.dart';
@@ -139,6 +140,11 @@ final routerProvider = Provider<GoRouter>((ref) {
           patientId: state.pathParameters['id']!,
           patientName: state.extra is String ? state.extra as String : null,
         ),
+      ),
+      // Account notification settings, reached from Profile.
+      GoRoute(
+        path: '/notifications/preferences',
+        builder: (_, _) => const NotificationPreferencesScreen(),
       ),
       // Appointment booking + detail also live outside the shell. `book` is
       // matched before `:id` so it isn't captured as an appointment id.

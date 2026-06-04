@@ -119,7 +119,22 @@ class _ProfileBody extends ConsumerWidget {
         const SizedBox(height: HealynSpacing.s6),
         const _SectionTitle('Care'),
         const SizedBox(height: HealynSpacing.s3),
-        _TreatmentHistoryCard(patient: patient),
+        _NavCard(
+          icon: Icons.assignment_outlined,
+          label: 'Treatment history',
+          onTap: () => context.push(
+            '/patients/${patient.id}/treatment_notes',
+            extra: patient.fullName,
+          ),
+        ),
+        const SizedBox(height: HealynSpacing.s6),
+        const _SectionTitle('Settings'),
+        const SizedBox(height: HealynSpacing.s3),
+        _NavCard(
+          icon: Icons.notifications_outlined,
+          label: 'Notifications',
+          onTap: () => context.push('/notifications/preferences'),
+        ),
         const SizedBox(height: HealynSpacing.s6),
         const _SectionTitle('Signed-in devices'),
         const SizedBox(height: HealynSpacing.s3),
@@ -195,12 +210,18 @@ class _SectionTitle extends StatelessWidget {
       Text(text.toUpperCase(), style: HealynTypography.overline);
 }
 
-/// Entry to the patient's treatment-note history (F1.17). The patient's name
-/// rides in `extra` so the timeline's app bar can show it.
-class _TreatmentHistoryCard extends StatelessWidget {
-  const _TreatmentHistoryCard({required this.patient});
+/// A tappable navigation row inside a bordered card — used for the Care and
+/// Settings entries (treatment history, notification settings).
+class _NavCard extends StatelessWidget {
+  const _NavCard({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
 
-  final Patient patient;
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -214,27 +235,17 @@ class _TreatmentHistoryCard extends StatelessWidget {
         type: MaterialType.transparency,
         child: InkWell(
           borderRadius: HealynRadii.brLg,
-          onTap: () => context.push(
-            '/patients/${patient.id}/treatment_notes',
-            extra: patient.fullName,
-          ),
-          child: const Padding(
-            padding: EdgeInsets.all(HealynSpacing.s4),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.all(HealynSpacing.s4),
             child: Row(
               children: [
-                Icon(
-                  Icons.assignment_outlined,
-                  size: 20,
-                  color: HealynColors.textSecondary,
-                ),
-                SizedBox(width: HealynSpacing.s3),
+                Icon(icon, size: 20, color: HealynColors.textSecondary),
+                const SizedBox(width: HealynSpacing.s3),
                 Expanded(
-                  child: Text(
-                    'Treatment history',
-                    style: HealynTypography.bodyStrong,
-                  ),
+                  child: Text(label, style: HealynTypography.bodyStrong),
                 ),
-                Icon(Icons.chevron_right, color: HealynColors.textMuted),
+                const Icon(Icons.chevron_right, color: HealynColors.textMuted),
               ],
             ),
           ),
