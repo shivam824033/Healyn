@@ -33,8 +33,11 @@ migrate_working_dir/
 /build/
 /coverage/
 
-# FlutterFire-generated, per-environment Firebase options (see README §5).
+# FlutterFire-generated, per-environment Firebase config (see README §5).
 lib/firebase_options.dart
+firebase.json
+android/app/google-services.json
+ios/Runner/GoogleService-Info.plist
 
 # Symbolication related
 app.*.symbols
