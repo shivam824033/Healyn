@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../patients/data/models/patient_models.dart';
+import '../../../patients/presentation/active_patient_provider.dart';
 import '../../../patients/presentation/patients_providers.dart';
 import '../../../shared/design/spacing.dart';
 import '../../../shared/network/api_exception.dart';
@@ -159,7 +160,10 @@ class _BookAppointmentScreenState extends ConsumerState<BookAppointmentScreen> {
                 ],
               );
             }
-            final selected = _patient ?? primaryPatientOf(all)!;
+            // Default to the active Patient context, so booking from a switched
+            // family member pre-selects them; an explicit pick still wins.
+            final selected =
+                _patient ?? ref.watch(activePatientProvider) ?? all.first;
             return _form(all, selected);
           },
         ),

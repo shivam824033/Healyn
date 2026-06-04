@@ -6,7 +6,9 @@ import '../../appointments/data/models/appointment_models.dart';
 import '../../appointments/presentation/appointment_format.dart';
 import '../../appointments/presentation/appointments_providers.dart';
 import '../../appointments/presentation/widgets/appointment_status_chip.dart';
+import '../../patients/presentation/active_patient_provider.dart';
 import '../../patients/presentation/patients_providers.dart';
+import '../../patients/presentation/widgets/patient_switcher.dart';
 import '../../shared/design/colors.dart';
 import '../../shared/design/spacing.dart';
 import '../../shared/design/typography.dart';
@@ -43,7 +45,9 @@ class HomeScreen extends ConsumerWidget {
               'Manage your appointments, family, and care in one place.',
               style: HealynTypography.body,
             ),
-            const SizedBox(height: HealynSpacing.s7),
+            const SizedBox(height: HealynSpacing.s5),
+            const PatientSwitcher(),
+            const SizedBox(height: HealynSpacing.s5),
             const _UpcomingSummary(),
           ],
         ),
@@ -60,6 +64,7 @@ class _UpcomingSummary extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final appointments = ref.watch(appointmentsProvider);
+    final active = ref.watch(activePatientProvider);
     return SectionCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -92,8 +97,13 @@ class _UpcomingSummary extends ConsumerWidget {
                 color: HealynColors.textSecondary,
               ),
             ),
+            // Scoped to the active Patient context (PATIENT_RELATIONSHIP_MODEL
+            // §7): switching the patient up top refetches this card.
             data: (all) {
-              final upcoming = upcomingOf(all);
+              final scoped = active == null
+                  ? all
+                  : all.where((a) => a.patientId == active.id).toList();
+              final upcoming = upcomingOf(scoped);
               if (upcoming.isEmpty) return const _NothingScheduled();
               return _NextAppointment(next: upcoming.first);
             },
