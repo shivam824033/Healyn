@@ -99,7 +99,7 @@ class _RegisterVerifyScreenState extends ConsumerState<RegisterVerifyScreen> {
             ),
           );
       if (!mounted) return;
-      ref.read(authControllerProvider.notifier).markAuthenticated();
+      await ref.read(authControllerProvider.notifier).markAuthenticated();
     } on ApiException catch (e) {
       if (mounted) setState(() => _error = e.message);
     } finally {

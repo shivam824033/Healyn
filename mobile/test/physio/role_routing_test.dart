@@ -1,0 +1,98 @@
+import 'dart:convert';
+
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:healyn/features/auth/domain/auth_status.dart';
+import 'package:healyn/features/auth/presentation/controllers/auth_controller.dart';
+import 'package:healyn/features/shared/auth/account_role.dart';
+import 'package:healyn/features/shared/router/app_router.dart';
+
+/// Builds an unsigned JWT carrying [claims] — enough for the client-side claim
+/// reader, which never verifies the signature.
+String _jwt(Map<String, dynamic> claims) {
+  final payload = base64Url.encode(utf8.encode(jsonEncode(claims)));
+  return 'header.$payload.signature';
+}
+
+/// Returns a fixed [AuthState] without bootstrapping (no token store / push).
+class _FakeAuth extends AuthController {
+  _FakeAuth(this._state);
+
+  final AuthState _state;
+
+  @override
+  AuthState build() => _state;
+}
+
+void main() {
+  group('accountRoleFromToken', () {
+    test('maps the role claim to a role', () {
+      expect(
+        accountRoleFromToken(_jwt({'role': 'ROLE_PHYSIO'})),
+        AccountRole.physio,
+      );
+      expect(
+        accountRoleFromToken(_jwt({'role': 'ROLE_ACCOUNT'})),
+        AccountRole.account,
+      );
+    });
+
+    test('is null for a missing/unknown role or a malformed token', () {
+      expect(accountRoleFromToken(_jwt({'sub': 'x'})), isNull);
+      expect(accountRoleFromToken(_jwt({'role': 'ROLE_ALIEN'})), isNull);
+      expect(accountRoleFromToken('not-a-jwt'), isNull);
+    });
+  });
+
+  group('role-aware router', () {
+    Future<ProviderContainer> pumpPhysio(WidgetTester tester) async {
+      final container = ProviderContainer(
+        overrides: [
+          authControllerProvider.overrideWith(
+            () => _FakeAuth(
+              const AuthState(
+                status: AuthStatus.authenticated,
+                role: AccountRole.physio,
+              ),
+            ),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp.router(routerConfig: container.read(routerProvider)),
+        ),
+      );
+      await tester.pumpAndSettle();
+      return container;
+    }
+
+    testWidgets('lands a physiotherapist in the physio shell', (tester) async {
+      await pumpPhysio(tester);
+
+      expect(
+        find.text("Today's schedule lands in the next update."),
+        findsOneWidget,
+      );
+      // Physio nav, not the patient nav.
+      expect(find.text('Availability'), findsOneWidget);
+      expect(find.text('Family'), findsNothing);
+    });
+
+    testWidgets('bounces a physio away from a patient route', (tester) async {
+      final container = await pumpPhysio(tester);
+
+      container.read(routerProvider).go('/home');
+      await tester.pumpAndSettle();
+
+      // Redirected back into the physio app rather than the patient Home.
+      expect(
+        find.text("Today's schedule lands in the next update."),
+        findsOneWidget,
+      );
+    });
+  });
+}

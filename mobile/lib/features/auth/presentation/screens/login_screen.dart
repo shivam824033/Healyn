@@ -47,7 +47,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             password: _password.text,
           );
       if (!mounted) return;
-      ref.read(authControllerProvider.notifier).markAuthenticated();
+      await ref.read(authControllerProvider.notifier).markAuthenticated();
     } on ApiException catch (e) {
       if (mounted) setState(() => _error = e.message);
     } finally {

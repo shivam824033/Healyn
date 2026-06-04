@@ -19,6 +19,12 @@ import '../../auth/presentation/screens/splash_screen.dart';
 import '../../home/presentation/home_screen.dart';
 import '../../notifications/presentation/screens/notification_preferences_screen.dart';
 import '../../patient_shell/presentation/patient_shell.dart';
+import '../../physio/presentation/physio_shell.dart';
+import '../../physio/presentation/screens/physio_availability_screen.dart';
+import '../../physio/presentation/screens/physio_patients_screen.dart';
+import '../../physio/presentation/screens/physio_profile_screen.dart';
+import '../../physio/presentation/screens/physio_today_screen.dart';
+import '../auth/account_role.dart';
 import '../../patients/data/models/patient_models.dart';
 import '../../patients/presentation/patients_providers.dart';
 import '../../patients/presentation/screens/family_screen.dart';
@@ -26,16 +32,17 @@ import '../../patients/presentation/screens/patient_form_screen.dart';
 import '../../patients/presentation/screens/profile_screen.dart';
 import '../../treatment_notes/presentation/screens/treatment_notes_timeline_screen.dart';
 
-/// The app router. Redirect is driven by [AuthStatus]:
+/// The app router. Redirect is driven by [AuthState]:
 /// - unknown        → splash (`/`) while the token store is read
 /// - unauthenticated → forced into the auth area (/login, /register*)
-/// - authenticated   → forced out of the auth area into /home
+/// - authenticated   → landed in the role's app and kept there: a
+///   physiotherapist in `/physio/*`, every other account in the patient app.
 ///
 /// A [ValueNotifier] bridges Riverpod's auth state to go_router's
-/// `refreshListenable` so the redirect re-runs whenever the status changes.
+/// `refreshListenable` so the redirect re-runs whenever it changes.
 final routerProvider = Provider<GoRouter>((ref) {
-  final refresh = ValueNotifier<AuthStatus>(ref.read(authControllerProvider));
-  ref.listen<AuthStatus>(
+  final refresh = ValueNotifier<AuthState>(ref.read(authControllerProvider));
+  ref.listen<AuthState>(
     authControllerProvider,
     (_, next) => refresh.value = next,
   );
@@ -45,18 +52,27 @@ final routerProvider = Provider<GoRouter>((ref) {
     initialLocation: '/',
     refreshListenable: refresh,
     redirect: (context, state) {
-      final status = ref.read(authControllerProvider);
+      final session = ref.read(authControllerProvider);
       final location = state.matchedLocation;
       final inAuthArea =
           location == '/login' || location.startsWith('/register');
 
-      switch (status) {
+      switch (session.status) {
         case AuthStatus.unknown:
           return location == '/' ? null : '/';
         case AuthStatus.unauthenticated:
           return inAuthArea ? null : '/login';
         case AuthStatus.authenticated:
-          return (location == '/' || inAuthArea) ? '/home' : null;
+          final isPhysio = session.role == AccountRole.physio;
+          final inPhysioArea =
+              location == '/physio' || location.startsWith('/physio/');
+          if (location == '/' || inAuthArea) {
+            return isPhysio ? '/physio/today' : '/home';
+          }
+          // Keep each role in its own app.
+          if (isPhysio && !inPhysioArea) return '/physio/today';
+          if (!isPhysio && inPhysioArea) return '/home';
+          return null;
       }
     },
     routes: [
@@ -111,6 +127,46 @@ final routerProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: '/profile',
                 builder: (_, _) => const ProfileScreen(),
+              ),
+            ],
+          ),
+        ],
+      ),
+      // The authenticated physiotherapist app: its own 4-tab shell under
+      // /physio/*. The redirect keeps a physio in here and others out.
+      StatefulShellRoute.indexedStack(
+        builder: (_, _, navigationShell) =>
+            PhysioShell(navigationShell: navigationShell),
+        branches: [
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/physio/today',
+                builder: (_, _) => const PhysioTodayScreen(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/physio/patients',
+                builder: (_, _) => const PhysioPatientsScreen(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/physio/availability',
+                builder: (_, _) => const PhysioAvailabilityScreen(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/physio/profile',
+                builder: (_, _) => const PhysioProfileScreen(),
               ),
             ],
           ),
