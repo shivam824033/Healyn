@@ -8,6 +8,7 @@ import '../storage/device_identity.dart';
 import 'fcm_messaging.dart';
 import 'fcm_token_api.dart';
 import 'fcm_token_models.dart';
+import 'local_notifications.dart';
 
 /// Maps a push data payload to an in-app route. The backend sends IDs only
 /// (Hard Rule #4); appointment-centric notifications carry `appointmentId`,
@@ -34,6 +35,7 @@ class PushService {
   final String _platform;
 
   StreamSubscription<String>? _refreshSub;
+  StreamSubscription<Map<String, String>>? _messageSub;
   StreamSubscription<Map<String, String>>? _tapSub;
 
   /// Registers the current FCM token and keeps it fresh on rotation. Safe to
@@ -46,6 +48,7 @@ class PushService {
     if (token != null) await _registerToken(token);
 
     _refreshSub ??= _messaging.onTokenRefresh.listen(_registerToken);
+    _messageSub ??= _messaging.onMessage.listen(showPushNotification);
   }
 
   /// Stops push to this install (best-effort) — called on logout.
@@ -79,6 +82,7 @@ class PushService {
   /// Cancels the token-refresh and tap subscriptions (wired to provider dispose).
   void dispose() {
     _refreshSub?.cancel();
+    _messageSub?.cancel();
     _tapSub?.cancel();
   }
 

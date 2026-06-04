@@ -97,5 +97,5 @@ healyn:
   # fcm.credentials-path is intentionally NOT defaulted here: when the env var is set the
   # real FirebaseFcmSender activates; when unset the property is absent and the logging
   # sender is used. (An empty default would falsely satisfy @ConditionalOnProperty.)
-  # fcm:
-  #   credentials-path: ${HEALYN_FCM_CREDENTIALS_PATH}
+  fcm:
+    credentials-path: ${HEALYN_FCM_CREDENTIALS_PATH:}

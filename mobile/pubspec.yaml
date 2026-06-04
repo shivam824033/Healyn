@@ -46,6 +46,8 @@ dependencies:
   # app degrades to push-disabled when it is absent (see shared/push/).
   firebase_core: ^4.10.0
   firebase_messaging: ^16.3.0
+  # Local notification display for data-only FCM messages. BSD-3-Clause.
+  flutter_local_notifications: ^18.0.0
 
 dev_dependencies:
   flutter_test:

@@ -20,6 +20,9 @@ abstract interface class FcmMessaging {
 
   Future<void> deleteToken();
 
+  /// Data payload of a message received while the app is in the foreground.
+  Stream<Map<String, String>> get onMessage;
+
   /// A notification tapped while the app was backgrounded.
   Stream<Map<String, String>> get onMessageOpenedApp;
 
@@ -64,6 +67,10 @@ class FirebaseFcmMessaging implements FcmMessaging {
 
   @override
   Future<void> deleteToken() => FirebaseMessaging.instance.deleteToken();
+
+  @override
+  Stream<Map<String, String>> get onMessage =>
+      FirebaseMessaging.onMessage.map(_data);
 
   @override
   Stream<Map<String, String>> get onMessageOpenedApp =>
