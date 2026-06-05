@@ -91,8 +91,15 @@ features/
   files/
   notifications/
   treatment_notes/
-  shared/        # Design system, network, error handling
+  home/          # Patient landing (greeting, upcoming, unread roll-up)
+  patient_shell/ # Patient 4-tab bottom-nav frame
+  physio/        # Physiotherapist app: shell + Today/Patients/Availability/Profile
+  shared/        # Design system, network, auth/JWT, error handling
 ```
+
+The app is **role-aware**: the access token's `role` claim selects the patient
+experience (`patient_shell` over the domain features) or the physiotherapist
+experience (`physio/`). The router enforces the partition (see `shared/router`).
 
 The Riverpod provider graph is the only cross-feature communication channel. Features do not import each other's `data/` or `presentation/`; they may import the other's `domain/` interfaces (rare).
 

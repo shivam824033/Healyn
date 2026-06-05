@@ -20,6 +20,20 @@ class TreatmentNotesApi {
     return TreatmentNote.fromJson(res.data!);
   }
 
+  /// Creates or replaces the appointment's treatment note (physio only — the
+  /// server enforces the role and that the appointment is COMPLETED). The
+  /// endpoint upserts, so the same call covers a first write and later edits.
+  Future<TreatmentNote> upsert(
+    String appointmentId,
+    UpsertTreatmentNoteRequest body,
+  ) async {
+    final res = await _dio.put<Map<String, dynamic>>(
+      '/appointments/$appointmentId/treatment_note',
+      data: body.toJson(),
+    );
+    return TreatmentNote.fromJson(res.data!);
+  }
+
   /// One cursor page of a patient's treatment notes (newest-first) from
   /// `/patients/{patientId}/treatment_notes`.
   Future<TreatmentNotePage> listForPatient(

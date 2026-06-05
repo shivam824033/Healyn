@@ -46,6 +46,36 @@ class DiscussionRepository {
     );
   }
 
+  /// Posts a physiotherapist-side message. With [body] text it is an
+  /// [DiscussionMessageType.instruction] when [instruction] is set, else a
+  /// [DiscussionMessageType.reply]; with only [fileIds] and no text it is an
+  /// [DiscussionMessageType.attachmentOnly]. The backend derives the PHYSIO
+  /// sender role from the caller and rejects INSTRUCTION from a non-physio.
+  Future<DiscussionMessage> postPhysioMessage(
+    String appointmentId, {
+    String? body,
+    List<String> fileIds = const [],
+    bool instruction = false,
+  }) {
+    final text = body?.trim() ?? '';
+    final hasText = text.isNotEmpty;
+    final type = !hasText
+        ? DiscussionMessageType.attachmentOnly
+        : (instruction
+              ? DiscussionMessageType.instruction
+              : DiscussionMessageType.reply);
+    return _guard(
+      () => _api.post(
+        appointmentId,
+        PostMessageRequest(
+          messageType: type,
+          body: hasText ? text : null,
+          fileIds: fileIds,
+        ),
+      ),
+    );
+  }
+
   Future<DiscussionMessage> edit(
     String appointmentId,
     String messageId,

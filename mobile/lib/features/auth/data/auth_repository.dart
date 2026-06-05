@@ -50,6 +50,35 @@ class AuthRepository {
     });
   }
 
+  /// Step 1 of password reset — sends an OTP to the target. Returns the
+  /// challenge id that ties the OTP to step 2. Mirrors [startRegistration].
+  Future<String> startPasswordReset(ContactTarget target) async {
+    return _guard(() async {
+      final res = await _api.passwordResetStart(
+        PasswordResetStartRequest(target: target),
+      );
+      return res.challengeId;
+    });
+  }
+
+  /// Step 2 of password reset — verifies the OTP and sets the new password. No
+  /// session is issued (the backend responds 204); the user signs in afterward.
+  Future<void> completePasswordReset({
+    required String challengeId,
+    required String code,
+    required String newPassword,
+  }) async {
+    await _guard(() async {
+      await _api.passwordResetComplete(
+        PasswordResetCompleteRequest(
+          challengeId: challengeId,
+          code: code,
+          newPassword: newPassword,
+        ),
+      );
+    });
+  }
+
   Future<void> login({
     required String emailOrPhone,
     required String password,
@@ -69,6 +98,16 @@ class AuthRepository {
   Future<List<SessionView>> listSessions() async {
     return _guard(() async => (await _api.listSessions()).sessions);
   }
+
+  /// Revokes one device's session by id — the per-device "Sign out this device"
+  /// action. Local tokens are untouched; revoking *this* device is [logout].
+  Future<void> revokeSession(String id) async {
+    await _guard(() => _api.revokeSession(id));
+  }
+
+  /// The id of this device's own session, so the devices list can mark and guard
+  /// the current device (it can't sign itself out from the list — that's [logout]).
+  Future<String?> currentSessionId() => _tokenStore.readSessionId();
 
   /// Revokes this device's session server-side, then clears local tokens.
   /// Local tokens are cleared even if the revoke call fails.

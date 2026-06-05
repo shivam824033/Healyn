@@ -73,6 +73,9 @@ springdoc:
 healyn:
   s3:
     endpoint: ${HEALYN_S3_ENDPOINT:http://localhost:9000}
+    # Host put into presigned upload/download URLs (the one the device reaches);
+    # blank reuses `endpoint`. Set to your LAN IP for on-device file uploads.
+    public-endpoint: ${HEALYN_S3_PUBLIC_ENDPOINT:}
     region: ${HEALYN_S3_REGION:us-east-1}
     access-key: ${HEALYN_S3_ACCESS_KEY:minioadmin}
     secret-key: ${HEALYN_S3_SECRET_KEY:minioadmin}
@@ -87,6 +90,14 @@ healyn:
     public-key-path: ${HEALYN_JWT_PUBLIC_KEY_PATH:}
   password:
     pepper: ${HEALYN_PASSWORD_PEPPER:}
+  # Local/dev only: DevPhysioSeeder upserts one ROLE_PHYSIO login so the
+  # physiotherapist app is reachable. Never used in prod, where the physio is
+  # provisioned by an operator (README §5.1). The password is a dev default —
+  # not a real secret.
+  dev:
+    physio:
+      email: ${HEALYN_DEV_PHYSIO_EMAIL:physio@healyn.local}
+      password: ${HEALYN_DEV_PHYSIO_PASSWORD:Physio!Dev123}
   notifications:
     poller-enabled: ${HEALYN_NOTIFICATIONS_POLLER_ENABLED:true}
     poll-interval-ms: ${HEALYN_NOTIFICATIONS_POLL_INTERVAL_MS:2000}

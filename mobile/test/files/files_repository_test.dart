@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:healyn/features/files/data/files_api.dart';
 import 'package:healyn/features/files/data/files_repository.dart';
 import 'package:healyn/features/files/data/models/file_models.dart';
+import 'package:healyn/features/shared/network/api_exception.dart';
 
 /// Records the three upload steps in order without touching the network.
 class _FakeFilesApi extends FilesApi {
@@ -61,6 +62,18 @@ class _FakeFilesApi extends FilesApi {
   }
 }
 
+/// Fails the direct-to-storage PUT the way an unreachable storage host does.
+class _PutFailsApi extends _FakeFilesApi {
+  @override
+  Future<void> putBytes(UploadTarget target, List<int> bytes) async {
+    calls.add('put');
+    throw DioException(
+      requestOptions: RequestOptions(path: target.url),
+      type: DioExceptionType.connectionError,
+    );
+  }
+}
+
 void main() {
   test('upload runs presign → put → complete and returns the AVAILABLE file', () async {
     final api = _FakeFilesApi();
@@ -81,6 +94,28 @@ void main() {
     expect(api.putBytesData, bytes);
     expect(file.id, 'f1');
     expect(file.status, FileStatus.available);
+  });
+
+  test('upload surfaces a storage-specific error when the PUT fails (no complete)', () async {
+    final api = _PutFailsApi();
+
+    await expectLater(
+      () => FilesRepository(api).upload(
+        patientId: 'p1',
+        appointmentId: 'ap1',
+        kind: FileKind.report,
+        mimeType: 'application/pdf',
+        originalFilename: 'spine.pdf',
+        bytes: const [1, 2, 3],
+      ),
+      throwsA(
+        isA<ApiException>()
+            .having((e) => e.code, 'code', 'upload_failed')
+            .having((e) => e.message, 'message', contains('upload')),
+      ),
+    );
+    // Presign happened and the PUT was attempted, but complete is never reached.
+    expect(api.calls, ['presign', 'put']);
   });
 
   test('download resolves a file id to its presigned GET target', () async {

@@ -8,17 +8,32 @@ import '../../appointments/presentation/screens/appointment_detail_screen.dart';
 import '../../appointments/presentation/screens/appointments_screen.dart';
 import '../../appointments/presentation/screens/book_appointment_screen.dart';
 import '../../appointments/presentation/screens/reschedule_appointment_screen.dart';
+import '../../availability/presentation/screens/availability_blackout_form_screen.dart';
+import '../../availability/presentation/screens/availability_rule_form_screen.dart';
 import '../../discussion/presentation/screens/discussion_screen.dart';
 import '../../discussion/presentation/screens/unread_discussions_screen.dart';
 import '../../auth/domain/auth_status.dart';
 import '../../auth/presentation/controllers/auth_controller.dart';
 import '../../auth/presentation/screens/login_screen.dart';
+import '../../auth/presentation/screens/password_reset_complete_screen.dart';
+import '../../auth/presentation/screens/password_reset_start_screen.dart';
 import '../../auth/presentation/screens/register_start_screen.dart';
 import '../../auth/presentation/screens/register_verify_screen.dart';
 import '../../auth/presentation/screens/splash_screen.dart';
 import '../../home/presentation/home_screen.dart';
 import '../../notifications/presentation/screens/notification_preferences_screen.dart';
 import '../../patient_shell/presentation/patient_shell.dart';
+import '../../physio/presentation/physio_shell.dart';
+import '../../physio/presentation/screens/physio_appointment_detail_screen.dart';
+import '../../physio/presentation/screens/physio_availability_screen.dart';
+import '../../physio/presentation/screens/physio_patient_detail_screen.dart';
+import '../../physio/presentation/screens/physio_patients_screen.dart';
+import '../../physio/presentation/screens/physio_requests_screen.dart';
+import '../../physio/presentation/screens/physio_profile_screen.dart';
+import '../../physio/presentation/screens/physio_today_screen.dart';
+import '../../physio/presentation/screens/physio_treatment_note_screen.dart';
+import '../../treatment_notes/data/models/treatment_note_models.dart';
+import '../auth/account_role.dart';
 import '../../patients/data/models/patient_models.dart';
 import '../../patients/presentation/patients_providers.dart';
 import '../../patients/presentation/screens/family_screen.dart';
@@ -26,16 +41,17 @@ import '../../patients/presentation/screens/patient_form_screen.dart';
 import '../../patients/presentation/screens/profile_screen.dart';
 import '../../treatment_notes/presentation/screens/treatment_notes_timeline_screen.dart';
 
-/// The app router. Redirect is driven by [AuthStatus]:
+/// The app router. Redirect is driven by [AuthState]:
 /// - unknown        → splash (`/`) while the token store is read
 /// - unauthenticated → forced into the auth area (/login, /register*)
-/// - authenticated   → forced out of the auth area into /home
+/// - authenticated   → landed in the role's app and kept there: a
+///   physiotherapist in `/physio/*`, every other account in the patient app.
 ///
 /// A [ValueNotifier] bridges Riverpod's auth state to go_router's
-/// `refreshListenable` so the redirect re-runs whenever the status changes.
+/// `refreshListenable` so the redirect re-runs whenever it changes.
 final routerProvider = Provider<GoRouter>((ref) {
-  final refresh = ValueNotifier<AuthStatus>(ref.read(authControllerProvider));
-  ref.listen<AuthStatus>(
+  final refresh = ValueNotifier<AuthState>(ref.read(authControllerProvider));
+  ref.listen<AuthState>(
     authControllerProvider,
     (_, next) => refresh.value = next,
   );
@@ -45,18 +61,33 @@ final routerProvider = Provider<GoRouter>((ref) {
     initialLocation: '/',
     refreshListenable: refresh,
     redirect: (context, state) {
-      final status = ref.read(authControllerProvider);
+      final session = ref.read(authControllerProvider);
       final location = state.matchedLocation;
       final inAuthArea =
-          location == '/login' || location.startsWith('/register');
+          location == '/login' ||
+          location.startsWith('/register') ||
+          location.startsWith('/password-reset');
 
-      switch (status) {
+      switch (session.status) {
         case AuthStatus.unknown:
           return location == '/' ? null : '/';
         case AuthStatus.unauthenticated:
           return inAuthArea ? null : '/login';
         case AuthStatus.authenticated:
-          return (location == '/' || inAuthArea) ? '/home' : null;
+          final isPhysio = session.role == AccountRole.physio;
+          final inPhysioArea =
+              location == '/physio' || location.startsWith('/physio/');
+          // Account-scoped screens both roles share (reached from either
+          // Profile) — exempt from the role-bounce below (D5).
+          final inSharedArea = location.startsWith('/notifications/');
+          if (location == '/' || inAuthArea) {
+            return isPhysio ? '/physio/today' : '/home';
+          }
+          // Keep each role in its own app, but let either visit the shared
+          // account screens.
+          if (isPhysio && !inPhysioArea && !inSharedArea) return '/physio/today';
+          if (!isPhysio && inPhysioArea) return '/home';
+          return null;
       }
     },
     routes: [
@@ -75,6 +106,24 @@ final routerProvider = Provider<GoRouter>((ref) {
                 return const RegisterStartScreen();
               }
               return RegisterVerifyScreen(args: args);
+            },
+          ),
+        ],
+      ),
+      // Forgot / reset password — OTP-challenge based, mirroring register (D4).
+      GoRoute(
+        path: '/password-reset',
+        builder: (_, _) => const PasswordResetStartScreen(),
+        routes: [
+          GoRoute(
+            path: 'verify',
+            builder: (_, state) {
+              final args = state.extra;
+              if (args is! PasswordResetCompleteArgs) {
+                // Deep-linked / refreshed without the challenge context.
+                return const PasswordResetStartScreen();
+              }
+              return PasswordResetCompleteScreen(args: args);
             },
           ),
         ],
@@ -116,6 +165,128 @@ final routerProvider = Provider<GoRouter>((ref) {
           ),
         ],
       ),
+      // The authenticated physiotherapist app: its own 4-tab shell under
+      // /physio/*. The redirect keeps a physio in here and others out.
+      StatefulShellRoute.indexedStack(
+        builder: (_, _, navigationShell) =>
+            PhysioShell(navigationShell: navigationShell),
+        branches: [
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/physio/today',
+                builder: (_, _) => const PhysioTodayScreen(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/physio/patients',
+                builder: (_, _) => const PhysioPatientsScreen(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/physio/availability',
+                builder: (_, _) => const PhysioAvailabilityScreen(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/physio/profile',
+                builder: (_, _) => const PhysioProfileScreen(),
+              ),
+            ],
+          ),
+        ],
+      ),
+      // The physiotherapist's incoming-requests queue, reached from the Today
+      // banner. Pushed over the physio shell; under /physio/* so the redirect
+      // keeps non-physios out. Matched before /physio/appointments/* below — a
+      // distinct literal, so order is not load-bearing, but kept grouped.
+      GoRoute(
+        path: '/physio/requests',
+        builder: (_, _) => const PhysioRequestsScreen(),
+      ),
+      // The physiotherapist's appointment detail, pushed over the physio shell.
+      // Under /physio/* so the redirect keeps non-physios out. `discussion` and
+      // `treatment_note` are matched before the bare detail so they aren't
+      // captured as a detail view.
+      GoRoute(
+        path: '/physio/appointments/:id/discussion',
+        builder: (_, state) {
+          final extra = state.extra;
+          if (extra is Appointment) {
+            return DiscussionScreen(
+              appointment: extra,
+              viewer: DiscussionViewer.physio,
+            );
+          }
+          // No object passed (notification deep link / refresh) — fetch by id.
+          return _PhysioDiscussionRoute(id: state.pathParameters['id']!);
+        },
+      ),
+      // The treatment-note editor. `extra` carries the existing note when editing
+      // (prefill without a refetch); null/absent means a first write. The editor
+      // reads/writes the note by appointment id, so no fetch fallback is needed.
+      GoRoute(
+        path: '/physio/appointments/:id/treatment_note',
+        builder: (_, state) => PhysioTreatmentNoteScreen(
+          appointmentId: state.pathParameters['id']!,
+          existing: state.extra is TreatmentNote
+              ? state.extra as TreatmentNote
+              : null,
+        ),
+      ),
+      GoRoute(
+        path: '/physio/appointments/:id',
+        builder: (_, state) {
+          final extra = state.extra;
+          if (extra is Appointment) {
+            return PhysioAppointmentDetailScreen(appointment: extra);
+          }
+          // No object passed (deep link / refresh) — fetch it by id.
+          return _PhysioAppointmentDetailRoute(id: state.pathParameters['id']!);
+        },
+      ),
+      // The physiotherapist's patient detail + treatment history, pushed over
+      // the physio shell. Under /physio/* so the role redirect keeps non-physios
+      // out. `treatment_notes` is matched before the bare detail.
+      GoRoute(
+        path: '/physio/patients/:id/treatment_notes',
+        builder: (_, state) => TreatmentNotesTimelineScreen(
+          patientId: state.pathParameters['id']!,
+          patientName: state.extra is String ? state.extra as String : null,
+          viewer: TreatmentHistoryViewer.physio,
+        ),
+      ),
+      GoRoute(
+        path: '/physio/patients/:id',
+        builder: (_, state) {
+          final extra = state.extra;
+          if (extra is Patient) {
+            return PhysioPatientDetailScreen(patient: extra);
+          }
+          // No object passed (deep link / refresh) — resolve from the roster.
+          return _PhysioPatientDetailRoute(id: state.pathParameters['id']!);
+        },
+      ),
+      // The physiotherapist's availability add-forms, pushed over the physio
+      // shell. Under /physio/* so the role redirect keeps non-physios out. Each
+      // returns `true` on a successful add so the hub refetches.
+      GoRoute(
+        path: '/physio/availability/rules/new',
+        builder: (_, _) => const AvailabilityRuleFormScreen(),
+      ),
+      GoRoute(
+        path: '/physio/availability/blackouts/new',
+        builder: (_, _) => const AvailabilityBlackoutFormScreen(),
+      ),
       // Patient create/edit forms live outside the shell so they cover the
       // bottom nav as a focused sub-flow (pushed, not switched).
       GoRoute(
@@ -156,7 +327,16 @@ final routerProvider = Provider<GoRouter>((ref) {
       // matched before `:id` so it isn't captured as an appointment id.
       GoRoute(
         path: '/appointments/book',
-        builder: (_, _) => const BookAppointmentScreen(),
+        builder: (_, state) {
+          final extra = state.extra;
+          if (extra is BookAppointmentArgs) {
+            return BookAppointmentScreen(
+              initialPatientId: extra.patientId,
+              initialDay: extra.day,
+            );
+          }
+          return const BookAppointmentScreen();
+        },
       ),
       GoRoute(
         path: '/appointments/:id/reschedule',
@@ -272,6 +452,59 @@ class _RescheduleRoute extends ConsumerWidget {
   }
 }
 
+/// Resolves the patient for the physiotherapist's detail from the roster
+/// (`patientsProvider`) when the route was entered without the [Patient] object
+/// in `extra` (deep link / refresh).
+class _PhysioPatientDetailRoute extends ConsumerWidget {
+  const _PhysioPatientDetailRoute({required this.id});
+
+  final String id;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final patients = ref.watch(patientsProvider);
+    return patients.when(
+      loading: () =>
+          const Scaffold(body: Center(child: CircularProgressIndicator())),
+      error: (_, _) => Scaffold(
+        appBar: AppBar(),
+        body: const Center(child: Text('Could not load this patient.')),
+      ),
+      data: (all) {
+        for (final p in all) {
+          if (p.id == id) return PhysioPatientDetailScreen(patient: p);
+        }
+        return Scaffold(
+          appBar: AppBar(),
+          body: const Center(child: Text('Patient not found.')),
+        );
+      },
+    );
+  }
+}
+
+/// Fetches the appointment for the physiotherapist's detail when the route was
+/// entered without the [Appointment] in `extra` (deep link / refresh).
+class _PhysioAppointmentDetailRoute extends ConsumerWidget {
+  const _PhysioAppointmentDetailRoute({required this.id});
+
+  final String id;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final appointment = ref.watch(appointmentByIdProvider(id));
+    return appointment.when(
+      loading: () =>
+          const Scaffold(body: Center(child: CircularProgressIndicator())),
+      error: (_, _) => Scaffold(
+        appBar: AppBar(),
+        body: const Center(child: Text('Could not load this appointment.')),
+      ),
+      data: (a) => PhysioAppointmentDetailScreen(appointment: a),
+    );
+  }
+}
+
 /// Fetches the appointment whose discussion to open when the route was entered
 /// without the [Appointment] in `extra` (e.g. a notification deep link).
 class _DiscussionRoute extends ConsumerWidget {
@@ -290,6 +523,29 @@ class _DiscussionRoute extends ConsumerWidget {
         body: const Center(child: Text('Could not load this appointment.')),
       ),
       data: (a) => DiscussionScreen(appointment: a),
+    );
+  }
+}
+
+/// Like [_DiscussionRoute] but opens the thread from the physiotherapist's side
+/// (a notification deep link into a physio thread).
+class _PhysioDiscussionRoute extends ConsumerWidget {
+  const _PhysioDiscussionRoute({required this.id});
+
+  final String id;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final appointment = ref.watch(appointmentByIdProvider(id));
+    return appointment.when(
+      loading: () =>
+          const Scaffold(body: Center(child: CircularProgressIndicator())),
+      error: (_, _) => Scaffold(
+        appBar: AppBar(),
+        body: const Center(child: Text('Could not load this appointment.')),
+      ),
+      data: (a) =>
+          DiscussionScreen(appointment: a, viewer: DiscussionViewer.physio),
     );
   }
 }

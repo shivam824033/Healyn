@@ -7,6 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:healyn/features/appointments/data/appointments_api.dart';
 import 'package:healyn/features/appointments/data/appointments_repository.dart';
 import 'package:healyn/features/appointments/data/models/appointment_models.dart';
+import 'package:healyn/features/appointments/presentation/appointment_format.dart';
 import 'package:healyn/features/appointments/presentation/appointments_providers.dart';
 import 'package:healyn/features/appointments/presentation/screens/appointment_detail_screen.dart';
 import 'package:healyn/features/appointments/presentation/screens/appointments_screen.dart';
@@ -221,6 +222,24 @@ void main() {
 
       expect(find.text('Pick a date.'), findsOneWidget);
       expect(repo.bookCalled, isFalse);
+    });
+
+    testWidgets('prefills the date and patient from a next-review suggestion', (
+      tester,
+    ) async {
+      final day = DateTime.now().add(const Duration(days: 14));
+      final repo = _RecordingApptRepo()
+        ..slots = [_slot(DateTime(day.year, day.month, day.day, 10))];
+      await _pump(
+        tester,
+        BookAppointmentScreen(initialPatientId: 'pt1', initialDay: day),
+        repo: repo,
+      );
+      await tester.pumpAndSettle();
+
+      // The date field carries the prefilled day; the patient is preselected.
+      expect(find.text(formatDateShort(day)), findsOneWidget);
+      expect(find.text('Asha Rao (You)'), findsOneWidget);
     });
   });
 

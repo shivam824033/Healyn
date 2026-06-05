@@ -12,21 +12,38 @@ import '../../data/models/treatment_note_models.dart';
 import '../../data/treatment_notes_repository.dart';
 import '../treatment_notes_format.dart';
 
-/// The patient's treatment-note history (F1.17) — every note the physiotherapist
+/// Who is viewing the treatment-note history. The thread of notes is identical;
+/// only the appointment a note links to (the patient app vs the `/physio/*`
+/// area) and the empty-state wording differ.
+enum TreatmentHistoryViewer { patient, physio }
+
+/// A patient's treatment-note history (F1.17) — every note the physiotherapist
 /// has written for this patient, newest first, paged with a cursor and loaded as
-/// the list nears its end. Reached from Profile. Tapping a note opens its
-/// appointment detail (which renders the full note). Read-only.
+/// the list nears its end. Reached from the patient's Profile or, for the physio
+/// ([TreatmentHistoryViewer.physio]), from a patient in the roster. Tapping a
+/// note opens its appointment detail (which renders the full note). Read-only.
 class TreatmentNotesTimelineScreen extends ConsumerStatefulWidget {
   const TreatmentNotesTimelineScreen({
     required this.patientId,
     this.patientName,
+    this.viewer = TreatmentHistoryViewer.patient,
     super.key,
   });
 
   final String patientId;
 
-  /// Shown as the app-bar subtitle so a family member's history is identifiable.
+  /// Shown as the app-bar subtitle so a family member's (or roster) history is
+  /// identifiable.
   final String? patientName;
+
+  final TreatmentHistoryViewer viewer;
+
+  /// The route a note tile opens — the same appointment in each app's own area,
+  /// so the role redirect never bounces the physio out.
+  String get appointmentRoutePrefix => switch (viewer) {
+    TreatmentHistoryViewer.patient => '/appointments',
+    TreatmentHistoryViewer.physio => '/physio/appointments',
+  };
 
   @override
   ConsumerState<TreatmentNotesTimelineScreen> createState() =>
@@ -156,7 +173,7 @@ class _TreatmentNotesTimelineScreenState
       );
     }
     if (_notes.isEmpty) {
-      return const _EmptyHistory();
+      return _EmptyHistory(viewer: widget.viewer);
     }
     return ListView.separated(
       controller: _scroll,
@@ -176,16 +193,20 @@ class _TreatmentNotesTimelineScreenState
             ),
           );
         }
-        return _NoteTile(note: _notes[i]);
+        return _NoteTile(
+          note: _notes[i],
+          routePrefix: widget.appointmentRoutePrefix,
+        );
       },
     );
   }
 }
 
 class _NoteTile extends StatelessWidget {
-  const _NoteTile({required this.note});
+  const _NoteTile({required this.note, required this.routePrefix});
 
   final TreatmentNote note;
+  final String routePrefix;
 
   @override
   Widget build(BuildContext context) {
@@ -201,7 +222,7 @@ class _NoteTile extends StatelessWidget {
         type: MaterialType.transparency,
         child: InkWell(
           borderRadius: HealynRadii.brLg,
-          onTap: () => context.push('/appointments/${note.appointmentId}'),
+          onTap: () => context.push('$routePrefix/${note.appointmentId}'),
           child: Padding(
             padding: const EdgeInsets.all(HealynSpacing.s4),
             child: Column(
@@ -288,10 +309,19 @@ class _NoteTile extends StatelessWidget {
 }
 
 class _EmptyHistory extends StatelessWidget {
-  const _EmptyHistory();
+  const _EmptyHistory({required this.viewer});
+
+  final TreatmentHistoryViewer viewer;
 
   @override
   Widget build(BuildContext context) {
+    final subtitle = switch (viewer) {
+      TreatmentHistoryViewer.patient =>
+        'After a completed appointment, your physiotherapist’s notes will '
+            'appear here.',
+      TreatmentHistoryViewer.physio =>
+        'Notes written after a completed appointment will appear here.',
+    };
     // A scrollable so pull-to-refresh works with no notes.
     return ListView(
       padding: const EdgeInsets.all(HealynSpacing.s8),
@@ -310,8 +340,7 @@ class _EmptyHistory extends StatelessWidget {
         ),
         const SizedBox(height: HealynSpacing.s2),
         Text(
-          'After a completed appointment, your physiotherapist’s notes will '
-          'appear here.',
+          subtitle,
           style: HealynTypography.body.copyWith(
             color: HealynColors.textSecondary,
           ),

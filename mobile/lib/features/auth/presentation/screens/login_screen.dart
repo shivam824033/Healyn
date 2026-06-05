@@ -47,7 +47,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             password: _password.text,
           );
       if (!mounted) return;
-      ref.read(authControllerProvider.notifier).markAuthenticated();
+      await ref.read(authControllerProvider.notifier).markAuthenticated();
     } on ApiException catch (e) {
       if (mounted) setState(() => _error = e.message);
     } finally {
@@ -106,7 +106,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       ? 'Enter your password'
                       : null,
                 ),
-                const SizedBox(height: HealynSpacing.s7),
+                const SizedBox(height: HealynSpacing.s5),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    onPressed: _submitting
+                        ? null
+                        : () => context.push('/password-reset'),
+                    child: const Text('Forgot password?'),
+                  ),
+                ),
+                const SizedBox(height: HealynSpacing.s4),
                 PrimaryButton(
                   label: 'Sign in',
                   loading: _submitting,

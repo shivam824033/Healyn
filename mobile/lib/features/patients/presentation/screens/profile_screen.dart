@@ -2,24 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../auth/data/auth_repository.dart';
-import '../../../auth/data/models/auth_models.dart';
 import '../../../auth/presentation/controllers/auth_controller.dart';
+import '../../../auth/presentation/widgets/signed_in_devices.dart';
 import '../../../shared/design/colors.dart';
-import '../../../shared/design/radii.dart';
 import '../../../shared/design/spacing.dart';
 import '../../../shared/design/typography.dart';
+import '../../../shared/domain/patient_sex.dart';
 import '../../../shared/widgets/error_banner.dart';
+import '../../../shared/widgets/nav_card.dart';
 import '../../../shared/widgets/section_card.dart';
 import '../../data/models/patient_models.dart';
 import '../patient_format.dart';
 import '../patients_providers.dart';
-
-/// Active sessions for the signed-in account, shown under "Signed-in devices".
-/// autoDispose so it refetches each time Profile is shown.
-final _sessionsProvider = FutureProvider.autoDispose<List<SessionView>>(
-  (ref) => ref.watch(authRepositoryProvider).listSessions(),
-);
 
 /// Profile tab — the account's own (primary) patient, plus account actions.
 /// Editing the profile (PATCH) is a later slice; this is read-only for now.
@@ -48,7 +42,7 @@ class ProfileScreen extends ConsumerWidget {
         child: RefreshIndicator(
           onRefresh: () async {
             ref.invalidate(patientsProvider);
-            ref.invalidate(_sessionsProvider);
+            ref.invalidate(signedInDevicesProvider);
             await ref.read(patientsProvider.future);
           },
           child: patients.when(
@@ -119,7 +113,7 @@ class _ProfileBody extends ConsumerWidget {
         const SizedBox(height: HealynSpacing.s6),
         const _SectionTitle('Care'),
         const SizedBox(height: HealynSpacing.s3),
-        _NavCard(
+        NavCard(
           icon: Icons.assignment_outlined,
           label: 'Treatment history',
           onTap: () => context.push(
@@ -130,15 +124,13 @@ class _ProfileBody extends ConsumerWidget {
         const SizedBox(height: HealynSpacing.s6),
         const _SectionTitle('Settings'),
         const SizedBox(height: HealynSpacing.s3),
-        _NavCard(
+        NavCard(
           icon: Icons.notifications_outlined,
           label: 'Notifications',
           onTap: () => context.push('/notifications/preferences'),
         ),
         const SizedBox(height: HealynSpacing.s6),
-        const _SectionTitle('Signed-in devices'),
-        const SizedBox(height: HealynSpacing.s3),
-        const _Sessions(),
+        const SignedInDevicesSection(),
         const SizedBox(height: HealynSpacing.s6),
         OutlinedButton.icon(
           onPressed: () =>
@@ -210,51 +202,6 @@ class _SectionTitle extends StatelessWidget {
       Text(text.toUpperCase(), style: HealynTypography.overline);
 }
 
-/// A tappable navigation row inside a bordered card — used for the Care and
-/// Settings entries (treatment history, notification settings).
-class _NavCard extends StatelessWidget {
-  const _NavCard({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: HealynColors.surfaceBase,
-        borderRadius: HealynRadii.brLg,
-        border: Border.all(color: HealynColors.borderSubtle),
-      ),
-      child: Material(
-        type: MaterialType.transparency,
-        child: InkWell(
-          borderRadius: HealynRadii.brLg,
-          onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.all(HealynSpacing.s4),
-            child: Row(
-              children: [
-                Icon(icon, size: 20, color: HealynColors.textSecondary),
-                const SizedBox(width: HealynSpacing.s3),
-                Expanded(
-                  child: Text(label, style: HealynTypography.bodyStrong),
-                ),
-                const Icon(Icons.chevron_right, color: HealynColors.textMuted),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 class _DetailCard extends StatelessWidget {
   const _DetailCard({required this.rows});
 
@@ -297,73 +244,3 @@ class _DetailRow extends StatelessWidget {
   }
 }
 
-class _Sessions extends ConsumerWidget {
-  const _Sessions();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final sessions = ref.watch(_sessionsProvider);
-    return SectionCard(
-      child: sessions.when(
-        loading: () => const Padding(
-          padding: EdgeInsets.symmetric(vertical: HealynSpacing.s3),
-          child: Center(child: CircularProgressIndicator()),
-        ),
-        error: (_, _) => const Text(
-          'Could not load your devices.',
-          style: HealynTypography.caption,
-        ),
-        data: (items) => Column(
-          children: [
-            for (var i = 0; i < items.length; i++) ...[
-              if (i > 0) const Divider(height: HealynSpacing.s5),
-              _SessionRow(session: items[i]),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _SessionRow extends StatelessWidget {
-  const _SessionRow({required this.session});
-
-  final SessionView session;
-
-  @override
-  Widget build(BuildContext context) {
-    final label = session.deviceLabel?.isNotEmpty == true
-        ? session.deviceLabel!
-        : session.deviceId;
-    return Row(
-      children: [
-        const Icon(
-          Icons.devices_outlined,
-          size: 20,
-          color: HealynColors.textSecondary,
-        ),
-        const SizedBox(width: HealynSpacing.s3),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(label, style: HealynTypography.bodyStrong),
-              Text(
-                'Last active ${_shortDateTime(session.lastSeenAt)}',
-                style: HealynTypography.caption,
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-String _shortDateTime(DateTime d) {
-  final local = d.toLocal();
-  return '${formatBirthDate(local)} '
-      '${local.hour.toString().padLeft(2, '0')}:'
-      '${local.minute.toString().padLeft(2, '0')}';
-}

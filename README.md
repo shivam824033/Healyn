@@ -169,6 +169,43 @@ E. Verify end-to-end
    that appointment (payloads carry IDs only, per the PHI rule).
 ```
 
+### 5.2 Physiotherapist account
+
+There is **no physiotherapist self-registration** — the clinic owner is the single `ROLE_PHYSIO`
+account (PROJECT_CONTEXT §5.2). In `local`/`dev` profiles the backend seeds one automatically on
+startup (`DevPhysioSeeder`) so the physio app is reachable; sign in with:
+
+```text
+email:    physio@healyn.local           (override: HEALYN_DEV_PHYSIO_EMAIL)
+password: Physio!Dev123                 (override: HEALYN_DEV_PHYSIO_PASSWORD)
+```
+
+The seed is idempotent and **never runs in prod**, where the physiotherapist is provisioned by an
+operator (e.g. a one-off admin task that inserts an `accounts` row with `role = ROLE_PHYSIO` and an
+Argon2id password hash). The dev password above is a placeholder, not a real secret.
+
+### 5.3 File uploads from a device (presigned-URL host)
+
+Attachments upload **directly to storage** using a presigned URL the backend mints. The host in
+that URL must be one the **device** can reach — not the backend's view of MinIO. With the default
+`HEALYN_S3_ENDPOINT=http://localhost:9000`, a phone or emulator signs requests to *its own*
+`localhost`, so the PUT fails and the app shows an upload error even though the API call succeeded.
+
+Set `HEALYN_S3_PUBLIC_ENDPOINT` to a host the device reaches (leave blank only when the client runs
+on the same host as MinIO):
+
+```bash
+# Physical device on your LAN — your machine's IP (must match where MinIO is bound):
+HEALYN_S3_PUBLIC_ENDPOINT=http://192.168.1.20:9000
+# Android emulator — the host loopback alias:
+HEALYN_S3_PUBLIC_ENDPOINT=http://10.0.2.2:9000
+```
+
+The backend keeps using `HEALYN_S3_ENDPOINT` for its own object operations (stat/read/delete), so
+the two can differ (e.g. `minio:9000` inside Docker vs. a LAN IP for devices). Restart the backend
+after changing it. This is the same host the mobile `--dart-define=HEALYN_API_BASE_URL` should point
+the API at — keep them consistent.
+
 ---
 
 ## 6. Day-to-Day Development

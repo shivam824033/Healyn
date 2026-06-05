@@ -7,10 +7,11 @@ import '../../../shared/design/typography.dart';
 import '../../data/models/discussion_models.dart';
 import '../discussion_format.dart';
 
-/// One message in the thread. [isOutgoing] is true for this account's side
-/// (patient) — outgoing bubbles sit on the right with the brand fill; incoming
-/// (physiotherapist) sit on the left. An [DiscussionMessageType.instruction]
-/// message is always incoming and renders as an emphasised instruction card.
+/// One message in the thread. [isOutgoing] is true for the viewer's own side —
+/// outgoing bubbles sit on the right with the brand fill; the other side sits on
+/// the left. An [DiscussionMessageType.instruction] message renders as an
+/// emphasised instruction card regardless of side (incoming for the patient,
+/// outgoing for the physio who wrote it).
 class MessageBubble extends StatelessWidget {
   const MessageBubble({
     required this.message,

@@ -21,17 +21,31 @@ import '../../data/models/discussion_models.dart';
 import '../discussion_format.dart';
 import '../widgets/message_bubble.dart';
 
-/// The appointment-scoped discussion thread (F1.14). Loads the newest page of
-/// messages, lets the patient post a question or attach files, and edit/delete
-/// their own text message within the 5-minute window. Attaching uploads via the
-/// `files` feature (F1.15) and stages the file to send with the next message.
-/// Tapping an attachment resolves it to a short-lived presigned URL and opens it
-/// externally. The composer is hidden (read-only) when the appointment is
-/// CANCELLED or NO_SHOW — mirroring the backend `DiscussionAccessPolicy`.
+/// Which side is viewing the thread. The screen is one widget for both apps
+/// because the thread itself is identical — only the perspective differs:
+/// - [patient]: patient-side messages are outgoing; the composer posts a
+///   QUESTION and is hidden (read-only) on CANCELLED/NO_SHOW appointments.
+/// - [physio]: PHYSIO messages are outgoing; the composer posts a REPLY (or an
+///   INSTRUCTION when toggled) and stays writable on every status, mirroring
+///   the backend `DiscussionAccessPolicy` (the physio keeps write access).
+enum DiscussionViewer { patient, physio }
+
+/// The appointment-scoped discussion thread (F1.14, both sides). Loads the
+/// newest page of messages, lets the viewer post text or attach files, and
+/// edit/delete their own text message within the 5-minute window. Attaching
+/// uploads via the `files` feature (F1.15) and stages the file to send with the
+/// next message. Tapping an attachment resolves it to a short-lived presigned
+/// URL and opens it externally. See [DiscussionViewer] for the per-side
+/// behaviour.
 class DiscussionScreen extends ConsumerStatefulWidget {
-  const DiscussionScreen({required this.appointment, super.key});
+  const DiscussionScreen({
+    required this.appointment,
+    this.viewer = DiscussionViewer.patient,
+    super.key,
+  });
 
   final Appointment appointment;
+  final DiscussionViewer viewer;
 
   @override
   ConsumerState<DiscussionScreen> createState() => _DiscussionScreenState();
@@ -53,16 +67,27 @@ class _DiscussionScreenState extends ConsumerState<DiscussionScreen> {
   bool _loadingOlder = false;
   bool _posting = false;
   bool _attaching = false;
+
+  /// Physio composer only: send the next message as an INSTRUCTION.
+  bool _instructionMode = false;
   String? _loadError;
 
   Appointment get _appt => widget.appointment;
   String get _appointmentId => _appt.id;
+  bool get _isPhysio => widget.viewer == DiscussionViewer.physio;
 
-  /// Patient-side writes are blocked only on terminal statuses — every other
-  /// status (incl. COMPLETED) stays writable, matching the server policy.
+  /// The sender role of *this* viewer — its own messages are outgoing.
+  DiscussionSenderRole get _mySide => _isPhysio
+      ? DiscussionSenderRole.physio
+      : DiscussionSenderRole.patientSide;
+
+  /// The physio keeps write access on every status; the patient side is blocked
+  /// only on terminal statuses (CANCELLED/NO_SHOW) — every other status (incl.
+  /// COMPLETED) stays writable, matching the server policy.
   bool get _writable =>
-      _appt.status != AppointmentStatus.cancelled &&
-      _appt.status != AppointmentStatus.noShow;
+      _isPhysio ||
+      (_appt.status != AppointmentStatus.cancelled &&
+          _appt.status != AppointmentStatus.noShow);
 
   @override
   void initState() {
@@ -151,18 +176,26 @@ class _DiscussionScreenState extends ConsumerState<DiscussionScreen> {
     if ((text.isEmpty && fileIds.isEmpty) || _posting) return;
     setState(() => _posting = true);
     try {
-      final saved = await ref
-          .read(discussionRepositoryProvider)
-          .postMessage(
-            _appointmentId,
-            body: text.isEmpty ? null : text,
-            fileIds: fileIds,
-          );
+      final repo = ref.read(discussionRepositoryProvider);
+      final body = text.isEmpty ? null : text;
+      final saved = _isPhysio
+          ? await repo.postPhysioMessage(
+              _appointmentId,
+              body: body,
+              fileIds: fileIds,
+              instruction: _instructionMode,
+            )
+          : await repo.postMessage(
+              _appointmentId,
+              body: body,
+              fileIds: fileIds,
+            );
       if (!mounted) return;
       setState(() {
         _messages.add(saved);
         _composer.clear();
         _attachments.clear();
+        _instructionMode = false;
         _posting = false;
       });
       _markNewestRead();
@@ -391,7 +424,7 @@ class _DiscussionScreenState extends ConsumerState<DiscussionScreen> {
   /// edited or deleted — mirrors the backend so we don't offer a doomed action.
   bool _canModify(DiscussionMessage m) {
     if (!_writable) return false;
-    if (m.senderRole != DiscussionSenderRole.patientSide) return false;
+    if (m.senderRole != _mySide) return false;
     if (m.messageType == DiscussionMessageType.attachmentOnly) return false;
     if (_myAccountId == null || m.senderAccountId != _myAccountId) return false;
     return DateTime.now().difference(m.createdAt).inSeconds < 300;
@@ -432,7 +465,11 @@ class _DiscussionScreenState extends ConsumerState<DiscussionScreen> {
       return _LoadError(message: _loadError!, onRetry: _loadInitial);
     }
     if (_messages.isEmpty) {
-      return const _EmptyThread();
+      return _EmptyThread(
+        subtitle: _isPhysio
+            ? 'Reply to the patient or add an instruction for this appointment.'
+            : 'Ask your physiotherapist a question about this appointment.',
+      );
     }
     return ListView(
       controller: _scroll,
@@ -468,7 +505,7 @@ class _DiscussionScreenState extends ConsumerState<DiscussionScreen> {
       if (prev == null || !sameLocalDay(prev.createdAt, m.createdAt)) {
         children.add(_DaySeparator(label: daySeparatorLabel(m.createdAt)));
       }
-      final isOutgoing = m.senderRole == DiscussionSenderRole.patientSide;
+      final isOutgoing = m.senderRole == _mySide;
       Widget bubble = MessageBubble(
         message: m,
         isOutgoing: isOutgoing,
@@ -505,6 +542,7 @@ class _DiscussionScreenState extends ConsumerState<DiscussionScreen> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
+          if (_isPhysio) _buildInstructionToggle(),
           if (_attachments.isNotEmpty || _attaching) _buildAttachmentBar(),
           Row(
             crossAxisAlignment: CrossAxisAlignment.end,
@@ -524,11 +562,15 @@ class _DiscussionScreenState extends ConsumerState<DiscussionScreen> {
                   maxLines: 5,
                   maxLength: 2000,
                   textCapitalization: TextCapitalization.sentences,
-                  decoration: const InputDecoration(
-                    hintText: 'Write a message',
+                  decoration: InputDecoration(
+                    hintText: _isPhysio && _instructionMode
+                        ? 'Write an instruction'
+                        : 'Write a message',
                     counterText: '',
-                    border: OutlineInputBorder(borderRadius: HealynRadii.brMd),
-                    contentPadding: EdgeInsets.symmetric(
+                    border: const OutlineInputBorder(
+                      borderRadius: HealynRadii.brMd,
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
                       horizontal: HealynSpacing.s3,
                       vertical: HealynSpacing.s2,
                     ),
@@ -550,6 +592,33 @@ class _DiscussionScreenState extends ConsumerState<DiscussionScreen> {
             ],
           ),
         ],
+      ),
+    );
+  }
+
+  /// Physio-only: tag the next message as a prescriptive INSTRUCTION.
+  Widget _buildInstructionToggle() {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Padding(
+        padding: const EdgeInsets.only(
+          left: HealynSpacing.s2,
+          bottom: HealynSpacing.s2,
+        ),
+        child: FilterChip(
+          label: const Text('Instruction'),
+          avatar: Icon(
+            _instructionMode
+                ? Icons.assignment_turned_in_outlined
+                : Icons.assignment_outlined,
+            size: 18,
+          ),
+          selected: _instructionMode,
+          onSelected: _posting
+              ? null
+              : (v) => setState(() => _instructionMode = v),
+          tooltip: 'Send as a prescriptive instruction',
+        ),
       ),
     );
   }
@@ -610,30 +679,32 @@ class _DaySeparator extends StatelessWidget {
 }
 
 class _EmptyThread extends StatelessWidget {
-  const _EmptyThread();
+  const _EmptyThread({required this.subtitle});
+
+  final String subtitle;
 
   @override
   Widget build(BuildContext context) {
-    return const Center(
+    return Center(
       child: Padding(
-        padding: EdgeInsets.all(HealynSpacing.s7),
+        padding: const EdgeInsets.all(HealynSpacing.s7),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
+            const Icon(
               Icons.forum_outlined,
               size: 40,
               color: HealynColors.textMuted,
             ),
-            SizedBox(height: HealynSpacing.s3),
-            Text(
+            const SizedBox(height: HealynSpacing.s3),
+            const Text(
               'No messages yet',
               style: HealynTypography.h3,
               textAlign: TextAlign.center,
             ),
-            SizedBox(height: HealynSpacing.s1),
+            const SizedBox(height: HealynSpacing.s1),
             Text(
-              'Ask your physiotherapist a question about this appointment.',
+              subtitle,
               style: HealynTypography.caption,
               textAlign: TextAlign.center,
             ),

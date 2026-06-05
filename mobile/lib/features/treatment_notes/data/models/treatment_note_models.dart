@@ -41,3 +41,21 @@ abstract class TreatmentNotePage with _$TreatmentNotePage {
   factory TreatmentNotePage.fromJson(Map<String, dynamic> json) =>
       _$TreatmentNotePageFromJson(json);
 }
+
+/// Body for `PUT /appointments/{id}/treatment_note` — the physiotherapist
+/// creates or replaces the appointment's single note (the server upserts). Blank
+/// text fields are sent as null and omitted (`include_if_null: false`); the
+/// server requires at least one of [diagnosis] / [notes] / [recoveryInstructions]
+/// to be non-blank. [nextReviewAt] is an optional UTC instant. PHI — never log.
+@freezed
+abstract class UpsertTreatmentNoteRequest with _$UpsertTreatmentNoteRequest {
+  const factory UpsertTreatmentNoteRequest({
+    String? diagnosis,
+    String? notes,
+    String? recoveryInstructions,
+    DateTime? nextReviewAt,
+  }) = _UpsertTreatmentNoteRequest;
+
+  factory UpsertTreatmentNoteRequest.fromJson(Map<String, dynamic> json) =>
+      _$UpsertTreatmentNoteRequestFromJson(json);
+}

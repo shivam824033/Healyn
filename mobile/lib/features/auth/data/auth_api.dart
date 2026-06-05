@@ -27,6 +27,27 @@ class AuthApi {
     return TokenResponse.fromJson(res.data!);
   }
 
+  Future<ChallengeResponse> passwordResetStart(
+    PasswordResetStartRequest body,
+  ) async {
+    final res = await _dio.post<Map<String, dynamic>>(
+      '/auth/password-reset/start',
+      data: body.toJson(),
+    );
+    return ChallengeResponse.fromJson(res.data!);
+  }
+
+  /// Completes the reset. The backend responds 204 No Content, so there is
+  /// nothing to deserialize.
+  Future<void> passwordResetComplete(
+    PasswordResetCompleteRequest body,
+  ) async {
+    await _dio.post<void>(
+      '/auth/password-reset/complete',
+      data: body.toJson(),
+    );
+  }
+
   Future<TokenResponse> login(LoginRequest body) async {
     final res = await _dio.post<Map<String, dynamic>>(
       '/auth/login',
