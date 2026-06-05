@@ -122,7 +122,7 @@ class TreatmentNoteIntegrationTest {
 
     @Test
     void write_rejected_when_appointment_not_completed() throws Exception {
-        Fixture f = bootstrapBooked("ben"); // REQUESTED, not completed
+        Fixture f = bootstrapBooked("ben"); // CONFIRMED, not yet completed
 
         mvc.perform(put("/appointments/" + f.apptId + "/treatment_note")
                         .header("Authorization", "Bearer " + f.physio.access)
@@ -195,7 +195,8 @@ class TreatmentNoteIntegrationTest {
 
     private Fixture bootstrapCompleted(String tag) throws Exception {
         Fixture f = bootstrapBooked(tag);
-        transition(f.physio, f.apptId, "CONFIRMED");
+        // The fixture is seeded already CONFIRMED (the physiotherapist's /schedule is exercised
+        // in the appointments suite), so the lifecycle resumes at IN_PROGRESS.
         transition(f.physio, f.apptId, "IN_PROGRESS");
         transition(f.physio, f.apptId, "COMPLETED");
         return f;
@@ -229,14 +230,16 @@ class TreatmentNoteIntegrationTest {
         return nextMondayAt(9 + minutes / 60, minutes % 60);
     }
 
-    /// Seeds a scheduled appointment for the fixture's own physiotherapist directly, so the
-    /// treatment-note lifecycle (CONFIRMED -> IN_PROGRESS -> COMPLETED) has a concrete time —
-    /// required since a request carries none and /schedule is a later chunk. nextSlot() gives
-    /// each one a distinct time so confirmations never collide on the physio-overlap guard.
+    /// Seeds a CONFIRMED appointment for the fixture's own physiotherapist directly, so the
+    /// treatment-note lifecycle (resuming at IN_PROGRESS -> COMPLETED) has a concrete time —
+    /// a request carries none and the physiotherapist's /schedule is covered by the appointments
+    /// suite. nextSlot() gives each one a distinct time so they never collide on the
+    /// physio-overlap guard.
     private UUID seedScheduledAppointment(Session physio, Session actor, UUID patientId) {
+        Instant at = Instant.parse(nextSlot());
         Appointment appt = new Appointment(
-                UuidV7.generate(), patientId, actor.id, physio.id,
-                Instant.parse(nextSlot()), (short) 30, "treatment-note seed", null);
+                UuidV7.generate(), patientId, actor.id, physio.id, at, (short) 30, "treatment-note seed", null);
+        appt.schedule(at, (short) 30, Instant.now());
         appointments.save(appt);
         return appt.getId();
     }

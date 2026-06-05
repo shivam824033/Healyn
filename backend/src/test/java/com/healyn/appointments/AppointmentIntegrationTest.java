@@ -32,8 +32,9 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 
-import java.time.DayOfWeek;
+import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.HashMap;
@@ -148,35 +149,148 @@ class AppointmentIntegrationTest {
     }
 
     @Test
-    void reschedule_marks_old_rescheduled_and_creates_new_requested() throws Exception {
+    void patient_reschedule_creates_a_new_unscheduled_request() throws Exception {
+        // A patient reschedule is a re-request: a new date, no time. The physiotherapist
+        // re-assigns the time later via /schedule (APPOINTMENT_FLOW §6).
         Session physio = seedPhysio();
-        createMondayRule(physio);
         Session a = registerPatient("eve");
         UUID patientA = primaryPatientId(a);
-
-        // Seed the original request directly so its physiotherapist is THIS test's physio
-        // (the one with the Monday rule). Booking no longer pins a physio with availability,
-        // and reschedule's slot check runs against the appointment's own physiotherapist.
-        Appointment old = Appointment.request(
-                UuidV7.generate(), patientA, accountIdOf(a), physio.id,
-                LocalDate.now(KOLKATA).plusDays(7), null, "back pain", null);
-        appointments.save(old);
-        UUID oldId = old.getId();
+        UUID oldId = seedRequest(patientA, physio.id, accountIdOf(a), 7);
 
         MvcResult res = mvc.perform(post("/appointments/" + oldId + "/reschedule")
                         .header("Authorization", "Bearer " + a.access)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(json.writeValueAsString(Map.of(
-                                "scheduled_at", nextMondayAt(10, 30),
-                                "duration_minutes", 30))))
+                                "requested_date", requestDate(14)))))
                 .andExpect(status().isCreated())
                 .andReturn();
         JsonNode body = json.readTree(res.getResponse().getContentAsByteArray());
         assertThat(body.get("status").asText()).isEqualTo("REQUESTED");
         assertThat(body.get("rescheduled_from_id").asText()).isEqualTo(oldId.toString());
+        assertThat(body.get("requested_date").asText()).isEqualTo(requestDate(14));
+        assertThat(body.has("scheduled_at")).isFalse(); // unscheduled re-request (NON_NULL omits it)
 
         mvc.perform(get("/appointments/" + oldId)
                         .header("Authorization", "Bearer " + a.access))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("RESCHEDULED"));
+    }
+
+    @Test
+    void physio_schedules_a_request_to_confirmed() throws Exception {
+        Session physio = seedPhysio();
+        Session a = registerPatient("nora");
+        UUID patientA = primaryPatientId(a);
+        UUID reqId = seedRequest(patientA, physio.id, accountIdOf(a), 7);
+
+        mvc.perform(post("/appointments/" + reqId + "/schedule")
+                        .header("Authorization", "Bearer " + physio.access)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json.writeValueAsString(Map.of(
+                                "scheduled_at", futureInstantAt(7, 9, 0),
+                                "duration_minutes", 30))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("CONFIRMED"))
+                .andExpect(jsonPath("$.scheduled_at").exists())
+                .andExpect(jsonPath("$.confirmed_at").exists())
+                .andExpect(jsonPath("$.duration_minutes").value(30));
+    }
+
+    @Test
+    void patient_cannot_schedule_a_request() throws Exception {
+        Session physio = seedPhysio();
+        Session a = registerPatient("omar");
+        UUID patientA = primaryPatientId(a);
+        UUID reqId = seedRequest(patientA, physio.id, accountIdOf(a), 7);
+
+        mvc.perform(post("/appointments/" + reqId + "/schedule")
+                        .header("Authorization", "Bearer " + a.access)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json.writeValueAsString(Map.of(
+                                "scheduled_at", futureInstantAt(7, 9, 0),
+                                "duration_minutes", 30))))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void scheduling_an_overlapping_time_returns_409() throws Exception {
+        Session physio = seedPhysio();
+        Session a = registerPatient("pia");
+        UUID patientA = primaryPatientId(a);
+        UUID first = seedRequest(patientA, physio.id, accountIdOf(a), 8);
+        UUID second = seedRequest(patientA, physio.id, accountIdOf(a), 8);
+
+        String at = futureInstantAt(8, 11, 0);
+        mvc.perform(post("/appointments/" + first + "/schedule")
+                        .header("Authorization", "Bearer " + physio.access)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json.writeValueAsString(Map.of("scheduled_at", at, "duration_minutes", 30))))
+                .andExpect(status().isOk());
+        // Same physiotherapist, overlapping time -> physio-overlap EXCLUDE constraint -> 409.
+        mvc.perform(post("/appointments/" + second + "/schedule")
+                        .header("Authorization", "Bearer " + physio.access)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json.writeValueAsString(Map.of("scheduled_at", at, "duration_minutes", 30))))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.error.code").value("appointments.slot_unavailable"));
+    }
+
+    @Test
+    void physio_creates_a_follow_up() throws Exception {
+        Session physio = seedPhysio();
+        Session a = registerPatient("quinn");
+        UUID patientA = primaryPatientId(a);
+
+        mvc.perform(post("/appointments/follow-ups")
+                        .header("Authorization", "Bearer " + physio.access)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json.writeValueAsString(Map.of(
+                                "patient_id", patientA.toString(),
+                                "scheduled_at", futureInstantAt(9, 14, 0),
+                                "duration_minutes", 45,
+                                "reason", "Review progress"))))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.status").value("CONFIRMED"))
+                .andExpect(jsonPath("$.is_follow_up").value(true))
+                .andExpect(jsonPath("$.scheduled_at").exists())
+                .andExpect(jsonPath("$.duration_minutes").value(45));
+    }
+
+    @Test
+    void patient_cannot_create_a_follow_up() throws Exception {
+        seedPhysio();
+        Session a = registerPatient("rae");
+        UUID patientA = primaryPatientId(a);
+
+        mvc.perform(post("/appointments/follow-ups")
+                        .header("Authorization", "Bearer " + a.access)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json.writeValueAsString(Map.of(
+                                "patient_id", patientA.toString(),
+                                "scheduled_at", futureInstantAt(9, 14, 0),
+                                "duration_minutes", 30))))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void physio_reschedule_creates_a_confirmed_row() throws Exception {
+        Session physio = seedPhysio();
+        Session a = registerPatient("sam");
+        UUID patientA = primaryPatientId(a);
+        UUID confirmedId = seedConfirmed(patientA, physio.id, accountIdOf(a), 10, 9);
+
+        mvc.perform(post("/appointments/" + confirmedId + "/reschedule")
+                        .header("Authorization", "Bearer " + physio.access)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json.writeValueAsString(Map.of(
+                                "scheduled_at", futureInstantAt(11, 15, 0),
+                                "duration_minutes", 30))))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.status").value("CONFIRMED"))
+                .andExpect(jsonPath("$.rescheduled_from_id").value(confirmedId.toString()));
+
+        mvc.perform(get("/appointments/" + confirmedId)
+                        .header("Authorization", "Bearer " + physio.access))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("RESCHEDULED"));
     }
@@ -322,27 +436,30 @@ class AppointmentIntegrationTest {
         return LocalDate.now(KOLKATA).plusDays(daysAhead).toString();
     }
 
-    private void createMondayRule(Session physio) throws Exception {
-        String effectiveFrom = LocalDate.now().minusDays(30).toString();
-        mvc.perform(post("/availability/rules")
-                        .header("Authorization", "Bearer " + physio.access)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(json.writeValueAsString(Map.of(
-                                "day_of_week", 1,
-                                "start_time", "09:00:00",
-                                "end_time", "13:00:00",
-                                "slot_minutes", 30,
-                                "timezone", "Asia/Kolkata",
-                                "effective_from", effectiveFrom))))
-                .andExpect(status().isCreated());
+    /// Seeds an unscheduled REQUESTED request (no time) directly, pinned to a known
+    /// physiotherapist so the physio acting in the test is the appointment's own physio.
+    private UUID seedRequest(UUID patientId, UUID physioId, UUID bookedBy, int daysAhead) {
+        Appointment a = Appointment.request(
+                UuidV7.generate(), patientId, bookedBy, physioId,
+                LocalDate.now(KOLKATA).plusDays(daysAhead), null, "seed-request", null);
+        appointments.save(a);
+        return a.getId();
     }
 
-    private static String nextMondayAt(int hour, int minute) {
-        LocalDate today = LocalDate.now(KOLKATA);
-        int daysAhead = (DayOfWeek.MONDAY.getValue() - today.getDayOfWeek().getValue() + 7) % 7;
-        if (daysAhead == 0) daysAhead = 7;
-        LocalDate monday = today.plusDays(daysAhead);
-        return ZonedDateTime.of(monday, java.time.LocalTime.of(hour, minute), KOLKATA)
+    /// Seeds a CONFIRMED appointment with a concrete time directly.
+    private UUID seedConfirmed(UUID patientId, UUID physioId, UUID bookedBy, int daysAhead, int hour) {
+        Instant at = ZonedDateTime.of(
+                LocalDate.now(KOLKATA).plusDays(daysAhead), LocalTime.of(hour, 0), KOLKATA).toInstant();
+        Appointment a = new Appointment(
+                UuidV7.generate(), patientId, bookedBy, physioId, at, (short) 30, "seed-confirmed", null);
+        a.schedule(at, (short) 30, Instant.now());
+        appointments.save(a);
+        return a.getId();
+    }
+
+    private static String futureInstantAt(int daysAhead, int hour, int minute) {
+        return ZonedDateTime.of(
+                        LocalDate.now(KOLKATA).plusDays(daysAhead), LocalTime.of(hour, minute), KOLKATA)
                 .toInstant()
                 .toString();
     }

@@ -9,9 +9,6 @@ import com.healyn.audit.domain.AuditResource;
 import com.healyn.audit.service.AuditLogger;
 import com.healyn.auth.domain.AccountRole;
 import com.healyn.auth.repository.AccountRepository;
-import com.healyn.availability.service.Slot;
-import com.healyn.availability.service.SlotExpansionService;
-import com.healyn.availability.service.TimeRange;
 import com.healyn.common.error.ConflictException;
 import com.healyn.common.error.ErrorCode;
 import com.healyn.common.error.NotFoundException;
@@ -32,11 +29,8 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
-import java.time.ZoneOffset;
-import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -52,10 +46,6 @@ public class AppointmentService {
     private static final Duration BOOKING_MAX_HORIZON = Duration.ofDays(90);
     private static final short MIN_DURATION = 5;
     private static final short MAX_DURATION = 240;
-    private static final Set<AppointmentStatus> BLOCKING_STATUSES = EnumSet.of(
-            AppointmentStatus.REQUESTED,
-            AppointmentStatus.CONFIRMED,
-            AppointmentStatus.IN_PROGRESS);
     // Never-matching placeholders bound to the IN lists when a filter is disabled.
     private static final Collection<UUID> PATIENT_FILTER_SENTINEL = List.of(new UUID(0L, 0L));
     private static final Collection<AppointmentStatus> STATUS_FILTER_SENTINEL =
@@ -64,7 +54,6 @@ public class AppointmentService {
     private final AppointmentRepository appointments;
     private final AccountRepository accounts;
     private final AccountPatientRepository accountPatients;
-    private final SlotExpansionService slots;
     private final AppointmentAccessPolicy access;
     private final IdempotencyGuard idempotency;
     private final NotificationPublisher notifications;
@@ -74,7 +63,6 @@ public class AppointmentService {
     public AppointmentService(AppointmentRepository appointments,
                               AccountRepository accounts,
                               AccountPatientRepository accountPatients,
-                              SlotExpansionService slots,
                               AppointmentAccessPolicy access,
                               IdempotencyGuard idempotency,
                               NotificationPublisher notifications,
@@ -83,7 +71,6 @@ public class AppointmentService {
         this.appointments = appointments;
         this.accounts = accounts;
         this.accountPatients = accountPatients;
-        this.slots = slots;
         this.access = access;
         this.idempotency = idempotency;
         this.notifications = notifications;
@@ -126,6 +113,52 @@ public class AppointmentService {
                 Map.of("appointmentId", saved.getId().toString()), saved.getId());
         audit.record(AuditAction.CREATE, actorId, role, AuditResource.APPOINTMENT, saved.getId(),
                 Map.of("patientId", saved.getPatientId().toString()));
+        return saved;
+    }
+
+    /// The physiotherapist assigns the final time to a REQUESTED request and confirms it in one
+    /// step (APPOINTMENT_FLOW §2). The patient never sets the time. The CONFIRMED row enters the
+    /// physio-overlap EXCLUDE set on flush, so a clash with an existing appointment returns 409.
+    @Transactional
+    public Appointment schedule(UUID actorId, AccountRole role, UUID appointmentId, ScheduleRequest req) {
+        access.requireSchedule(role);
+        Appointment appt = loadActive(appointmentId);
+        if (appt.getStatus() != AppointmentStatus.REQUESTED) {
+            throw new ConflictException(ErrorCode.APPOINTMENT_INVALID_TRANSITION,
+                    "Only a REQUESTED appointment can be scheduled");
+        }
+        validateSchedule(req.scheduledAt(), req.durationMinutes());
+        appt.schedule(req.scheduledAt(), req.durationMinutes(), Instant.now(clock));
+
+        Appointment result = saveAndFlushOrConflict(appt);
+        notifications.enqueueToPatientManagers(NotificationKind.BOOKING_CONFIRMED,
+                result.getPatientId(), payload(result), result.getId());
+        audit.record(AuditAction.UPDATE, actorId, role, AuditResource.APPOINTMENT, result.getId(),
+                Map.of("status", AppointmentStatus.CONFIRMED.name()));
+        return result;
+    }
+
+    /// The physiotherapist creates a follow-up at a time they set (APPOINTMENT_FLOW §6a): a brand
+    /// new CONFIRMED row with `is_follow_up = true`, subject to the same physio-overlap guard.
+    @Transactional
+    public Appointment createFollowUp(UUID actorId, AccountRole role, FollowUpRequest req) {
+        access.requireCreateFollowUp(role);
+        validateSchedule(req.scheduledAt(), req.durationMinutes());
+        Appointment fu = Appointment.followUp(
+                UuidV7.generate(),
+                req.patientId(),
+                actorId,
+                actorId,
+                req.scheduledAt(),
+                req.durationMinutes(),
+                req.reason(),
+                Instant.now(clock));
+
+        Appointment saved = saveAndFlushOrConflict(fu);
+        notifications.enqueueToPatientManagers(NotificationKind.BOOKING_CONFIRMED,
+                saved.getPatientId(), payload(saved), saved.getId());
+        audit.record(AuditAction.CREATE, actorId, role, AuditResource.APPOINTMENT, saved.getId(),
+                Map.of("patientId", saved.getPatientId().toString(), "followUp", "true"));
         return saved;
     }
 
@@ -190,7 +223,6 @@ public class AppointmentService {
 
         Instant now = Instant.now(clock);
         switch (req.to()) {
-            case CONFIRMED -> appt.confirm(now);
             case IN_PROGRESS -> appt.start(now);
             case COMPLETED -> appt.complete(now);
             case CANCELLED -> {
@@ -205,16 +237,7 @@ public class AppointmentService {
                     "Cannot transition to " + req.to() + " via this endpoint");
         }
 
-        Appointment result;
-        try {
-            result = appointments.saveAndFlush(appt);
-        } catch (DataIntegrityViolationException e) {
-            if (isExclusionViolation(e)) {
-                throw new ConflictException(ErrorCode.APPOINTMENT_SLOT_UNAVAILABLE,
-                        "Slot is no longer available for the physiotherapist");
-            }
-            throw e;
-        }
+        Appointment result = saveAndFlushOrConflict(appt);
         notifyTransition(result, role, req.to());
         audit.record(AuditAction.UPDATE, actorId, role, AuditResource.APPOINTMENT, result.getId(),
                 Map.of("status", req.to().name()));
@@ -222,10 +245,8 @@ public class AppointmentService {
     }
 
     private void notifyTransition(Appointment appt, AccountRole actorRole, AppointmentStatus to) {
-        Map<String, String> payload = Map.of("appointmentId", appt.getId().toString());
+        Map<String, String> payload = payload(appt);
         switch (to) {
-            case CONFIRMED -> notifications.enqueueToPatientManagers(
-                    NotificationKind.BOOKING_CONFIRMED, appt.getPatientId(), payload, appt.getId());
             case CANCELLED -> {
                 // Notify the counterparty: physio's action reaches the patient side, and vice versa.
                 if (actorRole == AccountRole.ROLE_PHYSIO) {
@@ -240,6 +261,10 @@ public class AppointmentService {
         }
     }
 
+    /// Rescheduling always creates a new row and marks the old one RESCHEDULED, in one
+    /// transaction (APPOINTMENT_FLOW §6). The initiator decides the new row's shape: the
+    /// physiotherapist sets a concrete time (new CONFIRMED row); a patient re-requests a date
+    /// (new unscheduled REQUESTED row, the physiotherapist assigns the time later).
     @Transactional
     public Appointment reschedule(UUID actorId, AccountRole role, UUID appointmentId, RescheduleRequest req) {
         Appointment old = loadActive(appointmentId);
@@ -248,20 +273,37 @@ public class AppointmentService {
             throw new ConflictException(ErrorCode.APPOINTMENT_INVALID_TRANSITION,
                     "Only REQUESTED or CONFIRMED appointments can be rescheduled");
         }
-        validateSchedule(req.scheduledAt(), req.durationMinutes());
-        requireSlotExists(old.getPhysiotherapistId(), req.scheduledAt(), req.durationMinutes());
+        Instant now = Instant.now(clock);
+        String reason = req.reason() != null ? req.reason() : old.getReason();
 
-        Appointment fresh = new Appointment(
-                UuidV7.generate(),
-                old.getPatientId(),
-                actorId,
-                old.getPhysiotherapistId(),
-                req.scheduledAt(),
-                req.durationMinutes(),
-                req.reason() != null ? req.reason() : old.getReason(),
-                old.getId());
-        Appointment saved = appointments.save(fresh);
+        Appointment fresh;
+        NotificationKind kind;
+        if (role == AccountRole.ROLE_PHYSIO) {
+            short duration = requireDuration(req.durationMinutes());
+            validateSchedule(req.scheduledAt(), duration);
+            fresh = new Appointment(UuidV7.generate(), old.getPatientId(), actorId,
+                    old.getPhysiotherapistId(), req.scheduledAt(), duration, reason, old.getId());
+            fresh.schedule(req.scheduledAt(), duration, now);
+            if (old.isFollowUp()) {
+                fresh.markFollowUp();
+            }
+            kind = NotificationKind.BOOKING_CONFIRMED;
+        } else {
+            validateRequestedDate(req.requestedDate());
+            fresh = Appointment.request(UuidV7.generate(), old.getPatientId(), actorId,
+                    old.getPhysiotherapistId(), req.requestedDate(), req.preferredTime(), reason, old.getId());
+            kind = NotificationKind.BOOKING_REQUESTED;
+        }
+
+        Appointment saved = saveAndFlushOrConflict(fresh);
         old.markRescheduled();
+        appointments.save(old);
+
+        if (kind == NotificationKind.BOOKING_CONFIRMED) {
+            notifications.enqueueToPatientManagers(kind, saved.getPatientId(), payload(saved), saved.getId());
+        } else {
+            notifications.enqueueToAccount(kind, saved.getPhysiotherapistId(), payload(saved), saved.getId());
+        }
         audit.record(AuditAction.CREATE, actorId, role, AuditResource.APPOINTMENT, saved.getId(),
                 Map.of("rescheduledFromId", old.getId().toString()));
         audit.record(AuditAction.UPDATE, actorId, role, AuditResource.APPOINTMENT, old.getId(),
@@ -275,6 +317,24 @@ public class AppointmentService {
         return appointments.findByIdAndDeletedAtIsNull(id)
                 .orElseThrow(() -> new NotFoundException(ErrorCode.APPOINTMENT_NOT_FOUND,
                         "Appointment not found"));
+    }
+
+    /// Persists and flushes so the physio-overlap EXCLUDE constraint can reject a clashing time
+    /// synchronously, translating the Postgres exclusion violation (23P01) into a 409.
+    private Appointment saveAndFlushOrConflict(Appointment appt) {
+        try {
+            return appointments.saveAndFlush(appt);
+        } catch (DataIntegrityViolationException e) {
+            if (isExclusionViolation(e)) {
+                throw new ConflictException(ErrorCode.APPOINTMENT_SLOT_UNAVAILABLE,
+                        "The chosen time overlaps another appointment for the physiotherapist");
+            }
+            throw e;
+        }
+    }
+
+    private static Map<String, String> payload(Appointment appt) {
+        return Map.of("appointmentId", appt.getId().toString());
     }
 
     private UUID resolvePhysioId() {
@@ -300,6 +360,14 @@ public class AppointmentService {
         }
     }
 
+    private short requireDuration(Short durationMinutes) {
+        if (durationMinutes == null) {
+            throw new UnprocessableException(ErrorCode.APPOINTMENT_INVALID_SCHEDULE,
+                    "durationMinutes is required when a physiotherapist reschedules");
+        }
+        return durationMinutes;
+    }
+
     private void validateSchedule(Instant scheduledAt, short durationMinutes) {
         if (scheduledAt == null) {
             throw new UnprocessableException(ErrorCode.APPOINTMENT_INVALID_SCHEDULE,
@@ -317,28 +385,6 @@ public class AppointmentService {
         if (scheduledAt.isAfter(now.plus(BOOKING_MAX_HORIZON))) {
             throw new UnprocessableException(ErrorCode.APPOINTMENT_INVALID_SCHEDULE,
                     "scheduledAt is more than 90 days in the future");
-        }
-    }
-
-    private void requireSlotExists(UUID physioId, Instant scheduledAt, short durationMinutes) {
-        LocalDate day = scheduledAt.atZone(ZoneOffset.UTC).toLocalDate();
-        Instant dayStart = day.atStartOfDay(ZoneOffset.UTC).toInstant();
-        Instant dayEnd = day.plusDays(1).atStartOfDay(ZoneOffset.UTC).toInstant();
-
-        List<TimeRange> bookedRanges = appointments
-                .findByPhysioAndScheduledBetween(physioId, dayStart, dayEnd)
-                .stream()
-                .filter(a -> BLOCKING_STATUSES.contains(a.getStatus()))
-                .map(a -> new TimeRange(a.getScheduledAt(),
-                        a.getScheduledAt().plus(a.getDurationMinutes(), ChronoUnit.MINUTES)))
-                .toList();
-
-        List<Slot> candidates = slots.expandSlots(physioId, day, day, bookedRanges);
-        boolean exists = candidates.stream()
-                .anyMatch(s -> s.startsAt().equals(scheduledAt) && s.durationMinutes() == durationMinutes);
-        if (!exists) {
-            throw new ConflictException(ErrorCode.APPOINTMENT_SLOT_UNAVAILABLE,
-                    "Requested slot is not available");
         }
     }
 

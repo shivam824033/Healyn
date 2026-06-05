@@ -15,19 +15,18 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class AppointmentTransitionsTest {
 
     @Test
-    void requested_allows_confirm_cancel_reschedule_only() {
+    void requested_allows_cancel_only_via_transitions() {
+        // REQUESTED→CONFIRMED is rerouted to /schedule; RESCHEDULED goes through /reschedule.
         assertAllowed(AppointmentStatus.REQUESTED, EnumSet.of(
-                AppointmentStatus.CONFIRMED,
-                AppointmentStatus.CANCELLED,
-                AppointmentStatus.RESCHEDULED));
+                AppointmentStatus.CANCELLED));
     }
 
     @Test
-    void confirmed_allows_start_cancel_reschedule_noshow() {
+    void confirmed_allows_start_cancel_noshow_via_transitions() {
+        // RESCHEDULED is excluded — it goes through /reschedule, not /transitions.
         assertAllowed(AppointmentStatus.CONFIRMED, EnumSet.of(
                 AppointmentStatus.IN_PROGRESS,
                 AppointmentStatus.CANCELLED,
-                AppointmentStatus.RESCHEDULED,
                 AppointmentStatus.NO_SHOW));
     }
 

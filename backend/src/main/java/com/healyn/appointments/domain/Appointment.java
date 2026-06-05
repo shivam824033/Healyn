@@ -141,6 +141,30 @@ public class Appointment extends BaseEntity {
         return a;
     }
 
+    /// A physiotherapist-created follow-up at a concrete time: the physiotherapist sets the
+    /// date and time directly, so it starts CONFIRMED with `is_follow_up = true`. There is no
+    /// patient request step (APPOINTMENT_FLOW §6a). `requested_date` is derived from the
+    /// scheduled instant (stored UTC).
+    public static Appointment followUp(UUID id,
+                                       UUID patientId,
+                                       UUID bookedByAccountId,
+                                       UUID physiotherapistId,
+                                       Instant scheduledAt,
+                                       short durationMinutes,
+                                       String reason,
+                                       Instant now) {
+        Appointment a = new Appointment();
+        a.id = id;
+        a.patientId = patientId;
+        a.bookedByAccountId = bookedByAccountId;
+        a.physiotherapistId = physiotherapistId;
+        a.requestedDate = scheduledAt.atZone(ZoneOffset.UTC).toLocalDate();
+        a.reason = reason;
+        a.followUp = true;
+        a.schedule(scheduledAt, durationMinutes, now);
+        return a;
+    }
+
     public UUID getPatientId() { return patientId; }
     public UUID getBookedByAccountId() { return bookedByAccountId; }
     public UUID getPhysiotherapistId() { return physiotherapistId; }
@@ -172,9 +196,11 @@ public class Appointment extends BaseEntity {
         this.confirmedAt = now;
     }
 
-    public void confirm(Instant now) {
-        this.status = AppointmentStatus.CONFIRMED;
-        this.confirmedAt = now;
+    /// Flags this not-yet-persisted row as a follow-up. `is_follow_up` is insert-only
+    /// (`updatable = false`), so this only takes effect when called before the first save —
+    /// used when a physio reschedule must carry the follow-up nature onto the replacement row.
+    public void markFollowUp() {
+        this.followUp = true;
     }
 
     public void start(Instant now) {

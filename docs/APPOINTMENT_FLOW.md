@@ -148,19 +148,22 @@ This means: even if two requests slip past the service layer simultaneously, **t
 
 ### 4.2 The Service-Layer Guard
 
-Before insert, the booking service:
+The overlap guarantee is owned by the DB EXCLUDE constraint (§4.1), not by a service-layer
+pre-check. Because only the physiotherapist sets a time — and they alone are responsible for
+their own calendar — the service does **not** force a scheduled time to fall inside a computed
+availability window. Availability and computed slots only *inform* the physiotherapist's UI when
+they pick a time; they are not enforced server-side.
 
-1. Loads availability rules + blackouts covering the requested time.
-2. Verifies the requested `(scheduled_at, duration_minutes)` falls **entirely** inside an availability window and **does not intersect** any blackout.
-3. Verifies no `REQUESTED` row already exists for the same patient at overlapping time (a patient cannot double-request).
+For every action that assigns a time (`/schedule`, `/follow-ups`, and a physiotherapist
+`/reschedule`), the service validates only the time itself before writing:
 
-Step 3 uses an advisory transaction lock to serialize concurrent booking attempts for the same physio:
+1. `scheduled_at` is present, and `duration_minutes` is within 5–240.
+2. `scheduled_at` is not in the past (5-minute clock-skew tolerance) and not more than 90 days out.
 
-```sql
-SELECT pg_advisory_xact_lock(hashtext('book:' || :physio_id));
-```
-
-This keeps the optimistic UX (fast no-conflict path) without sacrificing correctness under load.
+It then **flushes** the `CONFIRMED` row inside the transaction so the EXCLUDE constraint fires
+synchronously: a clash with an already-`CONFIRMED`/`IN_PROGRESS` appointment surfaces as a
+`23P01` violation, which the service translates to `409 Conflict` and the physiotherapist picks
+another time. A patient **request** assigns no time, so it performs no overlap check at all.
 
 ### 4.3 What Counts as Overlap
 

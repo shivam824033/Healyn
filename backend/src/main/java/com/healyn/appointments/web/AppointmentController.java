@@ -4,7 +4,9 @@ import com.healyn.appointments.domain.Appointment;
 import com.healyn.appointments.domain.AppointmentStatus;
 import com.healyn.appointments.service.AppointmentService;
 import com.healyn.appointments.service.BookingRequest;
+import com.healyn.appointments.service.FollowUpRequest;
 import com.healyn.appointments.service.RescheduleRequest;
+import com.healyn.appointments.service.ScheduleRequest;
 import com.healyn.appointments.service.TransitionRequest;
 import com.healyn.auth.domain.AccountRole;
 import com.healyn.common.pagination.CursorPage;
@@ -84,6 +86,29 @@ public class AppointmentController {
         return ResponseEntity.status(HttpStatus.CREATED).body(AppointmentMapper.toView(booked));
     }
 
+    @PostMapping("/{id}/schedule")
+    public AppointmentDtos.AppointmentView schedule(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable("id") UUID id,
+            @Valid @RequestBody AppointmentDtos.ScheduleRequestBody body) {
+        UUID actorId = UUID.fromString(jwt.getSubject());
+        AccountRole role = roleOf(jwt);
+        ScheduleRequest req = new ScheduleRequest(body.scheduledAt(), body.durationMinutes());
+        return AppointmentMapper.toView(service.schedule(actorId, role, id, req));
+    }
+
+    @PostMapping("/follow-ups")
+    @ResponseStatus(HttpStatus.CREATED)
+    public AppointmentDtos.AppointmentView createFollowUp(
+            @AuthenticationPrincipal Jwt jwt,
+            @Valid @RequestBody AppointmentDtos.FollowUpRequestBody body) {
+        UUID actorId = UUID.fromString(jwt.getSubject());
+        AccountRole role = roleOf(jwt);
+        FollowUpRequest req = new FollowUpRequest(
+                body.patientId(), body.scheduledAt(), body.durationMinutes(), body.reason());
+        return AppointmentMapper.toView(service.createFollowUp(actorId, role, req));
+    }
+
     @PostMapping("/{id}/transitions")
     public AppointmentDtos.AppointmentView transition(
             @AuthenticationPrincipal Jwt jwt,
@@ -104,7 +129,8 @@ public class AppointmentController {
         UUID actorId = UUID.fromString(jwt.getSubject());
         AccountRole role = roleOf(jwt);
         RescheduleRequest req = new RescheduleRequest(
-                body.scheduledAt(), body.durationMinutes(), body.reason());
+                body.scheduledAt(), body.durationMinutes(),
+                body.requestedDate(), body.preferredTime(), body.reason());
         return AppointmentMapper.toView(service.reschedule(actorId, role, id, req));
     }
 

@@ -30,9 +30,26 @@ public final class AppointmentDtos {
             AppointmentCancelReason cancelReason,
             @Size(max = 2000) String cancelNote) {}
 
-    public record RescheduleRequestBody(
+    /// The physiotherapist assigns the final time to a REQUESTED appointment.
+    public record ScheduleRequestBody(
+            @NotNull Instant scheduledAt,
+            @NotNull @Min(5) @Max(240) Short durationMinutes) {}
+
+    /// A physiotherapist-created follow-up at a time the physiotherapist sets.
+    public record FollowUpRequestBody(
+            @NotNull UUID patientId,
             @NotNull Instant scheduledAt,
             @NotNull @Min(5) @Max(240) Short durationMinutes,
+            @Size(max = 280) String reason) {}
+
+    /// Role-aware: a physiotherapist sends scheduledAt + durationMinutes (new CONFIRMED row);
+    /// a patient sends requestedDate + optional preferredTime (new unscheduled REQUESTED). The
+    /// service enforces which fields are required for the caller's role.
+    public record RescheduleRequestBody(
+            Instant scheduledAt,
+            @Min(5) @Max(240) Short durationMinutes,
+            LocalDate requestedDate,
+            LocalTime preferredTime,
             @Size(max = 280) String reason) {}
 
     public record AppointmentView(

@@ -40,6 +40,22 @@ public class AppointmentAccessPolicy {
         patientAccess.requireAccess(actorId, role, appt.getPatientId(), AccessMode.WRITE);
     }
 
+    /// Only the physiotherapist assigns the final time to a request (APPOINTMENT_FLOW §2).
+    public void requireSchedule(AccountRole role) {
+        if (role != AccountRole.ROLE_PHYSIO) {
+            throw new ForbiddenException(ErrorCode.FORBIDDEN,
+                    "Only the physiotherapist can schedule an appointment");
+        }
+    }
+
+    /// Only the physiotherapist creates follow-ups (APPOINTMENT_FLOW §6a).
+    public void requireCreateFollowUp(AccountRole role) {
+        if (role != AccountRole.ROLE_PHYSIO) {
+            throw new ForbiddenException(ErrorCode.FORBIDDEN,
+                    "Only the physiotherapist can create a follow-up");
+        }
+    }
+
     public void requireTransition(UUID actorId, AccountRole role, Appointment appt, AppointmentStatus target) {
         if (PHYSIO_ONLY_TARGETS.contains(target)) {
             if (role != AccountRole.ROLE_PHYSIO) {
