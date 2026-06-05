@@ -233,10 +233,13 @@ CREATE TABLE appointments (
     patient_id          UUID NOT NULL REFERENCES patients(id) ON DELETE RESTRICT,
     booked_by_account_id UUID NOT NULL REFERENCES accounts(id) ON DELETE RESTRICT,
     physiotherapist_id  UUID NOT NULL REFERENCES accounts(id) ON DELETE RESTRICT,
-    scheduled_at        TIMESTAMPTZ NOT NULL,
-    scheduled_end_at    TIMESTAMPTZ NOT NULL,                -- stored, = scheduled_at + duration; keeps the EXCLUDE index expression IMMUTABLE
+    requested_date      DATE NOT NULL,                       -- the date the patient asked for (mandatory at request time)
+    preferred_time      TIME,                                -- optional non-binding time-of-day hint from the patient
+    scheduled_at        TIMESTAMPTZ,                         -- NULL until the physiotherapist schedules; they set the final time
+    scheduled_end_at    TIMESTAMPTZ,                         -- stored, = scheduled_at + duration; keeps the EXCLUDE index expression IMMUTABLE
     duration_minutes    SMALLINT NOT NULL DEFAULT 30,
     status              appointment_status NOT NULL DEFAULT 'REQUESTED',
+    is_follow_up        BOOLEAN NOT NULL DEFAULT FALSE,      -- true when the physiotherapist created this as a follow-up
     reason              VARCHAR(280),                       -- "Lower back pain", etc.
     cancel_reason       appointment_cancel_reason,
     cancel_note         TEXT,
@@ -250,7 +253,14 @@ CREATE TABLE appointments (
     deleted_at          TIMESTAMPTZ,
 
     CHECK (duration_minutes BETWEEN 5 AND 240),
-    CONSTRAINT appointments_end_after_start CHECK (scheduled_end_at > scheduled_at)
+    -- NULL-tolerant: holds only when both endpoints are present (an unscheduled request has neither).
+    CONSTRAINT appointments_end_after_start CHECK (scheduled_end_at > scheduled_at),
+    -- A confirmed/active appointment must carry a concrete time; this also keeps the
+    -- EXCLUDE index safe — only rows with a real time enter its WHERE set.
+    CONSTRAINT appointments_scheduled_when_active CHECK (
+        status NOT IN ('CONFIRMED', 'IN_PROGRESS', 'COMPLETED', 'NO_SHOW')
+        OR scheduled_at IS NOT NULL
+    )
 );
 
 -- Conflict prevention: no two confirmed/in-progress appointments overlap for the same physio.
@@ -274,9 +284,14 @@ CREATE INDEX idx_appt_patient_scheduled
 CREATE INDEX idx_appt_status_scheduled
     ON appointments(status, scheduled_at)
     WHERE status IN ('REQUESTED', 'CONFIRMED', 'IN_PROGRESS');
+
+-- The physiotherapist's pending request queue, ordered by the date the patient asked for.
+CREATE INDEX idx_appt_requested_date
+    ON appointments(physiotherapist_id, requested_date)
+    WHERE status = 'REQUESTED' AND deleted_at IS NULL;
 ```
 
-State transitions and conflict rules: [APPOINTMENT_FLOW.md](./APPOINTMENT_FLOW.md).
+`requested_date`, `preferred_time`, nullable `scheduled_at`/`scheduled_end_at`, and `is_follow_up` are added by `V15__appointments_request_first.sql`. State transitions and conflict rules: [APPOINTMENT_FLOW.md](./APPOINTMENT_FLOW.md).
 
 ### 3.9 `treatment_notes`
 
@@ -553,6 +568,7 @@ V11__notification_outbox.sql      -- transactional outbox (enqueue side)
 V12__audit_log.sql                -- audit schema + append-only audit_log
 V13__fcm_tokens.sql               -- device push tokens (dispatch side, registration API)
 V14__notification_preferences.sql -- per-account push opt-outs (API_STANDARDS §9.8)
+V15__appointments_request_first.sql -- request-first booking: nullable scheduled_at, requested_date, preferred_time, is_follow_up
 ```
 
 Still pending: nothing schema-side remaining for Phase 1 notifications. The outbox poller +

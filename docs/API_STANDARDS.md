@@ -276,19 +276,30 @@ GET /api/v1/appointments?cursor=eyJpZCI6Ii4uLiJ9&limit=20
 | Method | Path | Purpose |
 |---|---|---|
 | `GET`  | `/appointments?patientId=&status=&from=&to=&cursor=&limit=` | List (cursor pagination, `limit ≤ 50`, default 20) |
-| `POST` | `/appointments` | Book (requires `Idempotency-Key` header) |
+| `POST` | `/appointments` | Request an appointment for a date — patient-side, no time (requires `Idempotency-Key` header) |
 | `GET`  | `/appointments/{id}` | Get |
-| `POST` | `/appointments/{id}/transitions` | Move status — body: `{to, cancelReason?, cancelNote?}` (see [APPOINTMENT_FLOW.md](./APPOINTMENT_FLOW.md)) |
-| `POST` | `/appointments/{id}/reschedule` | Reschedule — body: `{scheduledAt, durationMinutes, reason?}`; creates new `REQUESTED` row, old → `RESCHEDULED` |
+| `POST` | `/appointments/{id}/schedule` | **Physio only** — assign the final time to a `REQUESTED` request → `CONFIRMED`. Body: `{scheduledAt, durationMinutes}` |
+| `POST` | `/appointments/follow-ups` | **Physio only** — create a follow-up at a time the physio sets (`is_follow_up = true`). Body: `{patientId, scheduledAt, durationMinutes, reason?}` |
+| `POST` | `/appointments/{id}/transitions` | Move status — body: `{to, cancelReason?, cancelNote?}`. Does **not** accept `REQUESTED → CONFIRMED` (use `/schedule`). See [APPOINTMENT_FLOW.md](./APPOINTMENT_FLOW.md) |
+| `POST` | `/appointments/{id}/reschedule` | Reschedule, old → `RESCHEDULED`. Physio body: `{scheduledAt, durationMinutes, reason?}` → new `CONFIRMED`. Patient body: `{requestedDate, preferredTime?, reason?}` → new unscheduled `REQUESTED` |
 
-`POST /appointments` body:
+`POST /appointments` body (patient request — date is mandatory, time is the physiotherapist's to set):
 
 ```json
 {
   "patientId": "uuid",
-  "scheduledAt": "2026-06-15T09:00:00+05:30",
-  "durationMinutes": 30,
+  "requestedDate": "2026-06-15",
+  "preferredTime": "09:00",
   "reason": "Lower-back follow-up"
+}
+```
+
+`POST /appointments/{id}/schedule` body (physiotherapist assigns the time):
+
+```json
+{
+  "scheduledAt": "2026-06-15T09:00:00+05:30",
+  "durationMinutes": 30
 }
 ```
 
@@ -431,7 +442,7 @@ Rules:
 
 ## 10. Request / Response Examples
 
-### 10.1 Book an Appointment
+### 10.1 Request an Appointment
 
 ```http
 POST /api/v1/appointments HTTP/1.1
@@ -442,8 +453,8 @@ X-Request-Id: 0f3e22ad-9b6e-4f8e-8b2f-3e1d5a8b6f10
 
 {
   "patient_id": "8a7b6c5d-1e2f-3a4b-5c6d-7e8f9a0b1c2d",
-  "scheduled_at": "2026-05-30T10:30:00+05:30",
-  "duration_minutes": 30,
+  "requested_date": "2026-05-30",
+  "preferred_time": "10:30",
   "reason": "Lower back pain — follow up"
 }
 ```
@@ -460,14 +471,19 @@ X-Trace-Id: t-2bc7f4e1
     "id": "3d2c1b0a-9f8e-7d6c-5b4a-3c2d1e0f9a8b",
     "patient_id": "8a7b6c5d-1e2f-3a4b-5c6d-7e8f9a0b1c2d",
     "physiotherapist_id": "...",
-    "scheduled_at": "2026-05-30T05:00:00Z",
+    "requested_date": "2026-05-30",
+    "preferred_time": "10:30:00",
+    "scheduled_at": null,
     "duration_minutes": 30,
     "status": "REQUESTED",
+    "is_follow_up": false,
     "reason": "Lower back pain — follow up",
     "created_at": "2026-05-27T13:45:12Z"
   }
 }
 ```
+
+The physiotherapist later assigns the time with `POST /appointments/{id}/schedule`, which sets `scheduled_at` and moves the status to `CONFIRMED`.
 
 ### 10.2 Conflict Example
 

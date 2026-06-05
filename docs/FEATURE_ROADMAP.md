@@ -50,6 +50,8 @@ Architecture in Phase 1 must **enable** Phase 2 and Phase 3 without rewrites. It
 
 **Priority legend:** P0 = must ship to release Phase 1. P1 = strongly desired but releasable without. P2 = nice to have.
 
+> **Booking model note (F1.8–F1.13):** booking is **request-first** — the patient requests a date (no self-assigned time) and the physiotherapist assigns/confirms the final date and time, reschedules, and creates follow-ups. This refines the listed features; it does not add new scope. See [APPOINTMENT_FLOW.md](./APPOINTMENT_FLOW.md).
+
 ### 2.2 Phase 1 Acceptance Criteria
 
 Phase 1 is **done** when **all P0 features** are:
