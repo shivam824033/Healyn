@@ -10,12 +10,20 @@ import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.UUID;
 
 @Entity
 @Table(name = "appointments")
 public class Appointment extends BaseEntity {
+
+    /// Placeholder duration for an unscheduled request: the column is NOT NULL with a
+    /// 5–240 CHECK, so a request needs a valid value until the physiotherapist sets the
+    /// real one at schedule time. The slot default (30) is the natural placeholder.
+    private static final short DEFAULT_DURATION_MINUTES = 30;
 
     @Column(name = "patient_id", nullable = false, updatable = false)
     private UUID patientId;
@@ -26,10 +34,17 @@ public class Appointment extends BaseEntity {
     @Column(name = "physiotherapist_id", nullable = false, updatable = false)
     private UUID physiotherapistId;
 
-    @Column(name = "scheduled_at", nullable = false)
+    @Column(name = "requested_date", nullable = false, updatable = false)
+    private LocalDate requestedDate;
+
+    @Column(name = "preferred_time", updatable = false)
+    private LocalTime preferredTime;
+
+    // Null until the physiotherapist schedules the request (they set the final time).
+    @Column(name = "scheduled_at")
     private Instant scheduledAt;
 
-    @Column(name = "scheduled_end_at", nullable = false)
+    @Column(name = "scheduled_end_at")
     private Instant scheduledEndAt;
 
     @Column(name = "duration_minutes", nullable = false)
@@ -39,6 +54,9 @@ public class Appointment extends BaseEntity {
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Column(name = "status", nullable = false, columnDefinition = "appointment_status")
     private AppointmentStatus status;
+
+    @Column(name = "is_follow_up", nullable = false, updatable = false)
+    private boolean followUp;
 
     @Column(name = "reason")
     private String reason;
@@ -71,6 +89,10 @@ public class Appointment extends BaseEntity {
 
     protected Appointment() {}
 
+    /// A scheduled appointment created with a concrete time (physio reschedule, follow-up
+    /// seeding, tests). `requested_date` is derived from the scheduled instant (stored UTC)
+    /// so the request-first column is always populated. Status starts at REQUESTED — callers
+    /// that need it CONFIRMED (e.g. a follow-up) call {@link #schedule}.
     public Appointment(UUID id,
                        UUID patientId,
                        UUID bookedByAccountId,
@@ -86,18 +108,49 @@ public class Appointment extends BaseEntity {
         this.scheduledAt = scheduledAt;
         this.scheduledEndAt = scheduledAt.plus(durationMinutes, ChronoUnit.MINUTES);
         this.durationMinutes = durationMinutes;
+        this.requestedDate = scheduledAt.atZone(ZoneOffset.UTC).toLocalDate();
         this.reason = reason;
         this.rescheduledFromId = rescheduledFromId;
+        this.followUp = false;
         this.status = AppointmentStatus.REQUESTED;
+    }
+
+    /// A patient request with no time yet: the patient picks a date (and an optional
+    /// time-of-day hint); the physiotherapist assigns the final time later via
+    /// {@link #schedule}. Status is REQUESTED, `scheduled_at` is null.
+    public static Appointment request(UUID id,
+                                      UUID patientId,
+                                      UUID bookedByAccountId,
+                                      UUID physiotherapistId,
+                                      LocalDate requestedDate,
+                                      LocalTime preferredTime,
+                                      String reason,
+                                      UUID rescheduledFromId) {
+        Appointment a = new Appointment();
+        a.id = id;
+        a.patientId = patientId;
+        a.bookedByAccountId = bookedByAccountId;
+        a.physiotherapistId = physiotherapistId;
+        a.requestedDate = requestedDate;
+        a.preferredTime = preferredTime;
+        a.durationMinutes = DEFAULT_DURATION_MINUTES;
+        a.reason = reason;
+        a.rescheduledFromId = rescheduledFromId;
+        a.followUp = false;
+        a.status = AppointmentStatus.REQUESTED;
+        return a;
     }
 
     public UUID getPatientId() { return patientId; }
     public UUID getBookedByAccountId() { return bookedByAccountId; }
     public UUID getPhysiotherapistId() { return physiotherapistId; }
+    public LocalDate getRequestedDate() { return requestedDate; }
+    public LocalTime getPreferredTime() { return preferredTime; }
     public Instant getScheduledAt() { return scheduledAt; }
     public Instant getScheduledEndAt() { return scheduledEndAt; }
     public short getDurationMinutes() { return durationMinutes; }
     public AppointmentStatus getStatus() { return status; }
+    public boolean isFollowUp() { return followUp; }
     public String getReason() { return reason; }
     public AppointmentCancelReason getCancelReason() { return cancelReason; }
     public String getCancelNote() { return cancelNote; }
@@ -107,6 +160,17 @@ public class Appointment extends BaseEntity {
     public Instant getCompletedAt() { return completedAt; }
     public Instant getCancelledAt() { return cancelledAt; }
     public Instant getDeletedAt() { return deletedAt; }
+
+    /// The physiotherapist assigns the final time to a request and confirms it in one step:
+    /// REQUESTED → CONFIRMED. The caller (service layer) checks the source status first and
+    /// flushes so the physio-overlap EXCLUDE constraint can reject a clashing time.
+    public void schedule(Instant scheduledAt, short durationMinutes, Instant now) {
+        this.scheduledAt = scheduledAt;
+        this.scheduledEndAt = scheduledAt.plus(durationMinutes, ChronoUnit.MINUTES);
+        this.durationMinutes = durationMinutes;
+        this.status = AppointmentStatus.CONFIRMED;
+        this.confirmedAt = now;
+    }
 
     public void confirm(Instant now) {
         this.status = AppointmentStatus.CONFIRMED;
