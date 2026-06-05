@@ -79,7 +79,7 @@ public class AppointmentController {
         UUID actorId = UUID.fromString(jwt.getSubject());
         AccountRole role = roleOf(jwt);
         BookingRequest req = new BookingRequest(
-                body.patientId(), body.scheduledAt(), body.durationMinutes(), body.reason());
+                body.patientId(), body.requestedDate(), body.preferredTime(), body.reason());
         Appointment booked = service.book(actorId, role, req, idempotencyKey);
         return ResponseEntity.status(HttpStatus.CREATED).body(AppointmentMapper.toView(booked));
     }

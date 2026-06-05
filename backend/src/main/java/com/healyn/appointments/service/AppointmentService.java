@@ -106,16 +106,18 @@ public class AppointmentService {
 
         access.requireBook(actorId, role, req.patientId());
         UUID physioId = resolvePhysioId();
-        validateSchedule(req.scheduledAt(), req.durationMinutes());
-        requireSlotExists(physioId, req.scheduledAt(), req.durationMinutes());
+        validateRequestedDate(req.requestedDate());
 
-        Appointment appt = new Appointment(
+        // Request-first: no time and no availability check — a patient may request any
+        // date regardless of whether that day's slots are already taken. The
+        // physiotherapist assigns the final time later via schedule() (APPOINTMENT_FLOW §2).
+        Appointment appt = Appointment.request(
                 UuidV7.generate(),
                 req.patientId(),
                 actorId,
                 physioId,
-                req.scheduledAt(),
-                req.durationMinutes(),
+                req.requestedDate(),
+                req.preferredTime(),
                 req.reason(),
                 null);
         Appointment saved = appointments.save(appt);
@@ -280,6 +282,22 @@ public class AppointmentService {
                 .orElseThrow(() -> new NotFoundException(ErrorCode.APPOINTMENT_SLOT_UNAVAILABLE,
                         "No physiotherapist is configured"))
                 .getId();
+    }
+
+    private void validateRequestedDate(LocalDate requestedDate) {
+        if (requestedDate == null) {
+            throw new UnprocessableException(ErrorCode.APPOINTMENT_INVALID_SCHEDULE,
+                    "requestedDate is required");
+        }
+        LocalDate today = LocalDate.now(clock);
+        if (requestedDate.isBefore(today)) {
+            throw new UnprocessableException(ErrorCode.APPOINTMENT_INVALID_SCHEDULE,
+                    "requestedDate cannot be in the past");
+        }
+        if (requestedDate.isAfter(today.plusDays(BOOKING_MAX_HORIZON.toDays()))) {
+            throw new UnprocessableException(ErrorCode.APPOINTMENT_INVALID_SCHEDULE,
+                    "requestedDate is more than " + BOOKING_MAX_HORIZON.toDays() + " days in the future");
+        }
     }
 
     private void validateSchedule(Instant scheduledAt, short durationMinutes) {

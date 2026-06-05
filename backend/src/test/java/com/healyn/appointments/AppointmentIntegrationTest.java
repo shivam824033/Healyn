@@ -97,59 +97,48 @@ class AppointmentIntegrationTest {
     }
 
     @Test
-    void books_slot_then_second_account_gets_409_on_same_instant() throws Exception {
-        Session physio = seedPhysio();
-        createMondayRule(physio);
+    void two_patients_can_request_the_same_date_without_conflict() throws Exception {
+        // Request-first: a request carries no time, so two patients asking for the same
+        // date never conflict (APPOINTMENT_FLOW §2). No availability is consulted.
+        seedPhysio();
         Session a = registerPatient("ann");
         Session b = registerPatient("ben");
         UUID patientA = primaryPatientId(a);
         UUID patientB = primaryPatientId(b);
 
-        String slot = nextMondayAt(9, 0);
+        String date = requestDate(7);
 
-        bookOk(a, patientA, slot, "idem-a-1");
-
-        mvc.perform(post("/appointments")
-                        .header("Authorization", "Bearer " + b.access)
-                        .header("Idempotency-Key", "idem-b-1")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(json.writeValueAsString(Map.of(
-                                "patient_id", patientB.toString(),
-                                "scheduled_at", slot,
-                                "duration_minutes", 30))))
-                .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.error.code").value("appointments.slot_unavailable"));
+        requestOk(a, patientA, date, "idem-a-1");
+        requestOk(b, patientB, date, "idem-b-1");
     }
 
     @Test
-    void booking_slot_outside_rule_window_returns_409() throws Exception {
-        Session physio = seedPhysio();
-        createMondayRule(physio);
+    void request_for_a_date_without_availability_is_accepted() throws Exception {
+        // No availability rule exists at all — a request still succeeds. The patient may
+        // request any date regardless of whether that day's slots are booked.
+        seedPhysio();
         Session a = registerPatient("carl");
         UUID patientA = primaryPatientId(a);
 
-        String offRule = nextMondayAt(20, 0);
+        UUID id = requestOk(a, patientA, requestDate(10), "idem-c-1");
 
-        mvc.perform(post("/appointments")
-                        .header("Authorization", "Bearer " + a.access)
-                        .header("Idempotency-Key", "idem-c-1")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(json.writeValueAsString(Map.of(
-                                "patient_id", patientA.toString(),
-                                "scheduled_at", offRule,
-                                "duration_minutes", 30))))
-                .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.error.code").value("appointments.slot_unavailable"));
+        mvc.perform(get("/appointments/" + id)
+                        .header("Authorization", "Bearer " + a.access))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("REQUESTED"))
+                // scheduled_at is null on an unscheduled request and omitted (NON_NULL).
+                .andExpect(jsonPath("$.scheduled_at").doesNotExist())
+                .andExpect(jsonPath("$.requested_date").value(requestDate(10)))
+                .andExpect(jsonPath("$.is_follow_up").value(false));
     }
 
     @Test
     void patient_cannot_transition_to_completed() throws Exception {
-        Session physio = seedPhysio();
-        createMondayRule(physio);
+        seedPhysio();
         Session a = registerPatient("dora");
         UUID patientA = primaryPatientId(a);
 
-        UUID apptId = bookOk(a, patientA, nextMondayAt(9, 30), "idem-d-1");
+        UUID apptId = requestOk(a, patientA, requestDate(7), "idem-d-1");
 
         mvc.perform(post("/appointments/" + apptId + "/transitions")
                         .header("Authorization", "Bearer " + a.access)
@@ -165,7 +154,14 @@ class AppointmentIntegrationTest {
         Session a = registerPatient("eve");
         UUID patientA = primaryPatientId(a);
 
-        UUID oldId = bookOk(a, patientA, nextMondayAt(10, 0), "idem-e-1");
+        // Seed the original request directly so its physiotherapist is THIS test's physio
+        // (the one with the Monday rule). Booking no longer pins a physio with availability,
+        // and reschedule's slot check runs against the appointment's own physiotherapist.
+        Appointment old = Appointment.request(
+                UuidV7.generate(), patientA, accountIdOf(a), physio.id,
+                LocalDate.now(KOLKATA).plusDays(7), null, "back pain", null);
+        appointments.save(old);
+        UUID oldId = old.getId();
 
         MvcResult res = mvc.perform(post("/appointments/" + oldId + "/reschedule")
                         .header("Authorization", "Bearer " + a.access)
@@ -187,12 +183,11 @@ class AppointmentIntegrationTest {
 
     @Test
     void cancel_without_reason_returns_422() throws Exception {
-        Session physio = seedPhysio();
-        createMondayRule(physio);
+        seedPhysio();
         Session a = registerPatient("fay");
         UUID patientA = primaryPatientId(a);
 
-        UUID apptId = bookOk(a, patientA, nextMondayAt(11, 0), "idem-f-1");
+        UUID apptId = requestOk(a, patientA, requestDate(7), "idem-f-1");
 
         mvc.perform(post("/appointments/" + apptId + "/transitions")
                         .header("Authorization", "Bearer " + a.access)
@@ -204,16 +199,13 @@ class AppointmentIntegrationTest {
 
     @Test
     void idempotency_replay_returns_same_appointment_id() throws Exception {
-        Session physio = seedPhysio();
-        createMondayRule(physio);
+        seedPhysio();
         Session a = registerPatient("gus");
         UUID patientA = primaryPatientId(a);
 
-        String slot = nextMondayAt(11, 30);
         String body = json.writeValueAsString(Map.of(
                 "patient_id", patientA.toString(),
-                "scheduled_at", slot,
-                "duration_minutes", 30));
+                "requested_date", requestDate(7)));
 
         MvcResult first = mvc.perform(post("/appointments")
                         .header("Authorization", "Bearer " + a.access)
@@ -312,18 +304,22 @@ class AppointmentIntegrationTest {
                 null));
     }
 
-    private UUID bookOk(Session actor, UUID patientId, String scheduledAt, String key) throws Exception {
+    private UUID requestOk(Session actor, UUID patientId, String requestedDate, String key) throws Exception {
         MvcResult res = mvc.perform(post("/appointments")
                         .header("Authorization", "Bearer " + actor.access)
                         .header("Idempotency-Key", key)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(json.writeValueAsString(Map.of(
                                 "patient_id", patientId.toString(),
-                                "scheduled_at", scheduledAt,
-                                "duration_minutes", 30))))
+                                "requested_date", requestedDate))))
                 .andExpect(status().isCreated())
                 .andReturn();
         return UUID.fromString(json.readTree(res.getResponse().getContentAsByteArray()).get("id").asText());
+    }
+
+    /// A valid future request date (clinic zone), within the 90-day horizon.
+    private static String requestDate(int daysAhead) {
+        return LocalDate.now(KOLKATA).plusDays(daysAhead).toString();
     }
 
     private void createMondayRule(Session physio) throws Exception {

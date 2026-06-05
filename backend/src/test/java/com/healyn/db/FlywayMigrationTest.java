@@ -29,9 +29,10 @@ class FlywayMigrationTest {
                 .load();
         flyway.migrate();
 
+        // Pins the latest migration version as a tripwire — bump it with every new migration.
         MigrationInfo current = flyway.info().current();
-        assertThat(current.getVersion().getVersion()).isEqualTo("13");
-        assertThat(flyway.info().applied()).hasSizeGreaterThanOrEqualTo(13);
+        assertThat(current.getVersion().getVersion()).isEqualTo("15");
+        assertThat(flyway.info().applied()).hasSizeGreaterThanOrEqualTo(15);
 
         DataSource ds = flyway.getConfiguration().getDataSource();
         try (Connection c = ds.getConnection(); Statement st = c.createStatement()) {

@@ -2,6 +2,8 @@ package com.healyn.files;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.healyn.appointments.domain.Appointment;
+import com.healyn.appointments.repository.AppointmentRepository;
 import com.healyn.auth.adapter.OtpSender;
 import com.healyn.auth.domain.Account;
 import com.healyn.auth.domain.AccountRole;
@@ -35,6 +37,7 @@ import org.testcontainers.utility.DockerImageName;
 
 import java.time.DayOfWeek;
 import java.time.Duration;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneId;
@@ -114,6 +117,7 @@ class FileIntegrationTest {
     @Autowired CapturingOtpSender otpSender;
     @Autowired InMemoryFileStore fileStore;
     @Autowired AccountRepository accounts;
+    @Autowired AppointmentRepository appointments;
     @Autowired FileObjectRepository files;
     @Autowired AccessTokenIssuer tokenIssuer;
 
@@ -205,10 +209,9 @@ class FileIntegrationTest {
 
     private Fixture bootstrap(String tag) throws Exception {
         Session physio = seedPhysio();
-        createMondayRule(physio);
         Session account = registerPatient(tag);
         UUID patientId = primaryPatientId(account);
-        UUID apptId = bookAppointment(account, patientId);
+        UUID apptId = seedAppointment(physio, account, patientId);
         return new Fixture(account, patientId, apptId);
     }
 
@@ -253,33 +256,15 @@ class FileIntegrationTest {
         return nextMondayAt(9 + minutes / 60, minutes % 60);
     }
 
-    private UUID bookAppointment(Session actor, UUID patientId) throws Exception {
-        MvcResult res = mvc.perform(post("/appointments")
-                        .header("Authorization", "Bearer " + actor.access)
-                        .header("Idempotency-Key", "file-" + UUID.randomUUID())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(json.writeValueAsString(Map.of(
-                                "patient_id", patientId.toString(),
-                                "scheduled_at", nextSlot(),
-                                "duration_minutes", 30))))
-                .andExpect(status().isCreated())
-                .andReturn();
-        return UUID.fromString(json.readTree(res.getResponse().getContentAsByteArray()).get("id").asText());
-    }
-
-    private void createMondayRule(Session physio) throws Exception {
-        String effectiveFrom = LocalDate.now().minusDays(30).toString();
-        mvc.perform(post("/availability/rules")
-                        .header("Authorization", "Bearer " + physio.access)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(json.writeValueAsString(Map.of(
-                                "day_of_week", 1,
-                                "start_time", "09:00:00",
-                                "end_time", "17:00:00",
-                                "slot_minutes", 30,
-                                "timezone", "Asia/Kolkata",
-                                "effective_from", effectiveFrom))))
-                .andExpect(status().isCreated());
+    /// Seeds an appointment for the fixture's own physiotherapist directly. Booking is now a
+    /// patient request with no time, so an appointment to attach files to is seeded straight to
+    /// the repository (a distinct slot keeps each one apart in the shared container).
+    private UUID seedAppointment(Session physio, Session actor, UUID patientId) {
+        Appointment appt = new Appointment(
+                UuidV7.generate(), patientId, actor.id, physio.id,
+                Instant.parse(nextSlot()), (short) 30, "file seed", null);
+        appointments.save(appt);
+        return appt.getId();
     }
 
     private static String nextMondayAt(int hour, int minute) {
