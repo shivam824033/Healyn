@@ -11,6 +11,7 @@ import '../../../shared/design/radii.dart';
 import '../../../shared/design/spacing.dart';
 import '../../../shared/design/typography.dart';
 import '../../../shared/widgets/error_banner.dart';
+import '../physio_requests_providers.dart';
 import '../physio_schedule_providers.dart';
 
 /// The physiotherapist's schedule (F1.12, read-only in C2): a day of
@@ -52,6 +53,7 @@ class PhysioTodayScreen extends ConsumerWidget {
       body: SafeArea(
         child: Column(
           children: [
+            const _RequestsBanner(),
             _DayStepper(
               day: day,
               onPrev: () => stepDays(-1),
@@ -64,7 +66,8 @@ class PhysioTodayScreen extends ConsumerWidget {
                 onRefresh: () async {
                   ref
                     ..invalidate(physioScheduleProvider)
-                    ..invalidate(physioScheduleActivityProvider);
+                    ..invalidate(physioScheduleActivityProvider)
+                    ..invalidate(physioRequestsProvider);
                   await ref.read(physioScheduleProvider.future);
                 },
                 child: schedule.when(
@@ -97,6 +100,54 @@ class PhysioTodayScreen extends ConsumerWidget {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// "N new requests" banner above the schedule (D2). Watches the pending-requests
+/// queue and taps through to the dedicated requests screen. Renders nothing while
+/// loading/failed or when there is nothing pending, so Today stays calm.
+class _RequestsBanner extends ConsumerWidget {
+  const _RequestsBanner();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final count = ref.watch(physioRequestsProvider).valueOrNull?.length ?? 0;
+    if (count == 0) return const SizedBox.shrink();
+
+    return Material(
+      color: HealynColors.brandPrimarySubtle,
+      child: InkWell(
+        onTap: () => context.push('/physio/requests'),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: HealynSpacing.screenEdge,
+            vertical: HealynSpacing.s3,
+          ),
+          child: Row(
+            children: [
+              const Icon(
+                Icons.inbox_outlined,
+                size: 20,
+                color: HealynColors.brandPrimary,
+              ),
+              const SizedBox(width: HealynSpacing.s3),
+              Expanded(
+                child: Text(
+                  count == 1 ? '1 new request' : '$count new requests',
+                  style: HealynTypography.bodyStrong.copyWith(
+                    color: HealynColors.brandPrimary,
+                  ),
+                ),
+              ),
+              const Icon(
+                Icons.chevron_right,
+                color: HealynColors.brandPrimary,
+              ),
+            ],
+          ),
         ),
       ),
     );

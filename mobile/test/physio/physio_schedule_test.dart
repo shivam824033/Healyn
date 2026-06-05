@@ -5,6 +5,7 @@ import 'package:healyn/features/appointments/data/models/appointment_models.dart
 import 'package:healyn/features/appointments/presentation/appointment_format.dart';
 import 'package:healyn/features/patients/data/models/patient_models.dart';
 import 'package:healyn/features/patients/presentation/patients_providers.dart';
+import 'package:healyn/features/physio/presentation/physio_requests_providers.dart';
 import 'package:healyn/features/physio/presentation/physio_schedule_providers.dart';
 import 'package:healyn/features/physio/presentation/screens/physio_today_screen.dart';
 
@@ -48,6 +49,7 @@ Future<void> _pump(
     ProviderScope(
       overrides: [
         physioScheduleProvider.overrideWith((ref) async => appointments),
+        physioRequestsProvider.overrideWith((ref) async => const []),
         patientsProvider.overrideWith((ref) => patients),
       ],
       child: const MaterialApp(home: PhysioTodayScreen()),

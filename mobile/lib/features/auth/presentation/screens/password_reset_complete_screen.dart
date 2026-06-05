@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -9,18 +10,35 @@ import '../../../shared/widgets/app_text_field.dart';
 import '../../../shared/widgets/error_banner.dart';
 import '../../../shared/widgets/primary_button.dart';
 import '../../data/auth_repository.dart';
-import '../controllers/auth_controller.dart';
 
-class LoginScreen extends ConsumerStatefulWidget {
-  const LoginScreen({super.key});
+/// Carries the challenge id (and the contact it was sent to, for display) from
+/// the reset-start step into this complete step.
+class PasswordResetCompleteArgs {
+  const PasswordResetCompleteArgs({
+    required this.challengeId,
+    required this.target,
+  });
 
-  @override
-  ConsumerState<LoginScreen> createState() => _LoginScreenState();
+  final String challengeId;
+  final String target;
 }
 
-class _LoginScreenState extends ConsumerState<LoginScreen> {
+/// Step 2 of "Forgot password?": enter the OTP and a new password. The backend
+/// issues no session here (204), so on success this returns to sign-in (D4).
+class PasswordResetCompleteScreen extends ConsumerStatefulWidget {
+  const PasswordResetCompleteScreen({required this.args, super.key});
+
+  final PasswordResetCompleteArgs args;
+
+  @override
+  ConsumerState<PasswordResetCompleteScreen> createState() =>
+      _PasswordResetCompleteScreenState();
+}
+
+class _PasswordResetCompleteScreenState
+    extends ConsumerState<PasswordResetCompleteScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _identifier = TextEditingController();
+  final _code = TextEditingController();
   final _password = TextEditingController();
   bool _obscure = true;
   bool _submitting = false;
@@ -28,7 +46,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   @override
   void dispose() {
-    _identifier.dispose();
+    _code.dispose();
     _password.dispose();
     super.dispose();
   }
@@ -39,15 +57,26 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       _submitting = true;
       _error = null;
     });
+    final router = GoRouter.of(context);
+    final messenger = ScaffoldMessenger.of(context);
     try {
       await ref
           .read(authRepositoryProvider)
-          .login(
-            emailOrPhone: _identifier.text.trim(),
-            password: _password.text,
+          .completePasswordReset(
+            challengeId: widget.args.challengeId,
+            code: _code.text.trim(),
+            newPassword: _password.text,
           );
       if (!mounted) return;
-      await ref.read(authControllerProvider.notifier).markAuthenticated();
+      // No session is issued — send the user back to sign in with the new
+      // password. The root messenger keeps the confirmation visible across the
+      // navigation.
+      router.go('/login');
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text('Password updated. Sign in with your new password.'),
+        ),
+      );
     } on ApiException catch (e) {
       if (mounted) setState(() => _error = e.message);
     } finally {
@@ -58,7 +87,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Sign in')),
+      appBar: AppBar(title: const Text('Reset password')),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(HealynSpacing.screenEdge),
@@ -67,34 +96,40 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const Text('Welcome back', style: HealynTypography.h1),
+                const Text('Enter your code', style: HealynTypography.h1),
                 const SizedBox(height: HealynSpacing.s2),
-                const Text(
-                  'Sign in to your Healyn account.',
+                Text(
+                  'We sent a 6-digit code to ${widget.args.target}. '
+                  'Enter it and choose a new password.',
                   style: HealynTypography.body,
                 ),
-                const SizedBox(height: HealynSpacing.s7),
+                const SizedBox(height: HealynSpacing.s6),
                 if (_error != null) ...[
                   ErrorBanner(message: _error!),
                   const SizedBox(height: HealynSpacing.s4),
                 ],
                 AppTextField(
-                  label: 'Email or phone',
-                  controller: _identifier,
-                  keyboardType: TextInputType.emailAddress,
+                  label: 'Verification code',
+                  controller: _code,
+                  keyboardType: TextInputType.number,
                   textInputAction: TextInputAction.next,
-                  autofillHints: const [AutofillHints.username],
-                  validator: (v) => (v == null || v.trim().isEmpty)
-                      ? 'Enter your email or phone'
+                  autofillHints: const [AutofillHints.oneTimeCode],
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                    LengthLimitingTextInputFormatter(6),
+                  ],
+                  validator: (v) => (v == null || v.trim().length != 6)
+                      ? 'Enter the 6-digit code'
                       : null,
                 ),
                 const SizedBox(height: HealynSpacing.s4),
                 AppTextField(
-                  label: 'Password',
+                  label: 'New password',
                   controller: _password,
                   obscureText: _obscure,
+                  hintText: 'At least 10 characters',
                   textInputAction: TextInputAction.done,
-                  autofillHints: const [AutofillHints.password],
+                  autofillHints: const [AutofillHints.newPassword],
                   suffixIcon: IconButton(
                     icon: Icon(
                       _obscure ? Icons.visibility_off : Icons.visibility,
@@ -102,41 +137,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     tooltip: _obscure ? 'Show password' : 'Hide password',
                     onPressed: () => setState(() => _obscure = !_obscure),
                   ),
-                  validator: (v) => (v == null || v.isEmpty)
-                      ? 'Enter your password'
+                  validator: (v) => (v == null || v.length < 10)
+                      ? 'Use at least 10 characters'
                       : null,
                 ),
-                const SizedBox(height: HealynSpacing.s5),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton(
-                    onPressed: _submitting
-                        ? null
-                        : () => context.push('/password-reset'),
-                    child: const Text('Forgot password?'),
-                  ),
-                ),
-                const SizedBox(height: HealynSpacing.s4),
+                const SizedBox(height: HealynSpacing.s7),
                 PrimaryButton(
-                  label: 'Sign in',
+                  label: 'Reset password',
                   loading: _submitting,
                   onPressed: _submit,
-                ),
-                const SizedBox(height: HealynSpacing.s4),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Text(
-                      "Don't have an account?",
-                      style: HealynTypography.body,
-                    ),
-                    TextButton(
-                      onPressed: _submitting
-                          ? null
-                          : () => context.go('/register'),
-                      child: const Text('Create one'),
-                    ),
-                  ],
                 ),
               ],
             ),

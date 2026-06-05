@@ -86,6 +86,32 @@ Map<String, dynamic> _$RegisterCompleteRequestToJson(
   'profile': instance.profile.toJson(),
 };
 
+_PasswordResetStartRequest _$PasswordResetStartRequestFromJson(
+  Map<String, dynamic> json,
+) => _PasswordResetStartRequest(
+  target: ContactTarget.fromJson(json['target'] as Map<String, dynamic>),
+);
+
+Map<String, dynamic> _$PasswordResetStartRequestToJson(
+  _PasswordResetStartRequest instance,
+) => <String, dynamic>{'target': instance.target.toJson()};
+
+_PasswordResetCompleteRequest _$PasswordResetCompleteRequestFromJson(
+  Map<String, dynamic> json,
+) => _PasswordResetCompleteRequest(
+  challengeId: json['challenge_id'] as String,
+  code: json['code'] as String,
+  newPassword: json['new_password'] as String,
+);
+
+Map<String, dynamic> _$PasswordResetCompleteRequestToJson(
+  _PasswordResetCompleteRequest instance,
+) => <String, dynamic>{
+  'challenge_id': instance.challengeId,
+  'code': instance.code,
+  'new_password': instance.newPassword,
+};
+
 _LoginRequest _$LoginRequestFromJson(Map<String, dynamic> json) =>
     _LoginRequest(
       emailOrPhone: json['email_or_phone'] as String,

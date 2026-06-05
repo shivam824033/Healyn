@@ -68,6 +68,32 @@ abstract class RegisterCompleteRequest with _$RegisterCompleteRequest {
       _$RegisterCompleteRequestFromJson(json);
 }
 
+/// Step 1 of password reset — same shape as [RegisterStartRequest] (exactly one
+/// of email/phone in [ContactTarget]); the backend sends a 6-digit OTP.
+@freezed
+abstract class PasswordResetStartRequest with _$PasswordResetStartRequest {
+  const factory PasswordResetStartRequest({required ContactTarget target}) =
+      _PasswordResetStartRequest;
+
+  factory PasswordResetStartRequest.fromJson(Map<String, dynamic> json) =>
+      _$PasswordResetStartRequestFromJson(json);
+}
+
+/// Step 2 of password reset — verifies the OTP and sets a new password. The
+/// backend responds 204 (no session), so the user signs in afterward.
+@freezed
+abstract class PasswordResetCompleteRequest
+    with _$PasswordResetCompleteRequest {
+  const factory PasswordResetCompleteRequest({
+    required String challengeId,
+    required String code,
+    required String newPassword,
+  }) = _PasswordResetCompleteRequest;
+
+  factory PasswordResetCompleteRequest.fromJson(Map<String, dynamic> json) =>
+      _$PasswordResetCompleteRequestFromJson(json);
+}
+
 @freezed
 abstract class LoginRequest with _$LoginRequest {
   const factory LoginRequest({

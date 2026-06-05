@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../patients/data/models/patient_models.dart';
@@ -9,18 +10,21 @@ import '../../../shared/design/radii.dart';
 import '../../../shared/design/spacing.dart';
 import '../../../shared/design/typography.dart';
 import '../../../shared/widgets/section_card.dart';
+import '../../../treatment_notes/presentation/next_review_providers.dart';
+import '../../../treatment_notes/presentation/treatment_notes_format.dart';
 
 /// One patient as seen by the physiotherapist (C6): identity, demographics and
 /// the clinically relevant fields (blood group, allergies, free-text notes),
 /// with a link into the full treatment-note history. Read-only — the physio does
 /// not edit patient profiles. All clinical text is PHI; never logged.
-class PhysioPatientDetailScreen extends StatelessWidget {
+class PhysioPatientDetailScreen extends ConsumerWidget {
   const PhysioPatientDetailScreen({required this.patient, super.key});
 
   final Patient patient;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final reviewDue = ref.watch(patientNextReviewProvider(patient.id)).valueOrNull;
     final details = <(String, String)>[
       (
         'Date of birth',
@@ -59,6 +63,29 @@ class PhysioPatientDetailScreen extends StatelessWidget {
               const SizedBox(height: HealynSpacing.s3),
               SectionCard(
                 child: Text(patient.notes!, style: HealynTypography.body),
+              ),
+            ],
+            if (reviewDue != null) ...[
+              const SizedBox(height: HealynSpacing.s6),
+              const _SectionTitle('Follow-up due'),
+              const SizedBox(height: HealynSpacing.s3),
+              SectionCard(
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.event_repeat_outlined,
+                      size: 20,
+                      color: HealynColors.brandPrimary,
+                    ),
+                    const SizedBox(width: HealynSpacing.s3),
+                    Expanded(
+                      child: Text(
+                        formatReviewWhen(reviewDue),
+                        style: HealynTypography.body,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ],
             const SizedBox(height: HealynSpacing.s6),

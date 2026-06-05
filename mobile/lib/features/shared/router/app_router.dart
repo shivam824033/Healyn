@@ -15,6 +15,8 @@ import '../../discussion/presentation/screens/unread_discussions_screen.dart';
 import '../../auth/domain/auth_status.dart';
 import '../../auth/presentation/controllers/auth_controller.dart';
 import '../../auth/presentation/screens/login_screen.dart';
+import '../../auth/presentation/screens/password_reset_complete_screen.dart';
+import '../../auth/presentation/screens/password_reset_start_screen.dart';
 import '../../auth/presentation/screens/register_start_screen.dart';
 import '../../auth/presentation/screens/register_verify_screen.dart';
 import '../../auth/presentation/screens/splash_screen.dart';
@@ -26,6 +28,7 @@ import '../../physio/presentation/screens/physio_appointment_detail_screen.dart'
 import '../../physio/presentation/screens/physio_availability_screen.dart';
 import '../../physio/presentation/screens/physio_patient_detail_screen.dart';
 import '../../physio/presentation/screens/physio_patients_screen.dart';
+import '../../physio/presentation/screens/physio_requests_screen.dart';
 import '../../physio/presentation/screens/physio_profile_screen.dart';
 import '../../physio/presentation/screens/physio_today_screen.dart';
 import '../../physio/presentation/screens/physio_treatment_note_screen.dart';
@@ -61,7 +64,9 @@ final routerProvider = Provider<GoRouter>((ref) {
       final session = ref.read(authControllerProvider);
       final location = state.matchedLocation;
       final inAuthArea =
-          location == '/login' || location.startsWith('/register');
+          location == '/login' ||
+          location.startsWith('/register') ||
+          location.startsWith('/password-reset');
 
       switch (session.status) {
         case AuthStatus.unknown:
@@ -72,11 +77,15 @@ final routerProvider = Provider<GoRouter>((ref) {
           final isPhysio = session.role == AccountRole.physio;
           final inPhysioArea =
               location == '/physio' || location.startsWith('/physio/');
+          // Account-scoped screens both roles share (reached from either
+          // Profile) — exempt from the role-bounce below (D5).
+          final inSharedArea = location.startsWith('/notifications/');
           if (location == '/' || inAuthArea) {
             return isPhysio ? '/physio/today' : '/home';
           }
-          // Keep each role in its own app.
-          if (isPhysio && !inPhysioArea) return '/physio/today';
+          // Keep each role in its own app, but let either visit the shared
+          // account screens.
+          if (isPhysio && !inPhysioArea && !inSharedArea) return '/physio/today';
           if (!isPhysio && inPhysioArea) return '/home';
           return null;
       }
@@ -97,6 +106,24 @@ final routerProvider = Provider<GoRouter>((ref) {
                 return const RegisterStartScreen();
               }
               return RegisterVerifyScreen(args: args);
+            },
+          ),
+        ],
+      ),
+      // Forgot / reset password — OTP-challenge based, mirroring register (D4).
+      GoRoute(
+        path: '/password-reset',
+        builder: (_, _) => const PasswordResetStartScreen(),
+        routes: [
+          GoRoute(
+            path: 'verify',
+            builder: (_, state) {
+              final args = state.extra;
+              if (args is! PasswordResetCompleteArgs) {
+                // Deep-linked / refreshed without the challenge context.
+                return const PasswordResetStartScreen();
+              }
+              return PasswordResetCompleteScreen(args: args);
             },
           ),
         ],
@@ -177,6 +204,14 @@ final routerProvider = Provider<GoRouter>((ref) {
             ],
           ),
         ],
+      ),
+      // The physiotherapist's incoming-requests queue, reached from the Today
+      // banner. Pushed over the physio shell; under /physio/* so the redirect
+      // keeps non-physios out. Matched before /physio/appointments/* below — a
+      // distinct literal, so order is not load-bearing, but kept grouped.
+      GoRoute(
+        path: '/physio/requests',
+        builder: (_, _) => const PhysioRequestsScreen(),
       ),
       // The physiotherapist's appointment detail, pushed over the physio shell.
       // Under /physio/* so the redirect keeps non-physios out. `discussion` and
@@ -292,7 +327,16 @@ final routerProvider = Provider<GoRouter>((ref) {
       // matched before `:id` so it isn't captured as an appointment id.
       GoRoute(
         path: '/appointments/book',
-        builder: (_, _) => const BookAppointmentScreen(),
+        builder: (_, state) {
+          final extra = state.extra;
+          if (extra is BookAppointmentArgs) {
+            return BookAppointmentScreen(
+              initialPatientId: extra.patientId,
+              initialDay: extra.day,
+            );
+          }
+          return const BookAppointmentScreen();
+        },
       ),
       GoRoute(
         path: '/appointments/:id/reschedule',

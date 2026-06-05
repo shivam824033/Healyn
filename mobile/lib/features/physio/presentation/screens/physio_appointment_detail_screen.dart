@@ -14,6 +14,7 @@ import '../../../shared/network/api_exception.dart';
 import '../../../shared/widgets/error_banner.dart';
 import '../../../shared/widgets/section_card.dart';
 import '../physio_appointment_actions.dart';
+import '../physio_requests_providers.dart';
 import '../physio_schedule_providers.dart';
 import '../widgets/physio_treatment_note_section.dart';
 
@@ -143,7 +144,11 @@ class _PhysioAppointmentDetailScreenState
             : null,
         note: note,
       );
-      ref.invalidate(physioScheduleProvider);
+      ref
+        ..invalidate(physioScheduleProvider)
+        // A confirm/reject moves the appointment out of REQUESTED, so refresh
+        // the incoming-requests queue (Today banner + requests screen).
+        ..invalidate(physioRequestsProvider);
       if (!mounted) return;
       setState(() => _appt = updated);
       messenger.showSnackBar(SnackBar(content: Text(_successMessage(action))));

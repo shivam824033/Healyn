@@ -98,6 +98,15 @@ List<Appointment> upcomingOf(List<Appointment> all) {
   return list;
 }
 
+/// The single soonest open appointment across [all] — the account's next
+/// upcoming appointment regardless of which managed patient it's for. Null when
+/// nothing is open. Home uses this so a booking made for a family member still
+/// surfaces, not only one for the active patient.
+Appointment? nextUpcomingOf(List<Appointment> all) {
+  final upcoming = upcomingOf(all);
+  return upcoming.isEmpty ? null : upcoming.first;
+}
+
 /// Closed appointments (completed, cancelled, no-show, rescheduled), most
 /// recent first.
 List<Appointment> pastOf(List<Appointment> all) {

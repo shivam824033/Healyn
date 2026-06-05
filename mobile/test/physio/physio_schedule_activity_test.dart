@@ -8,6 +8,7 @@ import 'package:healyn/features/discussion/data/discussion_repository.dart';
 import 'package:healyn/features/discussion/data/models/discussion_models.dart';
 import 'package:healyn/features/patients/data/models/patient_models.dart';
 import 'package:healyn/features/patients/presentation/patients_providers.dart';
+import 'package:healyn/features/physio/presentation/physio_requests_providers.dart';
 import 'package:healyn/features/physio/presentation/physio_schedule_providers.dart';
 import 'package:healyn/features/physio/presentation/screens/physio_today_screen.dart';
 import 'package:healyn/features/shared/network/api_exception.dart';
@@ -122,6 +123,7 @@ Future<void> _pumpScreen(
     ProviderScope(
       overrides: [
         physioScheduleProvider.overrideWith((ref) async => appointments),
+        physioRequestsProvider.overrideWith((ref) async => const []),
         discussionRepositoryProvider.overrideWithValue(repo),
         patientsProvider.overrideWith((ref) => [_asha]),
       ],

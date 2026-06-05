@@ -19,12 +19,26 @@ import '../appointment_format.dart';
 import '../appointments_providers.dart';
 import '../widgets/slot_picker.dart';
 
+/// Prefill for the booking form, used when it's opened from a "next review"
+/// suggestion (D6): the patient to pre-select and the date to pre-fill. The slot
+/// is still chosen from live availability — nothing is auto-booked.
+class BookAppointmentArgs {
+  const BookAppointmentArgs({this.patientId, this.day});
+
+  final String? patientId;
+  final DateTime? day;
+}
+
 /// Books an appointment: pick the patient, a date, then one of the open slots
 /// for that day, with an optional reason. Slots come live from `/availability`,
 /// so the chosen time is always one the backend will accept. On success it
-/// refreshes the timeline and pops.
+/// refreshes the timeline and pops. [initialPatientId] / [initialDay] prefill the
+/// form when arriving from a next-review suggestion.
 class BookAppointmentScreen extends ConsumerStatefulWidget {
-  const BookAppointmentScreen({super.key});
+  const BookAppointmentScreen({this.initialPatientId, this.initialDay, super.key});
+
+  final String? initialPatientId;
+  final DateTime? initialDay;
 
   @override
   ConsumerState<BookAppointmentScreen> createState() =>
@@ -50,6 +64,21 @@ class _BookAppointmentScreenState extends ConsumerState<BookAppointmentScreen> {
 
   bool _submitting = false;
   String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    final day = widget.initialDay;
+    if (day != null) {
+      final d = DateTime(day.year, day.month, day.day);
+      _day = d;
+      _dayField.text = formatDateShort(d);
+      // Load that day's slots once the first frame is up (setState-safe).
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _loadSlots(d);
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -160,10 +189,23 @@ class _BookAppointmentScreenState extends ConsumerState<BookAppointmentScreen> {
                 ],
               );
             }
-            // Default to the active Patient context, so booking from a switched
-            // family member pre-selects them; an explicit pick still wins.
+            // Prefer an explicit pick, then a prefilled patient (next-review
+            // suggestion), then the active Patient context, so booking from a
+            // switched family member or a suggestion pre-selects the right one.
+            Patient? prefilled;
+            if (widget.initialPatientId != null) {
+              for (final p in all) {
+                if (p.id == widget.initialPatientId) {
+                  prefilled = p;
+                  break;
+                }
+              }
+            }
             final selected =
-                _patient ?? ref.watch(activePatientProvider) ?? all.first;
+                _patient ??
+                prefilled ??
+                ref.watch(activePatientProvider) ??
+                all.first;
             return _form(all, selected);
           },
         ),

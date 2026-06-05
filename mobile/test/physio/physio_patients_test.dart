@@ -99,34 +99,75 @@ void main() {
   });
 
   group('patient detail', () {
-    testWidgets('shows demographics, clinical fields and a history link', (
-      tester,
-    ) async {
+    Future<void> pumpDetail(
+      WidgetTester tester, {
+      required Patient patient,
+      TreatmentNotePage notes = const TreatmentNotePage(items: []),
+    }) async {
       // Tall surface so the whole detail (down to the history link) is laid out.
       tester.view.physicalSize = const Size(1000, 2000);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
       await tester.pumpWidget(
-        MaterialApp(
-          home: PhysioPatientDetailScreen(
-            patient: _patient(
-              id: 'p1',
-              name: 'Asha Rao',
-              sex: PatientSex.female,
-              allergies: 'Penicillin',
-              notes: 'Prefers morning sessions',
+        ProviderScope(
+          overrides: [
+            treatmentNotesRepositoryProvider.overrideWithValue(
+              _FakeNotesRepo(notes),
             ),
-          ),
+          ],
+          child: MaterialApp(home: PhysioPatientDetailScreen(patient: patient)),
         ),
       );
       await tester.pumpAndSettle();
+    }
+
+    testWidgets('shows demographics, clinical fields and a history link', (
+      tester,
+    ) async {
+      await pumpDetail(
+        tester,
+        patient: _patient(
+          id: 'p1',
+          name: 'Asha Rao',
+          sex: PatientSex.female,
+          allergies: 'Penicillin',
+          notes: 'Prefers morning sessions',
+        ),
+      );
 
       expect(find.text('Asha Rao'), findsWidgets);
       expect(find.text('Female'), findsOneWidget);
       expect(find.text('Penicillin'), findsOneWidget);
       expect(find.text('Prefers morning sessions'), findsOneWidget);
       expect(find.text('Treatment history'), findsOneWidget);
+      // No review set → no follow-up section.
+      expect(find.text('FOLLOW-UP DUE'), findsNothing);
+    });
+
+    testWidgets('surfaces a follow-up when the latest note set a future review',
+        (tester) async {
+      final reviewAt = DateTime.now().toUtc().add(const Duration(days: 14));
+      await pumpDetail(
+        tester,
+        patient: _patient(id: 'p1', name: 'Asha Rao'),
+        notes: TreatmentNotePage(
+          items: [
+            TreatmentNote(
+              id: 'n1',
+              appointmentId: 'a1',
+              patientId: 'p1',
+              authorAccountId: 'ph1',
+              notes: 'Recovering well',
+              nextReviewAt: reviewAt,
+              createdAt: DateTime.now().toUtc(),
+              updatedAt: DateTime.now().toUtc(),
+            ),
+          ],
+        ),
+      );
+
+      expect(find.text('FOLLOW-UP DUE'), findsOneWidget);
     });
   });
 
