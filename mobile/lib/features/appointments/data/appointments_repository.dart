@@ -36,6 +36,21 @@ class AppointmentsRepository {
     return _guard(() => _api.get(id));
   }
 
+  /// The next live scheduled appointments from now, ascending (capped server
+  /// side). Backs the physiotherapist's Upcoming dashboard.
+  Future<List<Appointment>> upcoming({int? limit}) async {
+    return _guard(() => _api.upcoming(limit: limit));
+  }
+
+  /// Every scheduled appointment with a time in [from]..[to], ascending — the
+  /// month calendar's marker source.
+  Future<List<Appointment>> calendar({
+    required DateTime from,
+    required DateTime to,
+  }) async {
+    return _guard(() => _api.calendar(from: from, to: to));
+  }
+
   Future<Appointment> book(
     BookAppointmentRequest body, {
     required String idempotencyKey,

@@ -31,6 +31,7 @@ import '../../physio/presentation/screens/physio_patients_screen.dart';
 import '../../physio/presentation/screens/physio_requests_screen.dart';
 import '../../physio/presentation/screens/physio_profile_screen.dart';
 import '../../physio/presentation/screens/physio_today_screen.dart';
+import '../../physio/presentation/screens/physio_upcoming_screen.dart';
 import '../../physio/presentation/screens/physio_treatment_note_screen.dart';
 import '../../treatment_notes/data/models/treatment_note_models.dart';
 import '../auth/account_role.dart';
@@ -212,6 +213,13 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/physio/requests',
         builder: (_, _) => const PhysioRequestsScreen(),
+      ),
+      // The physiotherapist's Upcoming list, reached from the Today app-bar
+      // action. Pushed over the physio shell; under /physio/* so the redirect
+      // keeps non-physios out.
+      GoRoute(
+        path: '/physio/upcoming',
+        builder: (_, _) => const PhysioUpcomingScreen(),
       ),
       // The physiotherapist's appointment detail, pushed over the physio shell.
       // Under /physio/* so the redirect keeps non-physios out. `discussion` and

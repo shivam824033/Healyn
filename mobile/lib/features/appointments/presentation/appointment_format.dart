@@ -31,6 +31,10 @@ String formatDateShort(DateTime instant) {
   return '${_weekdays[d.weekday - 1]}, ${d.day} ${_months[d.month - 1]}';
 }
 
+/// Month + year as `Jun 2026` — for the calendar header.
+String formatMonthYear(DateTime month) =>
+    '${_months[month.month - 1]} ${month.year}';
+
 /// Full when-line for a tile or detail: `Wed, 10 Jun 2026 · 9:00 AM`.
 String formatWhen(DateTime instant) =>
     '${formatDateLong(instant)} · ${formatTimeOfDay(instant)}';

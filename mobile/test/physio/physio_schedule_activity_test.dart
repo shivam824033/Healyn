@@ -8,6 +8,7 @@ import 'package:healyn/features/discussion/data/discussion_repository.dart';
 import 'package:healyn/features/discussion/data/models/discussion_models.dart';
 import 'package:healyn/features/patients/data/models/patient_models.dart';
 import 'package:healyn/features/patients/presentation/patients_providers.dart';
+import 'package:healyn/features/physio/presentation/physio_calendar_providers.dart';
 import 'package:healyn/features/physio/presentation/physio_requests_providers.dart';
 import 'package:healyn/features/physio/presentation/physio_schedule_providers.dart';
 import 'package:healyn/features/physio/presentation/screens/physio_today_screen.dart';
@@ -120,11 +121,19 @@ Future<void> _pumpScreen(
   required List<Appointment> appointments,
   required _FakeDiscussionRepo repo,
 }) {
+  // A tall surface so the calendar + the day's roster both fit and the lazy
+  // roster list actually builds its tiles (default is 800x600).
+  tester.view.physicalSize = const Size(1000, 2400);
+  tester.view.devicePixelRatio = 1.0;
+  addTearDown(tester.view.resetPhysicalSize);
+  addTearDown(tester.view.resetDevicePixelRatio);
+
   return tester.pumpWidget(
     ProviderScope(
       overrides: [
         physioScheduleProvider.overrideWith((ref) async => appointments),
         physioRequestsProvider.overrideWith((ref) async => const []),
+        calendarMarkedDaysProvider.overrideWith((ref) async => <DateTime>{}),
         discussionRepositoryProvider.overrideWithValue(repo),
         patientsProvider.overrideWith((ref) => [_asha]),
       ],
@@ -132,6 +141,13 @@ Future<void> _pumpScreen(
     ),
   );
 }
+
+/// The count [Text] of the badge built around [icon] — a finder scoped to that
+/// badge's Row, so it never matches the calendar's day-number Texts.
+Finder _badgeCount(IconData icon, String count) => find.descendant(
+  of: find.ancestor(of: find.byIcon(icon), matching: find.byType(Row)),
+  matching: find.text(count),
+);
 
 void main() {
   group('physioScheduleActivityProvider', () {
@@ -228,10 +244,12 @@ void main() {
       await _pumpScreen(tester, appointments: [_appt(id: 'a1')], repo: repo);
       await tester.pumpAndSettle();
 
+      // The calendar renders day-number Texts ('1', '2', …); scope the count
+      // assertions to each badge by anchoring on its icon so they can't collide.
       expect(find.byIcon(Icons.mark_email_unread_outlined), findsOneWidget);
-      expect(find.text('2'), findsOneWidget); // unread count
+      expect(_badgeCount(Icons.mark_email_unread_outlined, '2'), findsOneWidget);
       expect(find.byIcon(Icons.attach_file), findsOneWidget);
-      expect(find.text('1'), findsOneWidget); // pending files
+      expect(_badgeCount(Icons.attach_file, '1'), findsOneWidget);
     });
 
     testWidgets('shows no badges when the thread has no activity', (

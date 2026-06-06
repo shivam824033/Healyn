@@ -43,6 +43,42 @@ class AppointmentsApi {
     return Appointment.fromJson(res.data!);
   }
 
+  /// The next live scheduled appointments from now (CONFIRMED / IN_PROGRESS),
+  /// ascending. The backend caps [limit] (default 30, ≤ 50) and returns a
+  /// cursorless `{items}` window — unscheduled REQUESTED rows never appear.
+  Future<List<Appointment>> upcoming({int? limit}) async {
+    final res = await _dio.get<Map<String, dynamic>>(
+      '/appointments/upcoming',
+      queryParameters: <String, dynamic>{'limit': ?limit},
+    );
+    return _items(res.data!);
+  }
+
+  /// Every scheduled appointment whose time falls in [from]..[to] (sent as UTC
+  /// instants — the caller computes the month grid's edges in local time),
+  /// ascending, including past COMPLETED / NO_SHOW so a month grid shows
+  /// history. Cursorless `{items}`; the backend caps the window at 62 days.
+  Future<List<Appointment>> calendar({
+    required DateTime from,
+    required DateTime to,
+  }) async {
+    final res = await _dio.get<Map<String, dynamic>>(
+      '/appointments/calendar',
+      queryParameters: <String, dynamic>{
+        'from': from.toUtc().toIso8601String(),
+        'to': to.toUtc().toIso8601String(),
+      },
+    );
+    return _items(res.data!);
+  }
+
+  /// Reads the cursorless `{items: [...]}` body shared by `/upcoming` and
+  /// `/calendar` (the backend `AppointmentList`) into typed appointments.
+  static List<Appointment> _items(Map<String, dynamic> data) =>
+      ((data['items'] as List<dynamic>?) ?? const <dynamic>[])
+          .map((e) => Appointment.fromJson(e as Map<String, dynamic>))
+          .toList();
+
   /// Books a new (REQUESTED) appointment. [idempotencyKey] dedupes retries of
   /// the same intended booking — generate it once per attempt and reuse it.
   Future<Appointment> book(

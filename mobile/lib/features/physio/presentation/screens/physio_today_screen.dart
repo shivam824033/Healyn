@@ -11,18 +11,27 @@ import '../../../shared/design/radii.dart';
 import '../../../shared/design/spacing.dart';
 import '../../../shared/design/typography.dart';
 import '../../../shared/widgets/error_banner.dart';
+import '../month_grid.dart';
+import '../physio_calendar_providers.dart';
 import '../physio_requests_providers.dart';
 import '../physio_schedule_providers.dart';
+import '../widgets/month_calendar.dart';
 
-/// The physiotherapist's schedule (F1.12, read-only in C2): a day of
-/// appointments by start time, with status and patient name, plus a
-/// prev/today/next day stepper. Tapping a row opens the read-only detail.
+/// The physiotherapist's schedule (F1.12): a month calendar that marks the days
+/// holding appointments, over the selected day's roster (by start time, with
+/// status and patient name). Picking a day in the grid moves the roster; the
+/// month arrows page the grid without moving it. An app-bar action opens the
+/// pushed Upcoming list. Tapping a row opens the appointment detail.
 class PhysioTodayScreen extends ConsumerWidget {
   const PhysioTodayScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final day = ref.watch(scheduleDayProvider);
+    final month = ref.watch(calendarMonthProvider);
+    final markedDays =
+        ref.watch(calendarMarkedDaysProvider).valueOrNull ??
+        const <DateTime>{};
     final schedule = ref.watch(physioScheduleProvider);
     final patients = ref.watch(patientsProvider).valueOrNull ?? const [];
     final names = {for (final p in patients) p.id: p.fullName};
@@ -30,12 +39,22 @@ class PhysioTodayScreen extends ConsumerWidget {
         ref.watch(physioScheduleActivityProvider).valueOrNull ??
         const <String, ScheduleActivity>{};
 
-    void stepDays(int delta) {
-      final d = ref.read(scheduleDayProvider);
-      ref.read(scheduleDayProvider.notifier).state = DateTime(
-        d.year,
-        d.month,
-        d.day + delta,
+    void selectDay(DateTime picked) {
+      final d = DateTime(picked.year, picked.month, picked.day);
+      ref.read(scheduleDayProvider.notifier).state = d;
+      // Tapping a leading/trailing cell flips the grid to that month.
+      if (picked.year != month.year || picked.month != month.month) {
+        ref.read(calendarMonthProvider.notifier).state = DateTime(
+          picked.year,
+          picked.month,
+        );
+      }
+    }
+
+    void stepMonth(int delta) {
+      ref.read(calendarMonthProvider.notifier).state = DateTime(
+        month.year,
+        month.month + delta,
       );
     }
 
@@ -46,27 +65,51 @@ class PhysioTodayScreen extends ConsumerWidget {
         now.month,
         now.day,
       );
+      ref.read(calendarMonthProvider.notifier).state = DateTime(
+        now.year,
+        now.month,
+      );
     }
 
+    final now = DateTime.now();
+    final onToday =
+        (isSameDay(day, now) && month.year == now.year && month.month == now.month)
+        ? null
+        : jumpToToday;
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Schedule')),
+      appBar: AppBar(
+        title: const Text('Schedule'),
+        actions: [
+          IconButton(
+            tooltip: 'Upcoming',
+            icon: const Icon(Icons.upcoming_outlined),
+            onPressed: () => context.push('/physio/upcoming'),
+          ),
+        ],
+      ),
       body: SafeArea(
         child: Column(
           children: [
             const _RequestsBanner(),
-            _DayStepper(
-              day: day,
-              onPrev: () => stepDays(-1),
-              onNext: () => stepDays(1),
-              onToday: jumpToToday,
+            MonthCalendar(
+              month: month,
+              selectedDay: day,
+              markedDays: markedDays,
+              onSelectDay: selectDay,
+              onPrevMonth: () => stepMonth(-1),
+              onNextMonth: () => stepMonth(1),
+              onToday: onToday,
             ),
             const Divider(height: 1),
+            _SelectedDayHeader(day: day),
             Expanded(
               child: RefreshIndicator(
                 onRefresh: () async {
                   ref
                     ..invalidate(physioScheduleProvider)
                     ..invalidate(physioScheduleActivityProvider)
+                    ..invalidate(calendarMarkedDaysProvider)
                     ..invalidate(physioRequestsProvider);
                   await ref.read(physioScheduleProvider.future);
                 },
@@ -154,69 +197,34 @@ class _RequestsBanner extends ConsumerWidget {
   }
 }
 
-/// The prev / today / next day controls above the schedule list.
-class _DayStepper extends StatelessWidget {
-  const _DayStepper({
-    required this.day,
-    required this.onPrev,
-    required this.onNext,
-    required this.onToday,
-  });
+/// The selected day's label above its roster. "Today" is called out so the
+/// roster reads clearly once the calendar selection scrolls out of mind.
+class _SelectedDayHeader extends StatelessWidget {
+  const _SelectedDayHeader({required this.day});
 
   final DateTime day;
-  final VoidCallback onPrev;
-  final VoidCallback onNext;
-  final VoidCallback onToday;
 
   @override
   Widget build(BuildContext context) {
-    final today = isToday(day);
     return Padding(
-      padding: const EdgeInsets.symmetric(
-        horizontal: HealynSpacing.s2,
-        vertical: HealynSpacing.s2,
+      padding: const EdgeInsets.fromLTRB(
+        HealynSpacing.screenEdge,
+        HealynSpacing.s3,
+        HealynSpacing.screenEdge,
+        HealynSpacing.s2,
       ),
       child: Row(
         children: [
-          IconButton(
-            tooltip: 'Previous day',
-            icon: const Icon(Icons.chevron_left),
-            onPressed: onPrev,
-          ),
           Expanded(
-            child: Column(
-              children: [
-                Text(
-                  formatDateLong(day),
-                  style: HealynTypography.bodyStrong,
-                  textAlign: TextAlign.center,
-                ),
-                if (today)
-                  Text(
-                    'Today',
-                    style: HealynTypography.caption.copyWith(
-                      color: HealynColors.textMuted,
-                    ),
-                  )
-                else
-                  GestureDetector(
-                    onTap: onToday,
-                    child: Text(
-                      'Jump to today',
-                      style: HealynTypography.caption.copyWith(
-                        color: HealynColors.brandPrimary,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-              ],
+            child: Text(formatDateLong(day), style: HealynTypography.bodyStrong),
+          ),
+          if (isToday(day))
+            Text(
+              'Today',
+              style: HealynTypography.caption.copyWith(
+                color: HealynColors.textMuted,
+              ),
             ),
-          ),
-          IconButton(
-            tooltip: 'Next day',
-            icon: const Icon(Icons.chevron_right),
-            onPressed: onNext,
-          ),
         ],
       ),
     );
