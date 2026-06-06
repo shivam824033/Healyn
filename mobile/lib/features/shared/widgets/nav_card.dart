@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../design/colors.dart';
+import '../design/elevation.dart';
 import '../design/radii.dart';
 import '../design/spacing.dart';
 import '../design/typography.dart';
@@ -27,6 +28,7 @@ class NavCard extends StatelessWidget {
         color: HealynColors.surfaceBase,
         borderRadius: HealynRadii.brLg,
         border: Border.all(color: HealynColors.borderSubtle),
+        boxShadow: HealynElevation.e1,
       ),
       child: Material(
         type: MaterialType.transparency,

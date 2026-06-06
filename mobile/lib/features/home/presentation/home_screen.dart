@@ -14,6 +14,7 @@ import '../../patients/presentation/widgets/patient_switcher.dart';
 import '../../shared/design/colors.dart';
 import '../../shared/design/spacing.dart';
 import '../../shared/design/typography.dart';
+import '../../shared/widgets/card_header.dart';
 import '../../shared/widgets/section_card.dart';
 import '../../treatment_notes/presentation/treatment_notes_format.dart';
 import 'next_review_provider.dart';
@@ -162,19 +163,9 @@ class _UpcomingSummary extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Row(
-            children: [
-              Icon(
-                Icons.event_outlined,
-                size: 20,
-                color: HealynColors.brandPrimary,
-              ),
-              SizedBox(width: HealynSpacing.s2),
-              Text(
-                'Upcoming appointments',
-                style: HealynTypography.bodyStrong,
-              ),
-            ],
+          const CardHeader(
+            icon: Icons.event_outlined,
+            title: 'Upcoming appointments',
           ),
           const SizedBox(height: HealynSpacing.s3),
           appointments.when(
@@ -279,19 +270,9 @@ class _NextReviewCard extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Row(
-              children: [
-                Icon(
-                  Icons.event_repeat_outlined,
-                  size: 20,
-                  color: HealynColors.brandPrimary,
-                ),
-                SizedBox(width: HealynSpacing.s2),
-                Text(
-                  'Suggested next review',
-                  style: HealynTypography.bodyStrong,
-                ),
-              ],
+            const CardHeader(
+              icon: Icons.event_repeat_outlined,
+              title: 'Suggested next review',
             ),
             const SizedBox(height: HealynSpacing.s3),
             Text(

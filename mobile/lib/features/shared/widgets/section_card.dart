@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 
 import '../design/colors.dart';
+import '../design/elevation.dart';
 import '../design/radii.dart';
 import '../design/spacing.dart';
 
-/// A bordered surface that groups related content (UI_UX_GUIDELINES §4.3: a
-/// radius-lg card). White on the scaffold, separated by a subtle border rather
-/// than a shadow — flat and calm, per the design language.
+/// A surface that groups related content (UI_UX_GUIDELINES §4.3: a radius-lg
+/// card at elevation §4.4 e1). White on the scaffold, defined by a hairline
+/// border plus a soft shadow — calm and premium, never floating.
 class SectionCard extends StatelessWidget {
   const SectionCard({required this.child, this.padding, super.key});
 
@@ -22,6 +23,7 @@ class SectionCard extends StatelessWidget {
         color: HealynColors.surfaceBase,
         borderRadius: HealynRadii.brLg,
         border: Border.all(color: HealynColors.borderSubtle),
+        boxShadow: HealynElevation.e1,
       ),
       child: child,
     );

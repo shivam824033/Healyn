@@ -23,9 +23,9 @@
 
 | Token | Hex | Use |
 |---|---|---|
-| `color.brand.primary` | `#1E88A8` | Primary actions, active states, links |
-| `color.brand.primary_hover` | `#176E89` | Pressed primary buttons |
-| `color.brand.primary_subtle` | `#E6F2F6` | Selected backgrounds, tonal containers |
+| `color.brand.primary` | `#3B4AA0` | Primary actions, active states, links |
+| `color.brand.primary_hover` | `#2E3A82` | Pressed primary buttons |
+| `color.brand.primary_subtle` | `#ECEDF9` | Selected backgrounds, tonal containers |
 | `color.surface.base` | `#FFFFFF` | App background |
 | `color.surface.alt` | `#F7F8FA` | Cards, secondary surfaces |
 | `color.surface.elevated` | `#FFFFFF` | Floating cards, sheets (with shadow) |
@@ -186,7 +186,7 @@ Min tap target: **44 × 44 px**. Buttons have at least `space.4` horizontal padd
 | Status | Background | Text |
 |---|---|---|
 | `REQUESTED` | `#FFF3E0` | `#D97706` |
-| `CONFIRMED` | `#E6F2F6` | `#176E89` |
+| `CONFIRMED` | `#ECEDF9` | `#2E3A82` |
 | `IN_PROGRESS` | `#E0F2FE` | `#2563EB` |
 | `COMPLETED` | `#E7F8EE` | `#15803D` |
 | `CANCELLED` | `#FEE2E2` | `#B91C1C` |
@@ -318,7 +318,7 @@ Examples:
 ## 12. Implementation Notes (Flutter / Riverpod)
 
 - Design tokens live in `lib/features/shared/design/`:
-  - `colors.dart`, `typography.dart`, `spacing.dart`, `radii.dart`, `motion.dart`.
+  - `colors.dart`, `typography.dart`, `spacing.dart`, `radii.dart`, `elevation.dart`, `motion.dart`.
 - A `HealynTheme` extends Flutter's `ThemeData` from these tokens.
 - Components are in `lib/features/shared/widgets/`. No feature folder defines its own button.
 - A `golden_test` per component locks visuals; Renovate updates do not silently change UI.
