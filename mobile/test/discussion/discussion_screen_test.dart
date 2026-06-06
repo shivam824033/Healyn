@@ -129,6 +129,7 @@ Appointment _appt(AppointmentStatus status) => Appointment(
   patientId: 'pt1',
   bookedByAccountId: 'ac1',
   physiotherapistId: 'ph1',
+  requestedDate: DateTime(2026, 6, 10),
   scheduledAt: DateTime.utc(2026, 6, 10, 9),
   scheduledEndAt: DateTime.utc(2026, 6, 10, 9, 45),
   durationMinutes: 45,

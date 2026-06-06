@@ -17,14 +17,14 @@ import '../../data/models/appointment_models.dart';
 import '../appointment_format.dart';
 import '../appointments_providers.dart';
 import '../widgets/appointment_status_chip.dart';
-import '../widgets/slot_picker.dart';
 
-/// Moves an existing appointment to a new time. Same shape as booking — pick a
-/// date then a live slot — but the patient and physiotherapist are fixed (the
-/// backend keeps them), so there's no patient picker. The current date and the
-/// existing reason are prefilled. On success the backend marks the original
-/// RESCHEDULED and returns a *new* appointment, which this screen returns via
-/// `pop` so the detail can navigate to it.
+/// Re-requests an existing open appointment for a new date (request-first). The
+/// patient picks a new date and an optional preferred time — never a final time;
+/// the patient and physiotherapist are fixed (the backend keeps them). The
+/// current date and the existing reason are prefilled. On success the backend
+/// marks the original RESCHEDULED and returns a *new* unscheduled REQUESTED
+/// appointment, which this screen returns via `pop` so the detail can navigate
+/// to it.
 class RescheduleAppointmentScreen extends ConsumerStatefulWidget {
   const RescheduleAppointmentScreen({required this.appointment, super.key});
 
@@ -42,12 +42,10 @@ class _RescheduleAppointmentScreenState
 
   final _reason = TextEditingController();
   final _dayField = TextEditingController();
+  final _timeField = TextEditingController();
 
   DateTime? _day;
-  List<Slot>? _slots;
-  bool _slotsLoading = false;
-  String? _slotsError;
-  Slot? _selectedSlot;
+  TimeOfDay? _time;
 
   bool _submitting = false;
   String? _error;
@@ -57,20 +55,19 @@ class _RescheduleAppointmentScreenState
   @override
   void initState() {
     super.initState();
-    // Start on the appointment's current day with its reason prefilled, then
-    // load that day's open slots (the current time won't be among them — it's
-    // still booked by this appointment — so the user picks a new one).
-    final current = _appt.scheduledAt.toLocal();
+    // Start on the appointment's current day (the scheduled day if it has one,
+    // otherwise the requested day) with its reason prefilled.
+    final current = _appt.day.toLocal();
     _day = DateTime(current.year, current.month, current.day);
-    _dayField.text = formatDateShort(_appt.scheduledAt);
+    _dayField.text = formatDateShort(_appt.day);
     if (_appt.reason != null) _reason.text = _appt.reason!;
-    WidgetsBinding.instance.addPostFrameCallback((_) => _loadSlots(_day!));
   }
 
   @override
   void dispose() {
     _reason.dispose();
     _dayField.dispose();
+    _timeField.dispose();
     super.dispose();
   }
 
@@ -88,35 +85,32 @@ class _RescheduleAppointmentScreenState
     setState(() {
       _day = picked;
       _dayField.text = formatDateShort(picked);
-      _selectedSlot = null;
-      _slots = null;
     });
-    await _loadSlots(picked);
   }
 
-  Future<void> _loadSlots(DateTime day) async {
+  Future<void> _pickTime() async {
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: _time ?? const TimeOfDay(hour: 9, minute: 0),
+      helpText: 'Preferred time (optional)',
+    );
+    if (picked == null) return;
     setState(() {
-      _slotsLoading = true;
-      _slotsError = null;
+      _time = picked;
+      _timeField.text = picked.format(context);
     });
-    try {
-      final slots = await ref.read(appointmentsRepositoryProvider).slotsFor(day);
-      if (!mounted) return;
-      setState(() => _slots = slots);
-    } on ApiException catch (e) {
-      if (mounted) setState(() => _slotsError = e.message);
-    } finally {
-      if (mounted) setState(() => _slotsLoading = false);
-    }
+  }
+
+  void _clearTime() {
+    setState(() {
+      _time = null;
+      _timeField.clear();
+    });
   }
 
   Future<void> _submit() async {
     if (_day == null) {
       setState(() => _error = 'Pick a date.');
-      return;
-    }
-    if (_selectedSlot == null) {
-      setState(() => _error = 'Choose a time slot.');
       return;
     }
 
@@ -126,21 +120,22 @@ class _RescheduleAppointmentScreenState
     });
     final repo = ref.read(appointmentsRepositoryProvider);
     final messenger = ScaffoldMessenger.of(context);
-    final slot = _selectedSlot!;
     final reason = _reason.text.trim();
+    final time = _time;
     try {
       final saved = await repo.reschedule(
         _appt.id,
         RescheduleAppointmentRequest(
-          scheduledAt: slot.startsAt,
-          durationMinutes: slot.durationMinutes,
+          requestedDate: _day!,
+          preferredTime:
+              time == null ? null : wireClockTime(time.hour, time.minute),
           reason: reason.isEmpty ? null : reason,
         ),
       );
       ref.invalidate(appointmentsProvider);
       if (!mounted) return;
       messenger.showSnackBar(
-        const SnackBar(content: Text('Appointment rescheduled')),
+        const SnackBar(content: Text('New request sent')),
       );
       // Hand the new appointment back to the detail screen so it can replace
       // the now-stale (RESCHEDULED) one it's showing.
@@ -173,7 +168,7 @@ class _RescheduleAppointmentScreenState
               ],
               _CurrentAppointmentCard(appt: _appt, patientName: patientName),
               const SizedBox(height: HealynSpacing.s6),
-              const Text('Pick a new time', style: HealynTypography.overline),
+              const Text('Request a new date', style: HealynTypography.overline),
               const SizedBox(height: HealynSpacing.s3),
               AppTextField(
                 label: 'Date',
@@ -184,16 +179,26 @@ class _RescheduleAppointmentScreenState
                 suffixIcon: const Icon(Icons.calendar_today_outlined),
               ),
               const SizedBox(height: HealynSpacing.s4),
-              SlotPicker(
-                label: 'Time',
-                day: _day,
-                loading: _slotsLoading,
-                error: _slotsError,
-                slots: _slots,
-                selected: _selectedSlot,
-                enabled: !_submitting,
-                onSelected: (s) => setState(() => _selectedSlot = s),
-                onRetry: _day == null ? null : () => _loadSlots(_day!),
+              AppTextField(
+                label: 'Preferred time (optional)',
+                controller: _timeField,
+                readOnly: true,
+                onTap: _submitting ? null : _pickTime,
+                hintText: 'No preference',
+                suffixIcon: _time == null
+                    ? const Icon(Icons.schedule_outlined)
+                    : IconButton(
+                        tooltip: 'Clear time',
+                        icon: const Icon(Icons.close),
+                        onPressed: _submitting ? null : _clearTime,
+                      ),
+              ),
+              const SizedBox(height: HealynSpacing.s2),
+              Text(
+                'Your physiotherapist confirms the final date and time.',
+                style: HealynTypography.caption.copyWith(
+                  color: HealynColors.textSecondary,
+                ),
               ),
               const SizedBox(height: HealynSpacing.s4),
               AppTextField(
@@ -208,7 +213,7 @@ class _RescheduleAppointmentScreenState
               ),
               const SizedBox(height: HealynSpacing.s7),
               PrimaryButton(
-                label: 'Reschedule appointment',
+                label: 'Send new request',
                 loading: _submitting,
                 onPressed: _submit,
               ),
@@ -220,7 +225,7 @@ class _RescheduleAppointmentScreenState
   }
 }
 
-/// The appointment being moved, so the patient has context for the new time.
+/// The appointment being moved, so the patient has context for the new request.
 class _CurrentAppointmentCard extends StatelessWidget {
   const _CurrentAppointmentCard({required this.appt, required this.patientName});
 
@@ -236,7 +241,7 @@ class _CurrentAppointmentCard extends StatelessWidget {
           Row(
             children: [
               Text(
-                'Current time',
+                appt.isScheduled ? 'Current time' : 'Current request',
                 style: HealynTypography.caption.copyWith(
                   color: HealynColors.textSecondary,
                 ),
@@ -246,7 +251,7 @@ class _CurrentAppointmentCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: HealynSpacing.s2),
-          Text(formatWhen(appt.scheduledAt), style: HealynTypography.bodyStrong),
+          Text(formatAppointmentWhen(appt), style: HealynTypography.bodyStrong),
           if (patientName != null) ...[
             const SizedBox(height: HealynSpacing.s1),
             Text(

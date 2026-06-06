@@ -115,7 +115,7 @@ class _AppointmentTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final meta = [
       ?patientName,
-      formatDuration(appointment.durationMinutes),
+      if (appointment.isScheduled) formatDuration(appointment.durationMinutes),
     ].join(' · ');
     return Container(
       decoration: BoxDecoration(
@@ -140,12 +140,13 @@ class _AppointmentTile extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        '${formatDateShort(appointment.scheduledAt)} · '
-                        '${formatTimeOfDay(appointment.scheduledAt)}',
+                        formatAppointmentWhenShort(appointment),
                         style: HealynTypography.bodyStrong,
                       ),
-                      const SizedBox(height: HealynSpacing.s1),
-                      Text(meta, style: HealynTypography.caption),
+                      if (meta.isNotEmpty) ...[
+                        const SizedBox(height: HealynSpacing.s1),
+                        Text(meta, style: HealynTypography.caption),
+                      ],
                       const SizedBox(height: HealynSpacing.s2),
                       AppointmentStatusChip(status: appointment.status),
                     ],

@@ -138,6 +138,7 @@ void main() {
             patientId: 'p1',
             bookedByAccountId: 'ac1',
             physiotherapistId: 'ph1',
+            requestedDate: DateTime.now(),
             scheduledAt: DateTime.now().add(const Duration(days: 3)),
             scheduledEndAt: DateTime.now().add(const Duration(days: 3, hours: 1)),
             durationMinutes: 45,

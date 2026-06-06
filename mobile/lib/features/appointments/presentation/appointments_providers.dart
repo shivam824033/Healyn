@@ -91,10 +91,12 @@ final appointmentByIdProvider =
       (ref, id) => ref.watch(appointmentsRepositoryProvider).get(id),
     );
 
-/// Open appointments (Requested/Confirmed/In progress), soonest first.
+/// Open appointments (Requested/Confirmed/In progress), soonest first. Sorts by
+/// [AppointmentX.day] so unscheduled requests (no [Appointment.scheduledAt])
+/// order by their requested date.
 List<Appointment> upcomingOf(List<Appointment> all) {
   final list = all.where((a) => a.status.isActive).toList()
-    ..sort((a, b) => a.scheduledAt.compareTo(b.scheduledAt));
+    ..sort((a, b) => a.day.compareTo(b.day));
   return list;
 }
 
@@ -108,9 +110,10 @@ Appointment? nextUpcomingOf(List<Appointment> all) {
 }
 
 /// Closed appointments (completed, cancelled, no-show, rescheduled), most
-/// recent first.
+/// recent first. Sorts by [AppointmentX.day] so a request rejected before it was
+/// ever scheduled still orders by its requested date.
 List<Appointment> pastOf(List<Appointment> all) {
   final list = all.where((a) => !a.status.isActive).toList()
-    ..sort((a, b) => b.scheduledAt.compareTo(a.scheduledAt));
+    ..sort((a, b) => b.day.compareTo(a.day));
   return list;
 }

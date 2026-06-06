@@ -64,6 +64,7 @@ Appointment _appt(AppointmentStatus status) => Appointment(
   patientId: 'pt1',
   bookedByAccountId: 'ac1',
   physiotherapistId: 'ph1',
+  requestedDate: DateTime.now(),
   scheduledAt: DateTime.now().add(const Duration(hours: 2)),
   scheduledEndAt: DateTime.now().add(const Duration(hours: 2, minutes: 45)),
   durationMinutes: 45,

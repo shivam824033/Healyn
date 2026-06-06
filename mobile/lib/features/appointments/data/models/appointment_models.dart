@@ -1,5 +1,7 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
+import '../../../shared/network/json_converters.dart';
+
 part 'appointment_models.freezed.dart';
 part 'appointment_models.g.dart';
 
@@ -74,9 +76,16 @@ extension AppointmentCancelReasonLabel on AppointmentCancelReason {
   };
 }
 
-/// A single appointment. Mirrors the backend `AppointmentView`. Timestamps are
-/// instants (UTC on the wire); call `.toLocal()` before formatting for display.
-/// [reason] is free text the patient gave — not clinical, but don't log it.
+/// A single appointment. Mirrors the backend `AppointmentView`.
+///
+/// Request-first: the patient submits a [requestedDate] (mandatory) and an
+/// optional [preferredTime] hint; the physiotherapist later assigns the final
+/// time. Until they do, [scheduledAt]/[scheduledEndAt] are null and the status
+/// is `requested` — use [isScheduled] / [day] rather than reading [scheduledAt]
+/// blindly. Instants are UTC on the wire; call `.toLocal()` before formatting.
+/// [requestedDate] is a bare local calendar day; [preferredTime] is a wire
+/// `HH:mm[:ss]` clock string. [reason] is free text the patient gave — not
+/// clinical, but don't log it.
 @freezed
 abstract class Appointment with _$Appointment {
   const factory Appointment({
@@ -84,10 +93,13 @@ abstract class Appointment with _$Appointment {
     required String patientId,
     required String bookedByAccountId,
     required String physiotherapistId,
-    required DateTime scheduledAt,
-    required DateTime scheduledEndAt,
+    @LocalDateConverter() required DateTime requestedDate,
+    String? preferredTime,
+    DateTime? scheduledAt,
+    DateTime? scheduledEndAt,
     required int durationMinutes,
     required AppointmentStatus status,
+    @Default(false) bool isFollowUp,
     String? reason,
     AppointmentCancelReason? cancelReason,
     String? cancelNote,
@@ -104,6 +116,20 @@ abstract class Appointment with _$Appointment {
       _$AppointmentFromJson(json);
 }
 
+extension AppointmentX on Appointment {
+  /// True once the physiotherapist has assigned a final time. Until then the
+  /// appointment is a bare request: only [Appointment.requestedDate] (and an
+  /// optional [Appointment.preferredTime]) is set and [Appointment.scheduledAt]
+  /// is null.
+  bool get isScheduled => scheduledAt != null;
+
+  /// The day to show for the appointment whatever its status: the confirmed
+  /// instant once scheduled, otherwise the requested calendar day. Never null,
+  /// so list/sort code can rely on it. (A scheduled instant is UTC; a requested
+  /// date is already local midnight — both render correctly via `.toLocal()`.)
+  DateTime get day => scheduledAt ?? requestedDate;
+}
+
 /// One cursor page of appointments. [nextCursor] is null on the last page.
 @freezed
 abstract class AppointmentPage with _$AppointmentPage {
@@ -116,15 +142,16 @@ abstract class AppointmentPage with _$AppointmentPage {
       _$AppointmentPageFromJson(json);
 }
 
-/// Body for `POST /appointments`. [scheduledAt] must be the exact `startsAt` of
-/// an available [Slot] and [durationMinutes] its duration — the backend rejects
-/// anything that isn't a live slot. [reason] is optional (omitted when null).
+/// Body for `POST /appointments` — a patient request. [requestedDate] (a bare
+/// calendar day) is mandatory; [preferredTime] is an optional `HH:mm:ss` hint.
+/// The patient never sends a final time — the physiotherapist assigns it later.
+/// [preferredTime] / [reason] are omitted when null (`include_if_null:false`).
 @freezed
 abstract class BookAppointmentRequest with _$BookAppointmentRequest {
   const factory BookAppointmentRequest({
     required String patientId,
-    required DateTime scheduledAt,
-    required int durationMinutes,
+    @LocalDateConverter() required DateTime requestedDate,
+    String? preferredTime,
     String? reason,
   }) = _BookAppointmentRequest;
 
@@ -132,17 +159,18 @@ abstract class BookAppointmentRequest with _$BookAppointmentRequest {
       _$BookAppointmentRequestFromJson(json);
 }
 
-/// Body for `POST /appointments/{id}/reschedule`. Like a booking, [scheduledAt]
-/// must be the exact `startsAt` of an available [Slot] and [durationMinutes] its
-/// duration — for the *same* physiotherapist as the original appointment, which
-/// the backend keeps (the patient can't be changed here). The backend marks the
-/// old appointment RESCHEDULED and returns a fresh one. A null [reason] keeps the
-/// original appointment's reason. No Idempotency-Key (unlike booking).
+/// Body for `POST /appointments/{id}/reschedule` from the patient side — a
+/// re-request, not a self-assigned time. The patient picks a new [requestedDate]
+/// (mandatory) and an optional [preferredTime] hint; the backend keeps the same
+/// patient and physiotherapist, marks the old appointment RESCHEDULED, and
+/// returns a fresh unscheduled REQUESTED one for the physiotherapist to schedule.
+/// A null [reason] keeps the original appointment's reason. No Idempotency-Key
+/// (the source appointment id makes it idempotent).
 @freezed
 abstract class RescheduleAppointmentRequest with _$RescheduleAppointmentRequest {
   const factory RescheduleAppointmentRequest({
-    required DateTime scheduledAt,
-    required int durationMinutes,
+    @LocalDateConverter() required DateTime requestedDate,
+    String? preferredTime,
     String? reason,
   }) = _RescheduleAppointmentRequest;
 

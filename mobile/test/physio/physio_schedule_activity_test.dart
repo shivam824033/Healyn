@@ -25,6 +25,7 @@ Appointment _appt({
     patientId: patientId,
     bookedByAccountId: 'ac1',
     physiotherapistId: 'ph1',
+    requestedDate: DateTime(at.year, at.month, at.day),
     scheduledAt: at,
     scheduledEndAt: at.add(const Duration(minutes: 45)),
     durationMinutes: 45,

@@ -166,15 +166,24 @@ class _PhysioAppointmentDetailScreenState
       for (final p in patients) p.id: p.fullName,
     }[_appt.patientId];
 
+    final scheduledAt = _appt.scheduledAt;
+    final scheduledEndAt = _appt.scheduledEndAt;
+    final preferred = formatClockTime(_appt.preferredTime);
     final rows = <(String, String)>[
       if (patientName != null) ('Patient', patientName),
-      ('When', formatDateLong(_appt.scheduledAt)),
-      (
-        'Time',
-        '${formatTimeOfDay(_appt.scheduledAt)} – '
-            '${formatTimeOfDay(_appt.scheduledEndAt)}',
-      ),
-      ('Duration', formatDuration(_appt.durationMinutes)),
+      if (_appt.isFollowUp) ('Type', 'Follow-up review'),
+      ('When', formatDateLong(_appt.day)),
+      if (scheduledAt != null)
+        (
+          'Time',
+          scheduledEndAt != null
+              ? '${formatTimeOfDay(scheduledAt)} – ${formatTimeOfDay(scheduledEndAt)}'
+              : formatTimeOfDay(scheduledAt),
+        )
+      else
+        ('Time', 'Not scheduled yet'),
+      if (scheduledAt != null) ('Duration', formatDuration(_appt.durationMinutes)),
+      if (scheduledAt == null && preferred != null) ('Preferred time', preferred),
       if (_has(_appt.reason)) ('Reason', _appt.reason!),
     ];
     final cancellation = <(String, String)>[
@@ -200,12 +209,14 @@ class _PhysioAppointmentDetailScreenState
                   AppointmentStatusChip(status: _appt.status),
                   const SizedBox(height: HealynSpacing.s3),
                   Text(
-                    formatDateShort(_appt.scheduledAt),
+                    formatDateShort(_appt.day),
                     style: HealynTypography.h2,
                   ),
                   const SizedBox(height: HealynSpacing.s1),
                   Text(
-                    formatTimeOfDay(_appt.scheduledAt),
+                    scheduledAt != null
+                        ? formatTimeOfDay(scheduledAt)
+                        : 'Not scheduled yet',
                     style: HealynTypography.body.copyWith(
                       color: HealynColors.textSecondary,
                     ),
@@ -258,7 +269,7 @@ class _PhysioAppointmentDetailScreenState
   }
 
   String _confirmPrompt(PhysioAppointmentAction action) {
-    final when = formatWhen(_appt.scheduledAt);
+    final when = formatAppointmentWhen(_appt);
     return switch (action) {
       PhysioAppointmentAction.confirm =>
         'Confirm the appointment on $when? The patient will be notified.',

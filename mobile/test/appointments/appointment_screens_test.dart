@@ -19,18 +19,13 @@ import 'package:healyn/features/treatment_notes/data/models/treatment_note_model
 import 'package:healyn/features/treatment_notes/data/treatment_notes_api.dart';
 import 'package:healyn/features/treatment_notes/data/treatment_notes_repository.dart';
 
-/// Records book/reschedule calls but never completes them, so the submit-guard
-/// tests can assert the call was *not* made without the screen navigating away.
-/// [slots] feeds the slot picker without hitting the network.
+/// Records book/reschedule calls but never completes them, so the submit tests
+/// can assert whether the call was made without the screen navigating away.
 class _RecordingApptRepo extends AppointmentsRepository {
   _RecordingApptRepo() : super(AppointmentsApi(Dio()));
 
   bool bookCalled = false;
   bool rescheduleCalled = false;
-  List<Slot> slots = const [];
-
-  @override
-  Future<List<Slot>> slotsFor(DateTime day) async => slots;
 
   @override
   Future<Appointment> book(
@@ -85,12 +80,6 @@ class _FakeTreatmentNotesRepo extends TreatmentNotesRepository {
   Future<TreatmentNote?> forAppointment(String appointmentId) async => null;
 }
 
-Slot _slot(DateTime startsAt, {int duration = 45}) => Slot(
-  startsAt: startsAt,
-  endsAt: startsAt.add(Duration(minutes: duration)),
-  durationMinutes: duration,
-);
-
 final _asha = Patient(
   id: 'pt1',
   fullName: 'Asha Rao',
@@ -109,6 +98,7 @@ Appointment _appt({
   patientId: 'pt1',
   bookedByAccountId: 'ac1',
   physiotherapistId: 'ph1',
+  requestedDate: DateTime(scheduledAt.year, scheduledAt.month, scheduledAt.day),
   scheduledAt: scheduledAt,
   scheduledEndAt: scheduledAt.add(Duration(minutes: duration)),
   durationMinutes: duration,
@@ -228,12 +218,10 @@ void main() {
       tester,
     ) async {
       final day = DateTime.now().add(const Duration(days: 14));
-      final repo = _RecordingApptRepo()
-        ..slots = [_slot(DateTime(day.year, day.month, day.day, 10))];
       await _pump(
         tester,
         BookAppointmentScreen(initialPatientId: 'pt1', initialDay: day),
-        repo: repo,
+        repo: _RecordingApptRepo(),
       );
       await tester.pumpAndSettle();
 
@@ -284,13 +272,12 @@ void main() {
   });
 
   group('reschedule appointment', () {
-    testWidgets('blocks submit until a slot is chosen and does not reschedule', (
+    testWidgets('re-requests for the prefilled date (no slot to pick)', (
       tester,
     ) async {
-      // The form prefills the current date and auto-loads that day's slots, so
-      // the only thing missing is the new time selection.
-      final repo = _RecordingApptRepo()
-        ..slots = [_slot(DateTime.now().add(const Duration(days: 2, hours: 3)))];
+      // Request-first: the form prefills the current date, so the patient can
+      // send a new request straight away — the physiotherapist sets the time.
+      final repo = _RecordingApptRepo();
       await _pump(
         tester,
         RescheduleAppointmentScreen(
@@ -304,16 +291,12 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      final submit = find.widgetWithText(
-        ElevatedButton,
-        'Reschedule appointment',
-      );
+      final submit = find.widgetWithText(ElevatedButton, 'Send new request');
       await tester.ensureVisible(submit);
       await tester.tap(submit);
-      await tester.pumpAndSettle();
+      await tester.pump();
 
-      expect(find.text('Choose a time slot.'), findsOneWidget);
-      expect(repo.rescheduleCalled, isFalse);
+      expect(repo.rescheduleCalled, isTrue);
     });
   });
 }

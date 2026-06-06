@@ -100,8 +100,7 @@ class _UnreadTile extends StatelessWidget {
                         const SizedBox(height: HealynSpacing.s1),
                       ],
                       Text(
-                        '${formatDateShort(appointment.scheduledAt)} · '
-                        '${formatTimeOfDay(appointment.scheduledAt)}',
+                        formatAppointmentWhenShort(appointment),
                         style: HealynTypography.caption,
                       ),
                     ],

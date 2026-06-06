@@ -260,8 +260,7 @@ class _ScheduleTile extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        '${formatTimeOfDay(appointment.scheduledAt)} – '
-                        '${formatTimeOfDay(appointment.scheduledEndAt)}',
+                        _timeRange(appointment),
                         style: HealynTypography.bodyStrong,
                       ),
                       const SizedBox(height: HealynSpacing.s1),
@@ -292,6 +291,17 @@ class _ScheduleTile extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  /// The start–end time for a scheduled row. An unscheduled request has no time
+  /// (it never reaches this day list, which filters on `scheduled_at`), so it
+  /// falls back to a safe label rather than rendering a null instant.
+  static String _timeRange(Appointment a) {
+    final startsAt = a.scheduledAt;
+    final endsAt = a.scheduledEndAt;
+    if (startsAt == null) return 'Time to be confirmed';
+    if (endsAt == null) return formatTimeOfDay(startsAt);
+    return '${formatTimeOfDay(startsAt)} – ${formatTimeOfDay(endsAt)}';
   }
 }
 

@@ -55,7 +55,7 @@ class _AppointmentDetailScreenState
       builder: (ctx) => AlertDialog(
         title: const Text('Cancel appointment?'),
         content: Text(
-          'Your appointment on ${formatWhen(_appt.scheduledAt)} will be '
+          'Your appointment on ${formatAppointmentWhen(_appt)} will be '
           'cancelled.',
         ),
         actions: [
@@ -103,15 +103,24 @@ class _AppointmentDetailScreenState
       for (final p in patients) p.id: p.fullName,
     }[_appt.patientId];
 
+    final scheduledAt = _appt.scheduledAt;
+    final scheduledEndAt = _appt.scheduledEndAt;
+    final preferred = formatClockTime(_appt.preferredTime);
     final rows = <(String, String)>[
       if (patientName != null) ('Patient', patientName),
-      ('When', formatDateLong(_appt.scheduledAt)),
-      (
-        'Time',
-        '${formatTimeOfDay(_appt.scheduledAt)} – '
-            '${formatTimeOfDay(_appt.scheduledEndAt)}',
-      ),
-      ('Duration', formatDuration(_appt.durationMinutes)),
+      ('When', formatDateLong(_appt.day)),
+      if (scheduledAt != null)
+        (
+          'Time',
+          scheduledEndAt != null
+              ? '${formatTimeOfDay(scheduledAt)} – ${formatTimeOfDay(scheduledEndAt)}'
+              : formatTimeOfDay(scheduledAt),
+        )
+      else
+        ('Time', 'To be confirmed'),
+      if (scheduledAt != null) ('Duration', formatDuration(_appt.durationMinutes)),
+      if (scheduledAt == null && preferred != null) ('Preferred time', preferred),
+      if (_appt.isFollowUp) ('Type', 'Follow-up review'),
       if (_has(_appt.reason)) ('Reason', _appt.reason!),
     ];
     final cancellation = <(String, String)>[
@@ -137,12 +146,14 @@ class _AppointmentDetailScreenState
                   AppointmentStatusChip(status: _appt.status),
                   const SizedBox(height: HealynSpacing.s3),
                   Text(
-                    formatDateShort(_appt.scheduledAt),
+                    formatDateShort(_appt.day),
                     style: HealynTypography.h2,
                   ),
                   const SizedBox(height: HealynSpacing.s1),
                   Text(
-                    formatTimeOfDay(_appt.scheduledAt),
+                    scheduledAt != null
+                        ? formatTimeOfDay(scheduledAt)
+                        : 'Time to be confirmed',
                     style: HealynTypography.body.copyWith(
                       color: HealynColors.textSecondary,
                     ),

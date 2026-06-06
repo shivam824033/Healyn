@@ -232,8 +232,7 @@ class _NextAppointment extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '${formatDateShort(next.scheduledAt)} · '
-                  '${formatTimeOfDay(next.scheduledAt)}',
+                  formatAppointmentWhenShort(next),
                   style: HealynTypography.bodyStrong,
                 ),
                 if (name != null) ...[

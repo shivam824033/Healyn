@@ -45,11 +45,12 @@ class PhysioRequestsScreen extends ConsumerWidget {
             ),
             data: (items) {
               if (items.isEmpty) return const _NoRequests();
-              // Group by local calendar day, preserving the earliest-first order.
+              // Group by requested calendar day, preserving the earliest-first
+              // order (a request has no scheduled time yet).
               final groups = <String, List<Appointment>>{};
               for (final a in items) {
                 groups
-                    .putIfAbsent(formatDateLong(a.scheduledAt), () => [])
+                    .putIfAbsent(formatDateLong(a.requestedDate), () => [])
                     .add(a);
               }
               return ListView(
@@ -95,10 +96,7 @@ class _RequestTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final meta = [
-      ?patientName,
-      formatDuration(appointment.durationMinutes),
-    ].join(' · ');
+    final preferred = formatClockTime(appointment.preferredTime);
     return Container(
       decoration: BoxDecoration(
         color: HealynColors.surfaceBase,
@@ -122,12 +120,16 @@ class _RequestTile extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        '${formatTimeOfDay(appointment.scheduledAt)} – '
-                        '${formatTimeOfDay(appointment.scheduledEndAt)}',
+                        patientName ?? 'Patient',
                         style: HealynTypography.bodyStrong,
                       ),
                       const SizedBox(height: HealynSpacing.s1),
-                      Text(meta, style: HealynTypography.caption),
+                      Text(
+                        preferred != null
+                            ? 'Prefers $preferred'
+                            : 'No time preference',
+                        style: HealynTypography.caption,
+                      ),
                       const SizedBox(height: HealynSpacing.s2),
                       AppointmentStatusChip(status: appointment.status),
                     ],
