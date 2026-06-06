@@ -55,6 +55,45 @@ public interface AppointmentRepository extends JpaRepository<Appointment, UUID> 
             @Param("to") Instant to,
             Limit limit);
 
+    // Ascending, time-ordered read surfaces (physio Upcoming-30 dashboard, Today month
+    // calendar). Both rely on `scheduled_at >= …` so unscheduled REQUESTED rows (null
+    // scheduled_at) fall out naturally; the status IN list keeps dead states (CANCELLED,
+    // RESCHEDULED) out. Patient scope is toggled by the same boolean-flag + sentinel trick as
+    // the cursor list above (a bare `is null` test on a bind param trips SQLSTATE 42P18).
+
+    @Query("""
+            select a
+            from Appointment a
+            where a.deletedAt is null
+              and a.status in :statuses
+              and a.scheduledAt >= :from
+              and (:filterPatients = false or a.patientId in :patientIds)
+            order by a.scheduledAt asc, a.id asc
+            """)
+    List<Appointment> findUpcoming(
+            @Param("statuses") Collection<AppointmentStatus> statuses,
+            @Param("from") Instant from,
+            @Param("filterPatients") boolean filterPatients,
+            @Param("patientIds") Collection<UUID> patientIds,
+            Limit limit);
+
+    @Query("""
+            select a
+            from Appointment a
+            where a.deletedAt is null
+              and a.status in :statuses
+              and a.scheduledAt >= :from
+              and a.scheduledAt < :to
+              and (:filterPatients = false or a.patientId in :patientIds)
+            order by a.scheduledAt asc, a.id asc
+            """)
+    List<Appointment> findScheduledInRange(
+            @Param("statuses") Collection<AppointmentStatus> statuses,
+            @Param("from") Instant from,
+            @Param("to") Instant to,
+            @Param("filterPatients") boolean filterPatients,
+            @Param("patientIds") Collection<UUID> patientIds);
+
     @Query("""
             select a
             from Appointment a

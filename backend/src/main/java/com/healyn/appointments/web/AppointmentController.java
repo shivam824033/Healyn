@@ -65,6 +65,31 @@ public class AppointmentController {
         return new AppointmentDtos.AppointmentPage(views, page.nextCursor());
     }
 
+    @GetMapping("/upcoming")
+    public AppointmentDtos.AppointmentList upcoming(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestParam(value = "limit", required = false, defaultValue = "30") int limit) {
+        UUID actorId = UUID.fromString(jwt.getSubject());
+        AccountRole role = roleOf(jwt);
+        List<AppointmentDtos.AppointmentView> views =
+                service.upcoming(actorId, role, limit).stream().map(AppointmentMapper::toView).toList();
+        return new AppointmentDtos.AppointmentList(views);
+    }
+
+    @GetMapping("/calendar")
+    public AppointmentDtos.AppointmentList calendar(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestParam(value = "from")
+                @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant from,
+            @RequestParam(value = "to")
+                @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant to) {
+        UUID actorId = UUID.fromString(jwt.getSubject());
+        AccountRole role = roleOf(jwt);
+        List<AppointmentDtos.AppointmentView> views =
+                service.calendar(actorId, role, from, to).stream().map(AppointmentMapper::toView).toList();
+        return new AppointmentDtos.AppointmentList(views);
+    }
+
     @GetMapping("/{id}")
     public AppointmentDtos.AppointmentView get(@AuthenticationPrincipal Jwt jwt,
                                                @PathVariable("id") UUID id) {

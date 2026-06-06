@@ -205,6 +205,15 @@ A follow-up is a brand-new appointment the **physiotherapist** creates to see a 
 
 Only the physiotherapist may create follow-ups. They surface on the physiotherapist's calendar and upcoming list, visually distinct from patient-originated bookings.
 
+### Read surfaces for the dashboard and calendar
+
+Two ascending, time-ordered read endpoints back the physiotherapist's home:
+
+- `GET /appointments/upcoming?limit=` — the next live scheduled appointments from now (`CONFIRMED`/`IN_PROGRESS`), ascending, capped (default 30, ≤ 50). Unscheduled `REQUESTED` rows have no time, so they never appear here — the physiotherapist works those off the `status=REQUESTED` list.
+- `GET /appointments/calendar?from=&to=` — every scheduled appointment in an instant window (the caller computes the month's edges in its own timezone), ascending, including the past real events `COMPLETED`/`NO_SHOW` so a month grid shows history. The window is capped at 62 days. Dead states (`CANCELLED`, `RESCHEDULED`) are excluded.
+
+Both are role-scoped: a physiotherapist sees every patient's appointments; a patient-side account sees only the patients it can access.
+
 ---
 
 ## 7. Cancellation Policy (Phase 1)

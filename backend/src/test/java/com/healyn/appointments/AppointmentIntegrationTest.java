@@ -404,6 +404,85 @@ class AppointmentIntegrationTest {
         }
     }
 
+    @Test
+    void upcoming_lists_confirmed_ascending_and_excludes_unscheduled_requests() throws Exception {
+        Session physio = seedPhysio();
+        Session a = registerPatient("tess");
+        UUID patientA = primaryPatientId(a);
+        // Two CONFIRMED at distinct future times + one unscheduled REQUESTED (no time).
+        seedConfirmed(patientA, physio.id, accountIdOf(a), 7, 11);
+        seedConfirmed(patientA, physio.id, accountIdOf(a), 5, 9);
+        seedRequest(patientA, physio.id, accountIdOf(a), 6);
+
+        MvcResult res = mvc.perform(get("/appointments/upcoming")
+                        .header("Authorization", "Bearer " + a.access))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        JsonNode items = json.readTree(res.getResponse().getContentAsByteArray()).get("items");
+        // Only the two scheduled rows; the unscheduled request is not "upcoming".
+        assertThat(items.size()).isEqualTo(2);
+        assertThat(items.get(0).get("status").asText()).isEqualTo("CONFIRMED");
+        assertThat(items.get(1).get("status").asText()).isEqualTo("CONFIRMED");
+        // Ascending by scheduled time: day 5 before day 7.
+        assertThat(items.get(0).get("scheduled_at").asText())
+                .isLessThan(items.get(1).get("scheduled_at").asText());
+        assertThat(items.get(0).get("requested_date").asText()).isEqualTo(requestDate(5));
+    }
+
+    @Test
+    void upcoming_is_scoped_to_the_callers_own_patients() throws Exception {
+        Session physio = seedPhysio();
+        Session a = registerPatient("uma");
+        Session b = registerPatient("vic");
+        UUID patientA = primaryPatientId(a);
+        UUID patientB = primaryPatientId(b);
+        seedConfirmed(patientB, physio.id, accountIdOf(b), 5, 9);
+
+        MvcResult res = mvc.perform(get("/appointments/upcoming")
+                        .header("Authorization", "Bearer " + a.access))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        JsonNode items = json.readTree(res.getResponse().getContentAsByteArray()).get("items");
+        for (JsonNode item : items) {
+            assertThat(item.get("patient_id").asText()).isEqualTo(patientA.toString());
+        }
+    }
+
+    @Test
+    void calendar_returns_only_appointments_inside_the_window() throws Exception {
+        Session physio = seedPhysio();
+        Session a = registerPatient("walt");
+        UUID patientA = primaryPatientId(a);
+        seedConfirmed(patientA, physio.id, accountIdOf(a), 5, 9);   // inside [day0, day30)
+        seedConfirmed(patientA, physio.id, accountIdOf(a), 40, 9);  // after the window
+
+        MvcResult res = mvc.perform(get("/appointments/calendar")
+                        .header("Authorization", "Bearer " + a.access)
+                        .param("from", windowEdge(0))
+                        .param("to", windowEdge(30)))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        JsonNode items = json.readTree(res.getResponse().getContentAsByteArray()).get("items");
+        assertThat(items.size()).isEqualTo(1);
+        assertThat(items.get(0).get("requested_date").asText()).isEqualTo(requestDate(5));
+    }
+
+    @Test
+    void calendar_rejects_an_inverted_range() throws Exception {
+        seedPhysio();
+        Session a = registerPatient("xan");
+
+        mvc.perform(get("/appointments/calendar")
+                        .header("Authorization", "Bearer " + a.access)
+                        .param("from", windowEdge(30))
+                        .param("to", windowEdge(5)))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.error.code").value("appointments.invalid_schedule"));
+    }
+
     // ---- helpers ----
 
     private void seedAppointment(UUID patientId, UUID physioId, UUID bookedBy, int dayOffset) {
@@ -460,6 +539,14 @@ class AppointmentIntegrationTest {
     private static String futureInstantAt(int daysAhead, int hour, int minute) {
         return ZonedDateTime.of(
                         LocalDate.now(KOLKATA).plusDays(daysAhead), LocalTime.of(hour, minute), KOLKATA)
+                .toInstant()
+                .toString();
+    }
+
+    /// A calendar-window edge: midnight (clinic zone) `daysAhead` days out, as an instant.
+    private static String windowEdge(int daysAhead) {
+        return ZonedDateTime.of(
+                        LocalDate.now(KOLKATA).plusDays(daysAhead), LocalTime.MIDNIGHT, KOLKATA)
                 .toInstant()
                 .toString();
     }

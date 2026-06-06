@@ -46,10 +46,20 @@ public class AppointmentService {
     private static final Duration BOOKING_MAX_HORIZON = Duration.ofDays(90);
     private static final short MIN_DURATION = 5;
     private static final short MAX_DURATION = 240;
+    private static final int UPCOMING_DEFAULT_LIMIT = 30;
+    private static final int UPCOMING_MAX_LIMIT = 50;
+    private static final Duration CALENDAR_MAX_RANGE = Duration.ofDays(62);
     // Never-matching placeholders bound to the IN lists when a filter is disabled.
     private static final Collection<UUID> PATIENT_FILTER_SENTINEL = List.of(new UUID(0L, 0L));
     private static final Collection<AppointmentStatus> STATUS_FILTER_SENTINEL =
             List.of(AppointmentStatus.REQUESTED);
+    // Live scheduled rows for the Upcoming-30 dashboard; the calendar additionally surfaces
+    // past real events (COMPLETED / NO_SHOW) so a month grid shows history too.
+    private static final Collection<AppointmentStatus> UPCOMING_STATUSES =
+            List.of(AppointmentStatus.CONFIRMED, AppointmentStatus.IN_PROGRESS);
+    private static final Collection<AppointmentStatus> CALENDAR_STATUSES =
+            List.of(AppointmentStatus.CONFIRMED, AppointmentStatus.IN_PROGRESS,
+                    AppointmentStatus.COMPLETED, AppointmentStatus.NO_SHOW);
 
     private final AppointmentRepository appointments;
     private final AccountRepository accounts;
@@ -213,6 +223,41 @@ public class AppointmentService {
             rows = rows.subList(0, limit);
         }
         return new CursorPage<>(new ArrayList<>(rows), nextCursor);
+    }
+
+    /// The Upcoming-30 dashboard (APPOINTMENT_FLOW §6a): the next live scheduled appointments
+    /// from now, ascending. Unscheduled REQUESTED rows have no time and are not "upcoming" — the
+    /// physiotherapist works those off the REQUESTED list, not this one.
+    @Transactional(readOnly = true)
+    public List<Appointment> upcoming(UUID actorId, AccountRole role, int limit) {
+        if (limit <= 0 || limit > UPCOMING_MAX_LIMIT) limit = UPCOMING_DEFAULT_LIMIT;
+        Collection<UUID> scope = resolvePatientIdScope(actorId, role, null);
+        if (scope != null && scope.isEmpty()) return List.of();
+        boolean filterPatients = scope != null;
+        Collection<UUID> patientParam = filterPatients ? scope : PATIENT_FILTER_SENTINEL;
+        return appointments.findUpcoming(
+                UPCOMING_STATUSES, Instant.now(clock), filterPatients, patientParam, Limit.of(limit));
+    }
+
+    /// The Today-screen month calendar: every scheduled appointment in a bounded instant window,
+    /// ascending. The caller (mobile) computes the window's edges in its own timezone and sends
+    /// instants, so day-boundary placement stays correct. The range is capped to keep the
+    /// unpaginated result bounded.
+    @Transactional(readOnly = true)
+    public List<Appointment> calendar(UUID actorId, AccountRole role, Instant from, Instant to) {
+        if (from == null || to == null || !from.isBefore(to)) {
+            throw new UnprocessableException(ErrorCode.APPOINTMENT_INVALID_SCHEDULE,
+                    "from and to are required and from must be before to");
+        }
+        if (Duration.between(from, to).compareTo(CALENDAR_MAX_RANGE) > 0) {
+            throw new UnprocessableException(ErrorCode.APPOINTMENT_INVALID_SCHEDULE,
+                    "calendar range cannot exceed " + CALENDAR_MAX_RANGE.toDays() + " days");
+        }
+        Collection<UUID> scope = resolvePatientIdScope(actorId, role, null);
+        if (scope != null && scope.isEmpty()) return List.of();
+        boolean filterPatients = scope != null;
+        Collection<UUID> patientParam = filterPatients ? scope : PATIENT_FILTER_SENTINEL;
+        return appointments.findScheduledInRange(CALENDAR_STATUSES, from, to, filterPatients, patientParam);
     }
 
     @Transactional

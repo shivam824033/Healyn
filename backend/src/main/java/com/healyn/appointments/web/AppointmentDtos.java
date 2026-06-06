@@ -76,4 +76,8 @@ public final class AppointmentDtos {
             Instant updatedAt) {}
 
     public record AppointmentPage(List<AppointmentView> items, String nextCursor) {}
+
+    /// A bounded, non-paginated result (upcoming dashboard, month calendar). No cursor: the
+    /// caller asks for a capped or range-bounded window and gets the whole window back.
+    public record AppointmentList(List<AppointmentView> items) {}
 }

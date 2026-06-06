@@ -276,6 +276,8 @@ GET /api/v1/appointments?cursor=eyJpZCI6Ii4uLiJ9&limit=20
 | Method | Path | Purpose |
 |---|---|---|
 | `GET`  | `/appointments?patientId=&status=&from=&to=&cursor=&limit=` | List (cursor pagination, `limit ≤ 50`, default 20) |
+| `GET`  | `/appointments/upcoming?limit=` | Next live scheduled appointments ascending from now (`CONFIRMED`/`IN_PROGRESS`, `limit ≤ 50`, default 30). Role-scoped. Returns `{items}` (no cursor) |
+| `GET`  | `/appointments/calendar?from=&to=` | All scheduled appointments in an instant window, ascending (month grid). `from`/`to` are ISO date-times; range ≤ 62 days. Role-scoped. Returns `{items}` |
 | `POST` | `/appointments` | Request an appointment for a date — patient-side, no time (requires `Idempotency-Key` header) |
 | `GET`  | `/appointments/{id}` | Get |
 | `POST` | `/appointments/{id}/schedule` | **Physio only** — assign the final time to a `REQUESTED` request → `CONFIRMED`. Body: `{scheduledAt, durationMinutes}` |
