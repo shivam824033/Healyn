@@ -7,6 +7,7 @@ import '../../../shared/design/colors.dart';
 import '../../../shared/design/spacing.dart';
 import '../../../shared/domain/patient_sex.dart';
 import '../../../shared/network/api_exception.dart';
+import '../../../shared/widgets/app_bar.dart';
 import '../../../shared/widgets/app_text_field.dart';
 import '../../../shared/widgets/error_banner.dart';
 import '../../../shared/widgets/primary_button.dart';
@@ -237,7 +238,7 @@ class _PatientFormScreenState extends ConsumerState<PatientFormScreen> {
         : 'Edit family member';
 
     return Scaffold(
-      appBar: AppBar(title: Text(title)),
+      appBar: HealynAppBar(title: title),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(HealynSpacing.screenEdge),

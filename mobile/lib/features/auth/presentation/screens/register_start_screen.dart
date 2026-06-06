@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import '../../../shared/design/spacing.dart';
 import '../../../shared/design/typography.dart';
 import '../../../shared/network/api_exception.dart';
+import '../../../shared/widgets/app_bar.dart';
 import '../../../shared/widgets/app_text_field.dart';
 import '../../../shared/widgets/error_banner.dart';
 import '../../../shared/widgets/primary_button.dart';
@@ -83,7 +84,7 @@ class _RegisterStartScreenState extends ConsumerState<RegisterStartScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Create account')),
+      appBar: const HealynAppBar(title: 'Create account'),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(HealynSpacing.screenEdge),

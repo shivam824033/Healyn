@@ -8,6 +8,7 @@ import '../../../shared/design/colors.dart';
 import '../../../shared/design/spacing.dart';
 import '../../../shared/design/typography.dart';
 import '../../../shared/network/api_exception.dart';
+import '../../../shared/widgets/app_bar.dart';
 import '../../../shared/widgets/app_text_field.dart';
 import '../../../shared/widgets/error_banner.dart';
 import '../../../shared/widgets/primary_button.dart';
@@ -155,7 +156,7 @@ class _RescheduleAppointmentScreenState
     }[_appt.patientId];
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Reschedule')),
+      appBar: const HealynAppBar(title: 'Reschedule'),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(HealynSpacing.screenEdge),

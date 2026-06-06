@@ -6,9 +6,11 @@ import '../../../patients/data/models/patient_models.dart';
 import '../../../patients/presentation/patient_format.dart';
 import '../../../shared/domain/patient_sex.dart';
 import '../../../shared/design/colors.dart';
+import '../../../shared/design/elevation.dart';
 import '../../../shared/design/radii.dart';
 import '../../../shared/design/spacing.dart';
 import '../../../shared/design/typography.dart';
+import '../../../shared/widgets/app_bar.dart';
 import '../../../shared/widgets/section_card.dart';
 import '../../../treatment_notes/presentation/next_review_providers.dart';
 import '../../../treatment_notes/presentation/treatment_notes_format.dart';
@@ -41,7 +43,7 @@ class PhysioPatientDetailScreen extends ConsumerWidget {
     ];
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Patient')),
+      appBar: const HealynAppBar(title: 'Patient'),
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.all(HealynSpacing.screenEdge),
@@ -166,6 +168,7 @@ class _NavCard extends StatelessWidget {
         color: HealynColors.surfaceBase,
         borderRadius: HealynRadii.brLg,
         border: Border.all(color: HealynColors.borderSubtle),
+        boxShadow: HealynElevation.e1,
       ),
       child: Material(
         type: MaterialType.transparency,

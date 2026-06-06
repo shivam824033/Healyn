@@ -5,6 +5,7 @@ import '../../../shared/design/colors.dart';
 import '../../../shared/design/spacing.dart';
 import '../../../shared/design/typography.dart';
 import '../../../shared/network/api_exception.dart';
+import '../../../shared/widgets/app_bar.dart';
 import '../../../shared/widgets/error_banner.dart';
 import '../../data/availability_repository.dart';
 import '../availability_format.dart';
@@ -123,7 +124,7 @@ class _AvailabilityRuleFormScreenState
     final validation = _validationError;
     final canSave = validation == null && !_submitting;
     return Scaffold(
-      appBar: AppBar(title: const Text('Add working hours')),
+      appBar: const HealynAppBar(title: 'Add working hours'),
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.all(HealynSpacing.screenEdge),

@@ -7,10 +7,12 @@ import '../../../availability/data/models/availability_models.dart';
 import '../../../availability/presentation/availability_format.dart';
 import '../../../availability/presentation/availability_providers.dart';
 import '../../../shared/design/colors.dart';
+import '../../../shared/design/elevation.dart';
 import '../../../shared/design/radii.dart';
 import '../../../shared/design/spacing.dart';
 import '../../../shared/design/typography.dart';
 import '../../../shared/network/api_exception.dart';
+import '../../../shared/widgets/app_bar.dart';
 import '../../../shared/widgets/error_banner.dart';
 
 /// The physiotherapist's availability management (C7, F1.8 enabler): the two
@@ -90,7 +92,7 @@ class PhysioAvailabilityScreen extends ConsumerWidget {
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Availability')),
+      appBar: const HealynAppBar(title: 'Availability'),
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: refresh,
@@ -319,6 +321,7 @@ class _Card extends StatelessWidget {
         color: HealynColors.surfaceBase,
         borderRadius: HealynRadii.brLg,
         border: Border.all(color: HealynColors.borderSubtle),
+        boxShadow: HealynElevation.e1,
       ),
       padding: const EdgeInsets.fromLTRB(
         HealynSpacing.s4,

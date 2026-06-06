@@ -140,8 +140,8 @@ Avoid mixing radii on the same surface. A card with a radius-`lg` outer should h
 | Token | Use | Shadow (light mode) |
 |---|---|---|
 | `elev.0` | Flat surface | none |
-| `elev.1` | Card | `0 1px 2px rgba(15,23,42,0.04), 0 1px 1px rgba(15,23,42,0.06)` |
-| `elev.2` | Hovered card / sheet | `0 4px 12px rgba(15,23,42,0.06), 0 2px 4px rgba(15,23,42,0.04)` |
+| `elev.1` | Card | `0 1px 2px rgba(15,23,42,0.04), 0 2px 8px rgba(15,23,42,0.06)` |
+| `elev.2` | Hovered card / sheet / header | `0 2px 6px rgba(15,23,42,0.05), 0 8px 24px rgba(15,23,42,0.08)` |
 | `elev.3` | Modal | `0 12px 32px rgba(15,23,42,0.12)` |
 
 Never use elevation as the **only** affordance for interactivity; pair with cursor / focus / press state.

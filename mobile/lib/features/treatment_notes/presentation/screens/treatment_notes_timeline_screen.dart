@@ -3,10 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../shared/design/colors.dart';
+import '../../../shared/design/elevation.dart';
 import '../../../shared/design/radii.dart';
 import '../../../shared/design/spacing.dart';
 import '../../../shared/design/typography.dart';
 import '../../../shared/network/api_exception.dart';
+import '../../../shared/widgets/app_bar.dart';
 import '../../../shared/widgets/error_banner.dart';
 import '../../data/models/treatment_note_models.dart';
 import '../../data/treatment_notes_repository.dart';
@@ -129,8 +131,8 @@ class _TreatmentNotesTimelineScreenState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Column(
+      appBar: HealynAppBar(
+        titleWidget: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -139,7 +141,7 @@ class _TreatmentNotesTimelineScreenState
               Text(
                 widget.patientName!,
                 style: HealynTypography.caption.copyWith(
-                  color: HealynColors.textSecondary,
+                  color: HealynColors.textInverse.withValues(alpha: 0.8),
                 ),
               ),
           ],
@@ -217,6 +219,7 @@ class _NoteTile extends StatelessWidget {
         color: HealynColors.surfaceBase,
         borderRadius: HealynRadii.brLg,
         border: Border.all(color: HealynColors.borderSubtle),
+        boxShadow: HealynElevation.e1,
       ),
       child: Material(
         type: MaterialType.transparency,

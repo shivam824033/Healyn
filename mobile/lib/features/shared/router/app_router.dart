@@ -35,6 +35,7 @@ import '../../physio/presentation/screens/physio_upcoming_screen.dart';
 import '../../physio/presentation/screens/physio_treatment_note_screen.dart';
 import '../../treatment_notes/data/models/treatment_note_models.dart';
 import '../auth/account_role.dart';
+import '../widgets/app_bar.dart';
 import '../../patients/data/models/patient_models.dart';
 import '../../patients/presentation/patients_providers.dart';
 import '../../patients/presentation/screens/family_screen.dart';
@@ -399,17 +400,17 @@ class _EditPatientRoute extends ConsumerWidget {
     return patients.when(
       loading: () =>
           const Scaffold(body: Center(child: CircularProgressIndicator())),
-      error: (_, _) => Scaffold(
-        appBar: AppBar(),
-        body: const Center(child: Text('Could not load this patient.')),
+      error: (_, _) => const Scaffold(
+        appBar: HealynAppBar(),
+        body: Center(child: Text('Could not load this patient.')),
       ),
       data: (all) {
         for (final p in all) {
           if (p.id == id) return PatientFormScreen.edit(patient: p);
         }
-        return Scaffold(
-          appBar: AppBar(),
-          body: const Center(child: Text('Patient not found.')),
+        return const Scaffold(
+          appBar: HealynAppBar(),
+          body: Center(child: Text('Patient not found.')),
         );
       },
     );
@@ -429,9 +430,9 @@ class _AppointmentDetailRoute extends ConsumerWidget {
     return appointment.when(
       loading: () =>
           const Scaffold(body: Center(child: CircularProgressIndicator())),
-      error: (_, _) => Scaffold(
-        appBar: AppBar(),
-        body: const Center(child: Text('Could not load this appointment.')),
+      error: (_, _) => const Scaffold(
+        appBar: HealynAppBar(),
+        body: Center(child: Text('Could not load this appointment.')),
       ),
       data: (a) => AppointmentDetailScreen(appointment: a),
     );
@@ -451,9 +452,9 @@ class _RescheduleRoute extends ConsumerWidget {
     return appointment.when(
       loading: () =>
           const Scaffold(body: Center(child: CircularProgressIndicator())),
-      error: (_, _) => Scaffold(
-        appBar: AppBar(),
-        body: const Center(child: Text('Could not load this appointment.')),
+      error: (_, _) => const Scaffold(
+        appBar: HealynAppBar(),
+        body: Center(child: Text('Could not load this appointment.')),
       ),
       data: (a) => RescheduleAppointmentScreen(appointment: a),
     );
@@ -474,17 +475,17 @@ class _PhysioPatientDetailRoute extends ConsumerWidget {
     return patients.when(
       loading: () =>
           const Scaffold(body: Center(child: CircularProgressIndicator())),
-      error: (_, _) => Scaffold(
-        appBar: AppBar(),
-        body: const Center(child: Text('Could not load this patient.')),
+      error: (_, _) => const Scaffold(
+        appBar: HealynAppBar(),
+        body: Center(child: Text('Could not load this patient.')),
       ),
       data: (all) {
         for (final p in all) {
           if (p.id == id) return PhysioPatientDetailScreen(patient: p);
         }
-        return Scaffold(
-          appBar: AppBar(),
-          body: const Center(child: Text('Patient not found.')),
+        return const Scaffold(
+          appBar: HealynAppBar(),
+          body: Center(child: Text('Patient not found.')),
         );
       },
     );
@@ -504,9 +505,9 @@ class _PhysioAppointmentDetailRoute extends ConsumerWidget {
     return appointment.when(
       loading: () =>
           const Scaffold(body: Center(child: CircularProgressIndicator())),
-      error: (_, _) => Scaffold(
-        appBar: AppBar(),
-        body: const Center(child: Text('Could not load this appointment.')),
+      error: (_, _) => const Scaffold(
+        appBar: HealynAppBar(),
+        body: Center(child: Text('Could not load this appointment.')),
       ),
       data: (a) => PhysioAppointmentDetailScreen(appointment: a),
     );
@@ -526,9 +527,9 @@ class _DiscussionRoute extends ConsumerWidget {
     return appointment.when(
       loading: () =>
           const Scaffold(body: Center(child: CircularProgressIndicator())),
-      error: (_, _) => Scaffold(
-        appBar: AppBar(),
-        body: const Center(child: Text('Could not load this appointment.')),
+      error: (_, _) => const Scaffold(
+        appBar: HealynAppBar(),
+        body: Center(child: Text('Could not load this appointment.')),
       ),
       data: (a) => DiscussionScreen(appointment: a),
     );
@@ -548,9 +549,9 @@ class _PhysioDiscussionRoute extends ConsumerWidget {
     return appointment.when(
       loading: () =>
           const Scaffold(body: Center(child: CircularProgressIndicator())),
-      error: (_, _) => Scaffold(
-        appBar: AppBar(),
-        body: const Center(child: Text('Could not load this appointment.')),
+      error: (_, _) => const Scaffold(
+        appBar: HealynAppBar(),
+        body: Center(child: Text('Could not load this appointment.')),
       ),
       data: (a) =>
           DiscussionScreen(appointment: a, viewer: DiscussionViewer.physio),

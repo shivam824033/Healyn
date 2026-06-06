@@ -5,6 +5,7 @@ import '../../../shared/design/colors.dart';
 import '../../../shared/design/spacing.dart';
 import '../../../shared/design/typography.dart';
 import '../../../shared/network/api_exception.dart';
+import '../../../shared/widgets/app_bar.dart';
 import '../../../shared/widgets/error_banner.dart';
 import '../../../treatment_notes/data/models/treatment_note_models.dart';
 import '../../../treatment_notes/data/treatment_notes_repository.dart';
@@ -141,8 +142,8 @@ class _PhysioTreatmentNoteScreenState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(_isEdit ? 'Edit treatment note' : 'Treatment note'),
+      appBar: HealynAppBar(
+        title: _isEdit ? 'Edit treatment note' : 'Treatment note',
       ),
       body: SafeArea(
         child: ListView(

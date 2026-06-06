@@ -77,6 +77,29 @@ class _SchedulingRepo extends AppointmentsRepository {
       durationMinutes: body.durationMinutes,
     );
   }
+
+  // The assign-time sheet reads the day's open slots; serve a fixed pair at
+  // times that don't collide with anything the detail screen shows behind it.
+  @override
+  Future<List<Slot>> slotsFor(DateTime day) async => [
+    Slot(
+      startsAt: DateTime(day.year, day.month, day.day, 11),
+      endsAt: DateTime(day.year, day.month, day.day, 11, 45),
+      durationMinutes: 45,
+    ),
+    Slot(
+      startsAt: DateTime(day.year, day.month, day.day, 14),
+      endsAt: DateTime(day.year, day.month, day.day, 14, 45),
+      durationMinutes: 45,
+    ),
+  ];
+
+  // No prior bookings in these tests, so every served slot stays selectable.
+  @override
+  Future<Set<DateTime>> bookedStartsFor(
+    DateTime day, {
+    String? excludeAppointmentId,
+  }) async => const {};
 }
 
 /// A COMPLETED appointment mounts the treatment-note section; stub it to resolve
@@ -153,7 +176,10 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    // The assign-time sheet opens prefilled; confirm straight away.
+    // The assign-time sheet opens with the day's open slots; pick one to enable
+    // the confirm button, then confirm.
+    await tester.tap(find.text('11:00 AM'));
+    await tester.pumpAndSettle();
     await tester.tap(find.widgetWithText(ElevatedButton, 'Confirm appointment'));
     await tester.pumpAndSettle();
 
@@ -177,6 +203,8 @@ void main() {
     await tester.tap(reschedule);
     await tester.pumpAndSettle();
 
+    await tester.tap(find.text('11:00 AM'));
+    await tester.pumpAndSettle();
     await tester.tap(find.widgetWithText(ElevatedButton, 'Confirm new time'));
     await tester.pumpAndSettle();
 
@@ -197,6 +225,8 @@ void main() {
     await tester.tap(followUp);
     await tester.pumpAndSettle();
 
+    await tester.tap(find.text('11:00 AM'));
+    await tester.pumpAndSettle();
     await tester.tap(find.widgetWithText(ElevatedButton, 'Confirm follow-up'));
     await tester.pumpAndSettle();
 

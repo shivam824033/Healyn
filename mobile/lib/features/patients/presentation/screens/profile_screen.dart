@@ -8,6 +8,7 @@ import '../../../shared/design/colors.dart';
 import '../../../shared/design/spacing.dart';
 import '../../../shared/design/typography.dart';
 import '../../../shared/domain/patient_sex.dart';
+import '../../../shared/widgets/app_bar.dart';
 import '../../../shared/widgets/error_banner.dart';
 import '../../../shared/widgets/nav_card.dart';
 import '../../../shared/widgets/section_card.dart';
@@ -26,8 +27,8 @@ class ProfileScreen extends ConsumerWidget {
     final list = patients.valueOrNull;
     final me = (list == null || list.isEmpty) ? null : primaryPatientOf(list);
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Profile'),
+      appBar: HealynAppBar(
+        title: 'Profile',
         actions: [
           if (me != null)
             IconButton(

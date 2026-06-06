@@ -15,6 +15,7 @@ import '../../../shared/design/radii.dart';
 import '../../../shared/design/spacing.dart';
 import '../../../shared/design/typography.dart';
 import '../../../shared/network/api_exception.dart';
+import '../../../shared/widgets/app_bar.dart';
 import '../../../shared/widgets/error_banner.dart';
 import '../../data/discussion_repository.dart';
 import '../../data/models/discussion_models.dart';
@@ -445,7 +446,7 @@ class _DiscussionScreenState extends ConsumerState<DiscussionScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Discussion')),
+      appBar: const HealynAppBar(title: 'Discussion'),
       body: SafeArea(
         child: Column(
           children: [

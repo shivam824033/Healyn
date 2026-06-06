@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import 'colors.dart';
 import 'radii.dart';
@@ -38,13 +39,22 @@ abstract final class HealynTheme {
       scaffoldBackgroundColor: HealynColors.surfaceBase,
       textTheme: textTheme,
       fontFamily: HealynTypography.fontFamily,
-      appBarTheme: const AppBarTheme(
-        backgroundColor: HealynColors.surfaceBase,
-        foregroundColor: HealynColors.textPrimary,
+      // Fallback for any bare AppBar — premium indigo header, light status-bar
+      // icons. Most screens use HealynAppBar, which paints the brand gradient on
+      // top of this; the solid brand colour keeps stragglers on-theme.
+      appBarTheme: AppBarTheme(
+        backgroundColor: HealynColors.brandPrimary,
+        foregroundColor: HealynColors.textInverse,
+        surfaceTintColor: Colors.transparent,
         elevation: 0,
-        scrolledUnderElevation: 0.5,
+        scrolledUnderElevation: 0,
         centerTitle: false,
-        titleTextStyle: HealynTypography.h2,
+        titleTextStyle: HealynTypography.h2.copyWith(
+          color: HealynColors.textInverse,
+        ),
+        iconTheme: const IconThemeData(color: HealynColors.textInverse),
+        actionsIconTheme: const IconThemeData(color: HealynColors.textInverse),
+        systemOverlayStyle: SystemUiOverlayStyle.light,
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,

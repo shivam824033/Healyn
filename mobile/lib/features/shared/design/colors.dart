@@ -9,6 +9,15 @@ abstract final class HealynColors {
   static const Color brandPrimaryHover = Color(0xFF2E3A82);
   static const Color brandPrimarySubtle = Color(0xFFECEDF9);
 
+  /// The signature indigo gradient — used on headers (and the selected calendar
+  /// day) for a premium, depth-rich brand surface. A diagonal blend from
+  /// [brandPrimary] into the deeper [brandPrimaryHover].
+  static const Gradient brandGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [brandPrimary, brandPrimaryHover],
+  );
+
   // Surfaces
   static const Color surfaceBase = Color(0xFFFFFFFF);
   static const Color surfaceAlt = Color(0xFFF7F8FA);

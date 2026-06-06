@@ -7,9 +7,11 @@ import '../../../appointments/presentation/appointment_format.dart';
 import '../../../appointments/presentation/widgets/appointment_status_chip.dart';
 import '../../../patients/presentation/patients_providers.dart';
 import '../../../shared/design/colors.dart';
+import '../../../shared/design/elevation.dart';
 import '../../../shared/design/radii.dart';
 import '../../../shared/design/spacing.dart';
 import '../../../shared/design/typography.dart';
+import '../../../shared/widgets/app_bar.dart';
 import '../../../shared/widgets/error_banner.dart';
 import '../month_grid.dart';
 import '../physio_calendar_providers.dart';
@@ -78,8 +80,8 @@ class PhysioTodayScreen extends ConsumerWidget {
         : jumpToToday;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Schedule'),
+      appBar: HealynAppBar(
+        title: 'Schedule',
         actions: [
           IconButton(
             tooltip: 'Upcoming',
@@ -101,7 +103,6 @@ class PhysioTodayScreen extends ConsumerWidget {
               onNextMonth: () => stepMonth(1),
               onToday: onToday,
             ),
-            const Divider(height: 1),
             _SelectedDayHeader(day: day),
             Expanded(
               child: RefreshIndicator(
@@ -250,6 +251,7 @@ class _ScheduleTile extends StatelessWidget {
         color: HealynColors.surfaceBase,
         borderRadius: HealynRadii.brLg,
         border: Border.all(color: HealynColors.borderSubtle),
+        boxShadow: HealynElevation.e1,
       ),
       child: Material(
         type: MaterialType.transparency,

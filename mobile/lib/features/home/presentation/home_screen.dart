@@ -14,6 +14,7 @@ import '../../patients/presentation/widgets/patient_switcher.dart';
 import '../../shared/design/colors.dart';
 import '../../shared/design/spacing.dart';
 import '../../shared/design/typography.dart';
+import '../../shared/widgets/app_bar.dart';
 import '../../shared/widgets/card_header.dart';
 import '../../shared/widgets/section_card.dart';
 import '../../treatment_notes/presentation/treatment_notes_format.dart';
@@ -66,7 +67,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     );
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Healyn')),
+      appBar: const HealynAppBar(title: 'Healyn'),
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.all(HealynSpacing.screenEdge),

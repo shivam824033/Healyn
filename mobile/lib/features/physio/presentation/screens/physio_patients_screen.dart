@@ -7,9 +7,11 @@ import '../../../patients/presentation/patient_format.dart';
 import '../../../patients/presentation/patients_providers.dart';
 import '../../../shared/domain/patient_sex.dart';
 import '../../../shared/design/colors.dart';
+import '../../../shared/design/elevation.dart';
 import '../../../shared/design/radii.dart';
 import '../../../shared/design/spacing.dart';
 import '../../../shared/design/typography.dart';
+import '../../../shared/widgets/app_bar.dart';
 import '../../../shared/widgets/error_banner.dart';
 
 /// The physiotherapist's patient roster (C6, F1.16) — every patient in the
@@ -37,7 +39,7 @@ class _PhysioPatientsScreenState extends ConsumerState<PhysioPatientsScreen> {
   Widget build(BuildContext context) {
     final patients = ref.watch(patientsProvider);
     return Scaffold(
-      appBar: AppBar(title: const Text('Patients')),
+      appBar: const HealynAppBar(title: 'Patients'),
       body: SafeArea(
         child: Column(
           children: [
@@ -137,6 +139,7 @@ class _PatientTile extends StatelessWidget {
         color: HealynColors.surfaceBase,
         borderRadius: HealynRadii.brLg,
         border: Border.all(color: HealynColors.borderSubtle),
+        boxShadow: HealynElevation.e1,
       ),
       child: Material(
         type: MaterialType.transparency,

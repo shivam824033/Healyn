@@ -5,6 +5,7 @@ import '../../../shared/design/colors.dart';
 import '../../../shared/design/spacing.dart';
 import '../../../shared/design/typography.dart';
 import '../../../shared/network/api_exception.dart';
+import '../../../shared/widgets/app_bar.dart';
 import '../../../shared/widgets/error_banner.dart';
 import '../../../shared/widgets/section_card.dart';
 import '../../data/models/notification_preferences.dart';
@@ -20,7 +21,7 @@ class NotificationPreferencesScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final prefs = ref.watch(notificationPreferencesControllerProvider);
     return Scaffold(
-      appBar: AppBar(title: const Text('Notifications')),
+      appBar: const HealynAppBar(title: 'Notifications'),
       body: SafeArea(
         child: prefs.when(
           loading: () => const Center(child: CircularProgressIndicator()),

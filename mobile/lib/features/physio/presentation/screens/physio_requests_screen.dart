@@ -7,9 +7,11 @@ import '../../../appointments/presentation/appointment_format.dart';
 import '../../../appointments/presentation/widgets/appointment_status_chip.dart';
 import '../../../patients/presentation/patients_providers.dart';
 import '../../../shared/design/colors.dart';
+import '../../../shared/design/elevation.dart';
 import '../../../shared/design/radii.dart';
 import '../../../shared/design/spacing.dart';
 import '../../../shared/design/typography.dart';
+import '../../../shared/widgets/app_bar.dart';
 import '../../../shared/widgets/error_banner.dart';
 import '../physio_requests_providers.dart';
 
@@ -26,7 +28,7 @@ class PhysioRequestsScreen extends ConsumerWidget {
     final names = {for (final p in patients) p.id: p.fullName};
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Requests')),
+      appBar: const HealynAppBar(title: 'Requests'),
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: () async {
@@ -102,6 +104,7 @@ class _RequestTile extends StatelessWidget {
         color: HealynColors.surfaceBase,
         borderRadius: HealynRadii.brLg,
         border: Border.all(color: HealynColors.borderSubtle),
+        boxShadow: HealynElevation.e1,
       ),
       child: Material(
         type: MaterialType.transparency,

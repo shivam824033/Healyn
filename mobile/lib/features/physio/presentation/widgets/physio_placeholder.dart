@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../shared/design/colors.dart';
 import '../../../shared/design/spacing.dart';
 import '../../../shared/design/typography.dart';
+import '../../../shared/widgets/app_bar.dart';
 
 /// A calm "coming soon" panel for physiotherapist screens whose real content
 /// lands in a later increment, so the shell is navigable from C1.
@@ -21,7 +22,7 @@ class PhysioPlaceholder extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(title)),
+      appBar: HealynAppBar(title: title),
       body: SafeArea(
         child: Center(
           child: Padding(

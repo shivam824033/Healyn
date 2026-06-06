@@ -3,9 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../shared/design/colors.dart';
+import '../../../shared/design/elevation.dart';
 import '../../../shared/design/radii.dart';
 import '../../../shared/design/spacing.dart';
 import '../../../shared/design/typography.dart';
+import '../../../shared/widgets/app_bar.dart';
 import '../../../shared/widgets/error_banner.dart';
 import '../../data/models/patient_models.dart';
 import '../patient_format.dart';
@@ -20,8 +22,8 @@ class FamilyScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final patients = ref.watch(patientsProvider);
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Family'),
+      appBar: HealynAppBar(
+        title: 'Family',
         actions: [
           IconButton(
             tooltip: 'Add family member',
@@ -82,6 +84,7 @@ class _FamilyTile extends StatelessWidget {
         color: HealynColors.surfaceBase,
         borderRadius: HealynRadii.brLg,
         border: Border.all(color: HealynColors.borderSubtle),
+        boxShadow: HealynElevation.e1,
       ),
       child: Material(
         type: MaterialType.transparency,

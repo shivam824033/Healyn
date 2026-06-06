@@ -7,6 +7,7 @@ import '../../../auth/presentation/widgets/signed_in_devices.dart';
 import '../../../shared/design/colors.dart';
 import '../../../shared/design/spacing.dart';
 import '../../../shared/design/typography.dart';
+import '../../../shared/widgets/app_bar.dart';
 import '../../../shared/widgets/nav_card.dart';
 import '../../../shared/widgets/section_card.dart';
 
@@ -19,7 +20,7 @@ class PhysioProfileScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Profile')),
+      appBar: const HealynAppBar(title: 'Profile'),
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: () async {

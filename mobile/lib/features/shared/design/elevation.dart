@@ -15,7 +15,8 @@ abstract final class HealynElevation {
   /// Flat surface — no shadow.
   static const List<BoxShadow> e0 = <BoxShadow>[];
 
-  /// Card.
+  /// Card. A crisp 1px contact shadow over a soft ambient lift, so a bordered
+  /// card reads as gently raised off the scaffold rather than painted onto it.
   static final List<BoxShadow> e1 = [
     BoxShadow(
       color: _ink.withValues(alpha: 0.04),
@@ -24,22 +25,22 @@ abstract final class HealynElevation {
     ),
     BoxShadow(
       color: _ink.withValues(alpha: 0.06),
-      offset: const Offset(0, 1),
-      blurRadius: 1,
+      offset: const Offset(0, 2),
+      blurRadius: 8,
     ),
   ];
 
-  /// Hovered card / sheet.
+  /// Hovered card / sheet — a noticeably wider, softer ambient spread.
   static final List<BoxShadow> e2 = [
     BoxShadow(
-      color: _ink.withValues(alpha: 0.06),
-      offset: const Offset(0, 4),
-      blurRadius: 12,
+      color: _ink.withValues(alpha: 0.05),
+      offset: const Offset(0, 2),
+      blurRadius: 6,
     ),
     BoxShadow(
-      color: _ink.withValues(alpha: 0.04),
-      offset: const Offset(0, 2),
-      blurRadius: 4,
+      color: _ink.withValues(alpha: 0.08),
+      offset: const Offset(0, 8),
+      blurRadius: 24,
     ),
   ];
 

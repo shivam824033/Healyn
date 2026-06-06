@@ -13,10 +13,10 @@ void main() {
       expect(HealynElevation.e2, hasLength(2));
       expect(HealynElevation.e3, hasLength(1));
 
-      // e1: 0 1px 2px / 0 1px 1px
+      // e1: a crisp 1px contact shadow over a soft ambient lift (0 1px 2px / 0 2px 8px).
       expect(HealynElevation.e1[0].offset, const Offset(0, 1));
       expect(HealynElevation.e1[0].blurRadius, 2);
-      expect(HealynElevation.e1[1].blurRadius, 1);
+      expect(HealynElevation.e1[1].blurRadius, 8);
 
       // e3 (modal): 0 12px 32px — the deepest lift.
       expect(HealynElevation.e3.single.offset, const Offset(0, 12));

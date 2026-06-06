@@ -6,6 +6,7 @@ import '../../../shared/design/colors.dart';
 import '../../../shared/design/spacing.dart';
 import '../../../shared/design/typography.dart';
 import '../../../shared/network/api_exception.dart';
+import '../../../shared/widgets/app_bar.dart';
 import '../../../shared/widgets/error_banner.dart';
 import '../../data/availability_repository.dart';
 
@@ -105,7 +106,7 @@ class _AvailabilityBlackoutFormScreenState
   Widget build(BuildContext context) {
     final canSave = _endAfterStart && !_submitting;
     return Scaffold(
-      appBar: AppBar(title: const Text('Add time off')),
+      appBar: const HealynAppBar(title: 'Add time off'),
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.all(HealynSpacing.screenEdge),

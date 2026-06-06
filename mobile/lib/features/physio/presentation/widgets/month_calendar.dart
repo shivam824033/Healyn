@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../../appointments/presentation/appointment_format.dart';
 import '../../../shared/design/colors.dart';
+import '../../../shared/design/elevation.dart';
+import '../../../shared/design/radii.dart';
 import '../../../shared/design/spacing.dart';
 import '../../../shared/design/typography.dart';
 import '../month_grid.dart';
@@ -13,9 +15,9 @@ const _weekdayLabels = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 /// [markedDays], and reports interaction through callbacks — it holds no state
 /// and reads no providers, so it golden- and widget-tests in isolation.
 ///
-/// Week starts Monday. Days outside [month] (the leading/trailing cells) render
-/// muted but stay tappable, so a marked appointment spilling in from a
-/// neighbouring month is still reachable.
+/// The grid lives on a premium bordered card. Week starts Monday. Days outside
+/// [month] (the leading/trailing cells) render muted but stay tappable, so a
+/// marked appointment spilling in from a neighbouring month is still reachable.
 class MonthCalendar extends StatelessWidget {
   const MonthCalendar({
     super.key,
@@ -48,15 +50,29 @@ class MonthCalendar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final today = DateTime.now();
-    return Padding(
-      padding: const EdgeInsets.symmetric(
-        horizontal: HealynSpacing.s2,
-        vertical: HealynSpacing.s2,
+    return Container(
+      margin: const EdgeInsets.fromLTRB(
+        HealynSpacing.screenEdge,
+        HealynSpacing.s3,
+        HealynSpacing.screenEdge,
+        HealynSpacing.s2,
+      ),
+      padding: const EdgeInsets.fromLTRB(
+        HealynSpacing.s3,
+        HealynSpacing.s2,
+        HealynSpacing.s3,
+        HealynSpacing.s3,
+      ),
+      decoration: BoxDecoration(
+        color: HealynColors.surfaceBase,
+        borderRadius: HealynRadii.brXl,
+        border: Border.all(color: HealynColors.borderSubtle),
+        boxShadow: HealynElevation.e1,
       ),
       child: Column(
         children: [
           _header(),
-          const SizedBox(height: HealynSpacing.s1),
+          const SizedBox(height: HealynSpacing.s2),
           _weekdayRow(),
           const SizedBox(height: HealynSpacing.s1),
           for (final week in monthGridWeeks(month))
@@ -83,15 +99,15 @@ class MonthCalendar extends StatelessWidget {
   Widget _header() {
     return Row(
       children: [
-        IconButton(
+        _ArrowButton(
           tooltip: 'Previous month',
-          icon: const Icon(Icons.chevron_left),
+          icon: Icons.chevron_left,
           onPressed: onPrevMonth,
         ),
         Expanded(
           child: Text(
             formatMonthYear(month),
-            style: HealynTypography.bodyStrong,
+            style: HealynTypography.h3,
             textAlign: TextAlign.center,
           ),
         ),
@@ -107,9 +123,9 @@ class MonthCalendar extends StatelessWidget {
             ),
             child: const Text('Today'),
           ),
-        IconButton(
+        _ArrowButton(
           tooltip: 'Next month',
-          icon: const Icon(Icons.chevron_right),
+          icon: Icons.chevron_right,
           onPressed: onNextMonth,
         ),
       ],
@@ -124,14 +140,42 @@ class MonthCalendar extends StatelessWidget {
             child: Center(
               child: Text(
                 label,
-                style: HealynTypography.caption.copyWith(
+                style: HealynTypography.overline.copyWith(
                   color: HealynColors.textMuted,
-                  fontWeight: FontWeight.w600,
                 ),
               ),
             ),
           ),
       ],
+    );
+  }
+}
+
+/// A round, brand-tinted month stepper button — softer than a bare icon.
+class _ArrowButton extends StatelessWidget {
+  const _ArrowButton({
+    required this.tooltip,
+    required this.icon,
+    required this.onPressed,
+  });
+
+  final String tooltip;
+  final IconData icon;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      tooltip: tooltip,
+      icon: Icon(icon),
+      onPressed: onPressed,
+      iconSize: 22,
+      color: HealynColors.brandPrimary,
+      style: IconButton.styleFrom(
+        backgroundColor: HealynColors.brandPrimarySubtle,
+        minimumSize: const Size(36, 36),
+        padding: EdgeInsets.zero,
+      ),
     );
   }
 }
@@ -158,6 +202,8 @@ class _DayCell extends StatelessWidget {
     final Color textColor;
     if (selected) {
       textColor = HealynColors.textInverse;
+    } else if (isToday) {
+      textColor = HealynColors.brandPrimary;
     } else if (!inMonth) {
       textColor = HealynColors.textMuted;
     } else {
@@ -170,22 +216,23 @@ class _DayCell extends StatelessWidget {
       label: '${formatDateLong(day)}${marked ? ', has appointments' : ''}',
       child: InkResponse(
         onTap: onTap,
-        radius: 26,
+        radius: 28,
         child: SizedBox(
-          height: 44,
+          height: 46,
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Container(
-                width: 32,
-                height: 32,
+                width: 36,
+                height: 36,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  color: selected ? HealynColors.brandPrimary : null,
-                  shape: BoxShape.circle,
-                  border: !selected && isToday
-                      ? Border.all(color: HealynColors.brandPrimary)
+                  gradient: selected ? HealynColors.brandGradient : null,
+                  color: !selected && isToday
+                      ? HealynColors.brandPrimarySubtle
                       : null,
+                  shape: BoxShape.circle,
+                  boxShadow: selected ? HealynElevation.e1 : null,
                 ),
                 child: Text(
                   '${day.day}',
@@ -197,7 +244,7 @@ class _DayCell extends StatelessWidget {
                   ),
                 ),
               ),
-              const SizedBox(height: 2),
+              const SizedBox(height: 3),
               // A fixed-size slot keeps every row the same height whether or not
               // the day is marked.
               SizedBox(

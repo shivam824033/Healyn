@@ -123,6 +123,36 @@ class AppointmentsRepository {
     return _guard(() async => (await _api.slots(from: day, to: day)).slots);
   }
 
+  /// The slot start instants on [day] already taken by this physiotherapist's
+  /// appointments, so the assign-time picker can mark them as booked. Any
+  /// non-cancelled scheduled appointment on the day counts; [excludeAppointmentId]
+  /// is dropped so the appointment being rescheduled never flags its own current
+  /// slot. Returns UTC instants (match against [Slot.startsAt] by moment).
+  Future<Set<DateTime>> bookedStartsFor(
+    DateTime day, {
+    String? excludeAppointmentId,
+  }) async {
+    final from = DateTime(day.year, day.month, day.day);
+    final to = from.add(const Duration(days: 1));
+    final appointments = await _guard(() => _api.calendar(from: from, to: to));
+    return {
+      for (final a in appointments)
+        if (a.id != excludeAppointmentId &&
+            a.scheduledAt != null &&
+            _occupiesSlot(a.status))
+          a.scheduledAt!.toUtc(),
+    };
+  }
+
+  /// Whether an appointment in this status still holds its slot. Cancelled and
+  /// rescheduled appointments free the time; everything else (confirmed through
+  /// completed / no-show) keeps it taken.
+  static bool _occupiesSlot(AppointmentStatus status) =>
+      status == AppointmentStatus.confirmed ||
+      status == AppointmentStatus.inProgress ||
+      status == AppointmentStatus.completed ||
+      status == AppointmentStatus.noShow;
+
   Future<T> _guard<T>(Future<T> Function() body) async {
     try {
       return await body();

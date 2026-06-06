@@ -11,6 +11,7 @@ import '../../../shared/design/colors.dart';
 import '../../../shared/design/spacing.dart';
 import '../../../shared/design/typography.dart';
 import '../../../shared/network/api_exception.dart';
+import '../../../shared/widgets/app_bar.dart';
 import '../../../shared/widgets/error_banner.dart';
 import '../../../shared/widgets/section_card.dart';
 import '../physio_appointment_actions.dart';
@@ -172,6 +173,7 @@ class _PhysioAppointmentDetailScreenState
       confirmLabel: 'Confirm appointment',
       initialDay: _appt.requestedDate,
       initialTime: _timeOfDayFrom(_appt.preferredTime),
+      excludeAppointmentId: _appt.id,
     );
     if (result == null || !mounted) return;
     await _runScheduling(
@@ -200,6 +202,7 @@ class _PhysioAppointmentDetailScreenState
       initialDay: at ?? _appt.requestedDate,
       initialTime: at != null ? TimeOfDay.fromDateTime(at) : null,
       initialDuration: _appt.durationMinutes,
+      excludeAppointmentId: _appt.id,
     );
     if (result == null || !mounted) return;
     await _runScheduling(
@@ -226,6 +229,7 @@ class _PhysioAppointmentDetailScreenState
       confirmLabel: 'Confirm follow-up',
       initialDay: DateTime(now.year, now.month, now.day + 7),
       showReason: true,
+      excludeAppointmentId: _appt.id,
     );
     if (result == null || !mounted) return;
     await _runScheduling(
@@ -393,7 +397,7 @@ class _PhysioAppointmentDetailScreenState
     final actionButtons = _actionButtons();
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Appointment')),
+      appBar: const HealynAppBar(title: 'Appointment'),
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.all(HealynSpacing.screenEdge),
