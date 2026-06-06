@@ -16,14 +16,18 @@ import '../../../shared/widgets/section_card.dart';
 import '../physio_appointment_actions.dart';
 import '../physio_requests_providers.dart';
 import '../physio_schedule_providers.dart';
+import '../widgets/assign_time_sheet.dart';
 import '../widgets/physio_treatment_note_section.dart';
 
-/// One appointment from the physiotherapist's side, with the lifecycle actions
-/// legal for its current status (C3): confirm / reject a request, start / mark
-/// no-show / cancel a confirmed visit, complete / cancel one in progress. Each
-/// fires `POST /appointments/{id}/transitions`; cancellations collect a
-/// mandatory note. Links out to the discussion thread (C4); once COMPLETED, the
-/// treatment-note section lets the physio write or revise the note (C5).
+/// One appointment from the physiotherapist's side, with the actions legal for
+/// its current status. Request-first scheduling lives in the assign-time sheet:
+/// a REQUESTED appointment is confirmed by *assigning a time* (`POST
+/// /{id}/schedule`), a CONFIRMED one can be rescheduled to a new time (`POST
+/// /{id}/reschedule`), and a COMPLETED one can spawn a follow-up review (`POST
+/// /follow-ups`). The remaining lifecycle moves — reject / start / no-show /
+/// complete / cancel — fire `POST /{id}/transitions`; cancellations collect a
+/// mandatory note. Links out to the discussion thread; once COMPLETED, the
+/// treatment-note section lets the physio write or revise the note.
 class PhysioAppointmentDetailScreen extends ConsumerStatefulWidget {
   const PhysioAppointmentDetailScreen({required this.appointment, super.key});
 
@@ -159,6 +163,202 @@ class _PhysioAppointmentDetailScreenState
     }
   }
 
+  /// Confirm a request by assigning its final time (REQUESTED → CONFIRMED).
+  /// Prefilled with the requested date and the patient's preferred-time hint.
+  Future<void> _openSchedule() async {
+    final result = await showAssignTimeSheet(
+      context,
+      title: 'Set appointment time',
+      confirmLabel: 'Confirm appointment',
+      initialDay: _appt.requestedDate,
+      initialTime: _timeOfDayFrom(_appt.preferredTime),
+    );
+    if (result == null || !mounted) return;
+    await _runScheduling(
+      () => ref
+          .read(appointmentsRepositoryProvider)
+          .schedule(
+            _appt.id,
+            ScheduleAppointmentRequest(
+              scheduledAt: result.scheduledAt,
+              durationMinutes: result.durationMinutes,
+            ),
+          ),
+      success: 'Appointment confirmed',
+    );
+  }
+
+  /// Move a confirmed appointment to a new assigned time. The backend returns
+  /// the new appointment (the original becomes RESCHEDULED), so the screen
+  /// follows the patient to it.
+  Future<void> _openReschedule() async {
+    final at = _appt.scheduledAt?.toLocal();
+    final result = await showAssignTimeSheet(
+      context,
+      title: 'Reschedule appointment',
+      confirmLabel: 'Confirm new time',
+      initialDay: at ?? _appt.requestedDate,
+      initialTime: at != null ? TimeOfDay.fromDateTime(at) : null,
+      initialDuration: _appt.durationMinutes,
+    );
+    if (result == null || !mounted) return;
+    await _runScheduling(
+      () => ref
+          .read(appointmentsRepositoryProvider)
+          .rescheduleByPhysio(
+            _appt.id,
+            PhysioRescheduleRequest(
+              scheduledAt: result.scheduledAt,
+              durationMinutes: result.durationMinutes,
+            ),
+          ),
+      success: 'Appointment rescheduled',
+    );
+  }
+
+  /// Book a follow-up review for this patient. A fresh appointment, so the
+  /// current (completed) one stays on screen; defaults a week out.
+  Future<void> _openFollowUp() async {
+    final now = DateTime.now();
+    final result = await showAssignTimeSheet(
+      context,
+      title: 'Schedule follow-up review',
+      confirmLabel: 'Confirm follow-up',
+      initialDay: DateTime(now.year, now.month, now.day + 7),
+      showReason: true,
+    );
+    if (result == null || !mounted) return;
+    await _runScheduling(
+      () => ref
+          .read(appointmentsRepositoryProvider)
+          .createFollowUp(
+            FollowUpRequest(
+              patientId: _appt.patientId,
+              scheduledAt: result.scheduledAt,
+              durationMinutes: result.durationMinutes,
+              reason: result.reason,
+            ),
+          ),
+      success: 'Follow-up scheduled',
+      replaceAppt: false,
+    );
+  }
+
+  /// Runs a scheduling call (schedule / reschedule / follow-up), refreshing the
+  /// schedule and requests queues. [replaceAppt] swaps the on-screen appointment
+  /// for the returned one (true for schedule/reschedule, which act on it; false
+  /// for a follow-up, which creates a separate appointment).
+  Future<void> _runScheduling(
+    Future<Appointment> Function() call, {
+    required String success,
+    bool replaceAppt = true,
+  }) async {
+    setState(() {
+      _submitting = true;
+      _error = null;
+    });
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      final updated = await call();
+      ref
+        ..invalidate(physioScheduleProvider)
+        ..invalidate(physioRequestsProvider);
+      if (!mounted) return;
+      setState(() {
+        if (replaceAppt) _appt = updated;
+      });
+      messenger.showSnackBar(SnackBar(content: Text(success)));
+    } on ApiException catch (e) {
+      if (mounted) setState(() => _error = e.message);
+    } finally {
+      if (mounted) setState(() => _submitting = false);
+    }
+  }
+
+  /// Parses a wire `HH:mm[:ss]` clock string into a [TimeOfDay], or null when
+  /// absent/unparseable so the sheet falls back to its default.
+  static TimeOfDay? _timeOfDayFrom(String? wire) {
+    if (wire == null) return null;
+    final parts = wire.split(':');
+    if (parts.length < 2) return null;
+    final h = int.tryParse(parts[0]);
+    final m = int.tryParse(parts[1]);
+    if (h == null || m == null) return null;
+    return TimeOfDay(hour: h, minute: m);
+  }
+
+  /// The action buttons for the current status, in display order: the
+  /// request-first scheduling buttons (assign time / reschedule / follow-up)
+  /// interleaved with the lifecycle transitions from [physioActionsFor].
+  List<Widget> _actionButtons() {
+    final disabled = _submitting;
+    final buttons = <Widget>[];
+
+    // Confirming a request means assigning its time (request-first).
+    if (_appt.status == AppointmentStatus.requested) {
+      buttons.add(
+        _filledAction(
+          Icons.event_available_outlined,
+          'Set time & confirm',
+          disabled ? null : _openSchedule,
+        ),
+      );
+    }
+
+    for (final action in physioActionsFor(_appt.status)) {
+      buttons.add(
+        _ActionButton(
+          action: action,
+          onPressed: disabled ? null : () => _onAction(action),
+        ),
+      );
+      // A confirmed visit can be moved to a new time; slot Reschedule right
+      // after Start so the destructive no-show / cancel stay at the bottom.
+      if (action == PhysioAppointmentAction.start) {
+        buttons.add(
+          _outlinedAction(
+            Icons.event_repeat_outlined,
+            'Reschedule',
+            disabled ? null : _openReschedule,
+          ),
+        );
+      }
+    }
+
+    // A completed visit can spawn a follow-up review.
+    if (_appt.status == AppointmentStatus.completed) {
+      buttons.add(
+        _filledAction(
+          Icons.event_repeat_outlined,
+          'Schedule follow-up',
+          disabled ? null : _openFollowUp,
+        ),
+      );
+    }
+
+    return buttons;
+  }
+
+  Widget _filledAction(IconData icon, String label, VoidCallback? onPressed) =>
+      ElevatedButton.icon(
+        onPressed: onPressed,
+        icon: Icon(icon),
+        label: Text(label),
+        style: ElevatedButton.styleFrom(minimumSize: const Size.fromHeight(48)),
+      );
+
+  Widget _outlinedAction(IconData icon, String label, VoidCallback? onPressed) =>
+      OutlinedButton.icon(
+        onPressed: onPressed,
+        icon: Icon(icon),
+        label: Text(label),
+        style: OutlinedButton.styleFrom(
+          foregroundColor: HealynColors.textPrimary,
+          minimumSize: const Size.fromHeight(48),
+          side: const BorderSide(color: HealynColors.borderSubtle),
+        ),
+      );
+
   @override
   Widget build(BuildContext context) {
     final patients = ref.watch(patientsProvider).valueOrNull ?? const [];
@@ -190,7 +390,7 @@ class _PhysioAppointmentDetailScreenState
       if (_appt.cancelReason != null) ('Reason', _appt.cancelReason!.label),
       if (_has(_appt.cancelNote)) ('Note', _appt.cancelNote!),
     ];
-    final actions = physioActionsFor(_appt.status);
+    final actionButtons = _actionButtons();
 
     return Scaffold(
       appBar: AppBar(title: const Text('Appointment')),
@@ -246,14 +446,11 @@ class _PhysioAppointmentDetailScreenState
               const SizedBox(height: HealynSpacing.s6),
               PhysioTreatmentNoteSection(appointmentId: _appt.id),
             ],
-            if (actions.isNotEmpty) ...[
+            if (actionButtons.isNotEmpty) ...[
               const SizedBox(height: HealynSpacing.s7),
-              for (var i = 0; i < actions.length; i++) ...[
+              for (var i = 0; i < actionButtons.length; i++) ...[
                 if (i > 0) const SizedBox(height: HealynSpacing.s3),
-                _ActionButton(
-                  action: actions[i],
-                  onPressed: _submitting ? null : () => _onAction(actions[i]),
-                ),
+                actionButtons[i],
               ],
             ],
             if (cancellation.isNotEmpty) ...[
@@ -271,8 +468,6 @@ class _PhysioAppointmentDetailScreenState
   String _confirmPrompt(PhysioAppointmentAction action) {
     final when = formatAppointmentWhen(_appt);
     return switch (action) {
-      PhysioAppointmentAction.confirm =>
-        'Confirm the appointment on $when? The patient will be notified.',
       PhysioAppointmentAction.reject =>
         'Reject the request for $when? The patient will be notified.',
       PhysioAppointmentAction.start => 'Start the session for $when?',
@@ -286,7 +481,6 @@ class _PhysioAppointmentDetailScreenState
   }
 
   String _successMessage(PhysioAppointmentAction action) => switch (action) {
-    PhysioAppointmentAction.confirm => 'Appointment confirmed',
     PhysioAppointmentAction.reject => 'Request rejected',
     PhysioAppointmentAction.start => 'Session started',
     PhysioAppointmentAction.complete => 'Appointment completed',
@@ -335,7 +529,6 @@ class _ActionButton extends StatelessWidget {
   }
 
   static IconData _iconFor(PhysioAppointmentAction action) => switch (action) {
-    PhysioAppointmentAction.confirm => Icons.check_circle_outline,
     PhysioAppointmentAction.reject => Icons.cancel_outlined,
     PhysioAppointmentAction.start => Icons.play_arrow_outlined,
     PhysioAppointmentAction.complete => Icons.task_alt_outlined,

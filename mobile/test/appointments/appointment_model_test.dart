@@ -125,6 +125,68 @@ void main() {
     expect(json.containsKey('reason'), isFalse);
   });
 
+  test('ScheduleAppointmentRequest serializes a UTC instant + duration', () {
+    final json = ScheduleAppointmentRequest(
+      scheduledAt: DateTime.utc(2026, 6, 10, 9),
+      durationMinutes: 45,
+    ).toJson();
+
+    expect(DateTime.parse(json['scheduled_at'] as String).toUtc(),
+        DateTime.utc(2026, 6, 10, 9));
+    expect(json['scheduled_at'], endsWith('Z')); // unambiguous UTC on the wire
+    expect(json['duration_minutes'], 45);
+  });
+
+  test('ScheduleAppointmentRequest converts a local instant to UTC', () {
+    final local = DateTime(2026, 6, 10, 9); // local wall time
+    final json = ScheduleAppointmentRequest(
+      scheduledAt: local,
+      durationMinutes: 30,
+    ).toJson();
+
+    expect(DateTime.parse(json['scheduled_at'] as String), local.toUtc());
+  });
+
+  test('FollowUpRequest serializes patient, time, duration and reason', () {
+    final json = FollowUpRequest(
+      patientId: 'pt1',
+      scheduledAt: DateTime.utc(2026, 6, 17, 14, 30),
+      durationMinutes: 60,
+      reason: 'Progress review',
+    ).toJson();
+
+    expect(json['patient_id'], 'pt1');
+    expect(DateTime.parse(json['scheduled_at'] as String).toUtc(),
+        DateTime.utc(2026, 6, 17, 14, 30));
+    expect(json['duration_minutes'], 60);
+    expect(json['reason'], 'Progress review');
+  });
+
+  test('FollowUpRequest omits a null reason', () {
+    final json = FollowUpRequest(
+      patientId: 'pt1',
+      scheduledAt: DateTime.utc(2026, 6, 17, 14, 30),
+      durationMinutes: 60,
+    ).toJson();
+    expect(json.containsKey('reason'), isFalse);
+  });
+
+  test('PhysioRescheduleRequest serializes an assigned time, not a re-request',
+      () {
+    final json = PhysioRescheduleRequest(
+      scheduledAt: DateTime.utc(2026, 6, 12, 11),
+      durationMinutes: 45,
+    ).toJson();
+
+    expect(DateTime.parse(json['scheduled_at'] as String).toUtc(),
+        DateTime.utc(2026, 6, 12, 11));
+    expect(json['duration_minutes'], 45);
+    // The physio assigns a final time — no requested_date / preferred_time.
+    expect(json.containsKey('requested_date'), isFalse);
+    expect(json.containsKey('preferred_time'), isFalse);
+    expect(json.containsKey('reason'), isFalse);
+  });
+
   test('TransitionRequest serializes a patient cancellation', () {
     final json = const TransitionRequest(
       to: AppointmentStatus.cancelled,

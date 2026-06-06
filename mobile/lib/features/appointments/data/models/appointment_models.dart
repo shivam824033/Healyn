@@ -178,6 +178,54 @@ abstract class RescheduleAppointmentRequest with _$RescheduleAppointmentRequest 
       _$RescheduleAppointmentRequestFromJson(json);
 }
 
+/// Body for `POST /appointments/{id}/schedule` — the physiotherapist assigns the
+/// final time to a REQUESTED appointment, moving it to CONFIRMED. [scheduledAt]
+/// is a UTC instant (built from the picked local date + time); [durationMinutes]
+/// is 5–240.
+@freezed
+abstract class ScheduleAppointmentRequest with _$ScheduleAppointmentRequest {
+  const factory ScheduleAppointmentRequest({
+    @UtcInstantConverter() required DateTime scheduledAt,
+    required int durationMinutes,
+  }) = _ScheduleAppointmentRequest;
+
+  factory ScheduleAppointmentRequest.fromJson(Map<String, dynamic> json) =>
+      _$ScheduleAppointmentRequestFromJson(json);
+}
+
+/// Body for `POST /appointments/follow-ups` — the physiotherapist books a
+/// follow-up review for [patientId] at a time they set (a new CONFIRMED row,
+/// `is_follow_up=true`). [reason] is optional and omitted when null.
+@freezed
+abstract class FollowUpRequest with _$FollowUpRequest {
+  const factory FollowUpRequest({
+    required String patientId,
+    @UtcInstantConverter() required DateTime scheduledAt,
+    required int durationMinutes,
+    String? reason,
+  }) = _FollowUpRequest;
+
+  factory FollowUpRequest.fromJson(Map<String, dynamic> json) =>
+      _$FollowUpRequestFromJson(json);
+}
+
+/// Body for `POST /appointments/{id}/reschedule` from the physiotherapist side —
+/// they assign the new final time directly (a new CONFIRMED row; the original is
+/// marked RESCHEDULED). Distinct from the patient's [RescheduleAppointmentRequest],
+/// which is a re-request with no self-assigned time. A null [reason] keeps the
+/// original appointment's reason.
+@freezed
+abstract class PhysioRescheduleRequest with _$PhysioRescheduleRequest {
+  const factory PhysioRescheduleRequest({
+    @UtcInstantConverter() required DateTime scheduledAt,
+    required int durationMinutes,
+    String? reason,
+  }) = _PhysioRescheduleRequest;
+
+  factory PhysioRescheduleRequest.fromJson(Map<String, dynamic> json) =>
+      _$PhysioRescheduleRequestFromJson(json);
+}
+
 /// Body for `POST /appointments/{id}/transitions`. The patient app uses this
 /// only to cancel: [to] is [AppointmentStatus.cancelled] with a [cancelReason].
 @freezed

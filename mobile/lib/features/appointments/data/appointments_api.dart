@@ -71,6 +71,44 @@ class AppointmentsApi {
     return Appointment.fromJson(res.data!);
   }
 
+  /// Physiotherapist assigns the final time to a REQUESTED appointment, moving
+  /// it to CONFIRMED. Returns the now-scheduled appointment (same id).
+  Future<Appointment> schedule(
+    String id,
+    ScheduleAppointmentRequest body,
+  ) async {
+    final res = await _dio.post<Map<String, dynamic>>(
+      '/appointments/$id/schedule',
+      data: body.toJson(),
+    );
+    return Appointment.fromJson(res.data!);
+  }
+
+  /// Physiotherapist books a follow-up review at a time they set. Returns the
+  /// new (CONFIRMED, follow-up) appointment (HTTP 201).
+  Future<Appointment> createFollowUp(FollowUpRequest body) async {
+    final res = await _dio.post<Map<String, dynamic>>(
+      '/appointments/follow-ups',
+      data: body.toJson(),
+    );
+    return Appointment.fromJson(res.data!);
+  }
+
+  /// Physiotherapist reschedules an appointment to a new final time. Shares the
+  /// `/reschedule` endpoint with the patient re-request, but sends an assigned
+  /// time (the body shape the backend resolves by the caller's role). Returns
+  /// the new appointment (HTTP 201).
+  Future<Appointment> rescheduleByPhysio(
+    String id,
+    PhysioRescheduleRequest body,
+  ) async {
+    final res = await _dio.post<Map<String, dynamic>>(
+      '/appointments/$id/reschedule',
+      data: body.toJson(),
+    );
+    return Appointment.fromJson(res.data!);
+  }
+
   /// Drives a status transition. The patient app uses this only to cancel.
   Future<Appointment> transition(String id, TransitionRequest body) async {
     final res = await _dio.post<Map<String, dynamic>>(

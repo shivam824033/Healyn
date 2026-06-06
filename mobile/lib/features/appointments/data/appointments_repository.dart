@@ -52,6 +52,28 @@ class AppointmentsRepository {
     return _guard(() => _api.reschedule(id, body));
   }
 
+  /// Physiotherapist assigns the final time to a REQUESTED [id], confirming it.
+  Future<Appointment> schedule(
+    String id,
+    ScheduleAppointmentRequest body,
+  ) async {
+    return _guard(() => _api.schedule(id, body));
+  }
+
+  /// Physiotherapist books a follow-up review, returning the new appointment.
+  Future<Appointment> createFollowUp(FollowUpRequest body) async {
+    return _guard(() => _api.createFollowUp(body));
+  }
+
+  /// Physiotherapist reschedules [id] to a new assigned time, returning the new
+  /// appointment the backend creates (the original becomes RESCHEDULED).
+  Future<Appointment> rescheduleByPhysio(
+    String id,
+    PhysioRescheduleRequest body,
+  ) async {
+    return _guard(() => _api.rescheduleByPhysio(id, body));
+  }
+
   /// Drives a status transition. The physiotherapist confirms / starts /
   /// completes / marks no-show and may cancel; [reason] and [note] are only
   /// meaningful when [to] is [AppointmentStatus.cancelled] (the backend requires

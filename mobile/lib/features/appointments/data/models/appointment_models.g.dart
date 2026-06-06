@@ -146,6 +146,58 @@ Map<String, dynamic> _$RescheduleAppointmentRequestToJson(
   'reason': ?instance.reason,
 };
 
+_ScheduleAppointmentRequest _$ScheduleAppointmentRequestFromJson(
+  Map<String, dynamic> json,
+) => _ScheduleAppointmentRequest(
+  scheduledAt: const UtcInstantConverter().fromJson(
+    json['scheduled_at'] as String,
+  ),
+  durationMinutes: (json['duration_minutes'] as num).toInt(),
+);
+
+Map<String, dynamic> _$ScheduleAppointmentRequestToJson(
+  _ScheduleAppointmentRequest instance,
+) => <String, dynamic>{
+  'scheduled_at': const UtcInstantConverter().toJson(instance.scheduledAt),
+  'duration_minutes': instance.durationMinutes,
+};
+
+_FollowUpRequest _$FollowUpRequestFromJson(Map<String, dynamic> json) =>
+    _FollowUpRequest(
+      patientId: json['patient_id'] as String,
+      scheduledAt: const UtcInstantConverter().fromJson(
+        json['scheduled_at'] as String,
+      ),
+      durationMinutes: (json['duration_minutes'] as num).toInt(),
+      reason: json['reason'] as String?,
+    );
+
+Map<String, dynamic> _$FollowUpRequestToJson(_FollowUpRequest instance) =>
+    <String, dynamic>{
+      'patient_id': instance.patientId,
+      'scheduled_at': const UtcInstantConverter().toJson(instance.scheduledAt),
+      'duration_minutes': instance.durationMinutes,
+      'reason': ?instance.reason,
+    };
+
+_PhysioRescheduleRequest _$PhysioRescheduleRequestFromJson(
+  Map<String, dynamic> json,
+) => _PhysioRescheduleRequest(
+  scheduledAt: const UtcInstantConverter().fromJson(
+    json['scheduled_at'] as String,
+  ),
+  durationMinutes: (json['duration_minutes'] as num).toInt(),
+  reason: json['reason'] as String?,
+);
+
+Map<String, dynamic> _$PhysioRescheduleRequestToJson(
+  _PhysioRescheduleRequest instance,
+) => <String, dynamic>{
+  'scheduled_at': const UtcInstantConverter().toJson(instance.scheduledAt),
+  'duration_minutes': instance.durationMinutes,
+  'reason': ?instance.reason,
+};
+
 _TransitionRequest _$TransitionRequestFromJson(Map<String, dynamic> json) =>
     _TransitionRequest(
       to: $enumDecode(_$AppointmentStatusEnumMap, json['to']),

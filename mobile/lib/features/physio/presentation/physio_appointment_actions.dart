@@ -3,9 +3,10 @@ import '../../appointments/data/models/appointment_models.dart';
 /// A transition a physiotherapist can drive from the appointment detail screen.
 /// Each action maps to a target [AppointmentStatus]; the [isCancellation]
 /// actions (Reject / Cancel) collect a mandatory note before they fire, per the
-/// cancellation policy in APPOINTMENT_FLOW §7.
+/// cancellation policy in APPOINTMENT_FLOW §7. Confirming a request is *not* a
+/// plain transition (request-first: the physiotherapist assigns a time via
+/// `POST /{id}/schedule`), so it lives in the assign-time sheet, not here.
 enum PhysioAppointmentAction {
-  confirm,
   reject,
   start,
   complete,
@@ -13,7 +14,6 @@ enum PhysioAppointmentAction {
   cancel;
 
   String get label => switch (this) {
-    PhysioAppointmentAction.confirm => 'Confirm',
     PhysioAppointmentAction.reject => 'Reject',
     PhysioAppointmentAction.start => 'Start session',
     PhysioAppointmentAction.complete => 'Mark completed',
@@ -23,7 +23,6 @@ enum PhysioAppointmentAction {
 
   /// The status this action transitions the appointment to.
   AppointmentStatus get target => switch (this) {
-    PhysioAppointmentAction.confirm => AppointmentStatus.confirmed,
     PhysioAppointmentAction.reject ||
     PhysioAppointmentAction.cancel => AppointmentStatus.cancelled,
     PhysioAppointmentAction.start => AppointmentStatus.inProgress,
@@ -37,21 +36,20 @@ enum PhysioAppointmentAction {
       this == PhysioAppointmentAction.reject ||
       this == PhysioAppointmentAction.cancel;
 
-  /// Confirm / Start / Mark-completed are the forward, non-destructive actions
-  /// shown as the filled primary button; the rest are outlined.
+  /// Start / Mark-completed are the forward, non-destructive actions shown as
+  /// the filled primary button; the rest are outlined.
   bool get isPrimary =>
-      this == PhysioAppointmentAction.confirm ||
       this == PhysioAppointmentAction.start ||
       this == PhysioAppointmentAction.complete;
 }
 
 /// The transitions a physiotherapist may drive from [status], in display order,
-/// mirroring the allowed-transition matrix in APPOINTMENT_FLOW §3.1. Terminal
-/// statuses offer none.
+/// mirroring the allowed-transition matrix in APPOINTMENT_FLOW §3.1. A REQUESTED
+/// appointment offers only Reject here — confirming it means assigning a time
+/// (the assign-time sheet, not a transition). Terminal statuses offer none.
 List<PhysioAppointmentAction> physioActionsFor(AppointmentStatus status) =>
     switch (status) {
       AppointmentStatus.requested => const [
-        PhysioAppointmentAction.confirm,
         PhysioAppointmentAction.reject,
       ],
       AppointmentStatus.confirmed => const [
