@@ -8,6 +8,7 @@ part of 'patient_models.dart';
 
 _Patient _$PatientFromJson(Map<String, dynamic> json) => _Patient(
   id: json['id'] as String,
+  patientNumber: json['patient_number'] as String?,
   fullName: json['full_name'] as String,
   dateOfBirth: const LocalDateConverter().fromJson(
     json['date_of_birth'] as String,
@@ -34,6 +35,7 @@ _Patient _$PatientFromJson(Map<String, dynamic> json) => _Patient(
 
 Map<String, dynamic> _$PatientToJson(_Patient instance) => <String, dynamic>{
   'id': instance.id,
+  'patient_number': ?instance.patientNumber,
   'full_name': instance.fullName,
   'date_of_birth': const LocalDateConverter().toJson(instance.dateOfBirth),
   'sex': ?_$PatientSexEnumMap[instance.sex],

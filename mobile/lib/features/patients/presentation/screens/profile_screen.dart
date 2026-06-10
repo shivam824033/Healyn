@@ -177,6 +177,15 @@ class _Header extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(patient.fullName, style: HealynTypography.h2),
+                if (patient.patientNumber != null) ...[
+                  const SizedBox(height: HealynSpacing.s1),
+                  Text(
+                    patient.patientNumber!,
+                    style: HealynTypography.caption.copyWith(
+                      color: HealynColors.textMuted,
+                    ),
+                  ),
+                ],
                 const SizedBox(height: HealynSpacing.s1),
                 Text(
                   'Primary patient',

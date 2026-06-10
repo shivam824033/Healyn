@@ -31,8 +31,8 @@ class FlywayMigrationTest {
 
         // Pins the latest migration version as a tripwire — bump it with every new migration.
         MigrationInfo current = flyway.info().current();
-        assertThat(current.getVersion().getVersion()).isEqualTo("15");
-        assertThat(flyway.info().applied()).hasSizeGreaterThanOrEqualTo(15);
+        assertThat(current.getVersion().getVersion()).isEqualTo("16");
+        assertThat(flyway.info().applied()).hasSizeGreaterThanOrEqualTo(16);
 
         DataSource ds = flyway.getConfiguration().getDataSource();
         try (Connection c = ds.getConnection(); Statement st = c.createStatement()) {
@@ -59,6 +59,23 @@ class FlywayMigrationTest {
             try (ResultSet rs = st.executeQuery(
                     "select 1 from pg_tables where tablename = 'fcm_tokens'")) {
                 assertThat(rs.next()).as("fcm_tokens table exists").isTrue();
+            }
+            try (ResultSet rs = st.executeQuery(
+                    "select 1 from pg_sequences where sequencename = 'patient_number_seq'")) {
+                assertThat(rs.next()).as("patient_number_seq sequence exists").isTrue();
+            }
+            try (ResultSet rs = st.executeQuery(
+                    "select 1 from pg_constraint where conname = 'patients_patient_number_key' and contype = 'u'")) {
+                assertThat(rs.next()).as("patient_number UNIQUE constraint").isTrue();
+            }
+            // The column DEFAULT must draw from the sequence so new rows are PAT-numbered
+            // without any application round-trip.
+            try (ResultSet rs = st.executeQuery(
+                    "select column_default from information_schema.columns "
+                            + "where table_name = 'patients' and column_name = 'patient_number'")) {
+                assertThat(rs.next()).as("patient_number column exists").isTrue();
+                assertThat(rs.getString(1)).as("patient_number default uses the sequence")
+                        .contains("patient_number_seq");
             }
         }
     }

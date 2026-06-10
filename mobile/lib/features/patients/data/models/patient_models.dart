@@ -41,10 +41,15 @@ extension PatientRelationshipLabel on PatientRelationship {
 /// A patient linked to the account — either the primary patient ([primary] is
 /// true, [relationship] is `self`) or a family member. Mirrors the backend
 /// `PatientView`. Clinical fields ([allergies], [notes]) are PHI; never log them.
+///
+/// [patientNumber] is the human-friendly business id (e.g. `PAT-100001`) shown to
+/// users; [id] is the technical UUID and is never displayed. Optional only for
+/// resilience to older cached payloads — the backend always sends it.
 @freezed
 abstract class Patient with _$Patient {
   const factory Patient({
     required String id,
+    String? patientNumber,
     required String fullName,
     @LocalDateConverter() required DateTime dateOfBirth,
     PatientSex? sex,

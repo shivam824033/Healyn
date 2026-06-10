@@ -141,8 +141,12 @@ CREATE INDEX idx_otp_target_purpose_open
 ### 3.4 `patients` — clinical entities
 
 ```sql
+CREATE SEQUENCE patient_number_seq START WITH 100001;       -- V16: human-friendly id source
+
 CREATE TABLE patients (
     id                  UUID PRIMARY KEY,
+    patient_number      VARCHAR(20) NOT NULL UNIQUE          -- V16: business id, e.g. PAT-100001
+                          DEFAULT 'PAT-' || nextval('patient_number_seq'),
     full_name           VARCHAR(160) NOT NULL,
     date_of_birth       DATE NOT NULL,
     sex                 patient_sex NOT NULL DEFAULT 'UNDISCLOSED',
@@ -162,6 +166,11 @@ CREATE INDEX idx_patients_name_trgm
 ```
 
 A `Patient` exists independent of any `Account`. It is **linked** via `account_patients`.
+
+`patient_number` is a **business identifier** distinct from the UUID `id` (the technical
+primary key, never shown to users). It is assigned once at insert from `patient_number_seq`
+and never changes; the application maps it read-only via Hibernate `@Generated(INSERT)`.
+See [FEATURE_ROADMAP.md](./FEATURE_ROADMAP.md) "Identifiers & lifecycle note".
 
 ### 3.5 `account_patients` — many-to-many link with ownership
 

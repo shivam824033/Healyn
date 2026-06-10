@@ -132,7 +132,21 @@ class _Header extends StatelessWidget {
           ),
           const SizedBox(width: HealynSpacing.s4),
           Expanded(
-            child: Text(patient.fullName, style: HealynTypography.h2),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(patient.fullName, style: HealynTypography.h2),
+                if (patient.patientNumber != null) ...[
+                  const SizedBox(height: HealynSpacing.s1),
+                  Text(
+                    patient.patientNumber!,
+                    style: HealynTypography.caption.copyWith(
+                      color: HealynColors.textMuted,
+                    ),
+                  ),
+                ],
+              ],
+            ),
           ),
         ],
       ),
