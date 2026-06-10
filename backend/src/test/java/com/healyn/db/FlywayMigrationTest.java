@@ -31,8 +31,8 @@ class FlywayMigrationTest {
 
         // Pins the latest migration version as a tripwire — bump it with every new migration.
         MigrationInfo current = flyway.info().current();
-        assertThat(current.getVersion().getVersion()).isEqualTo("16");
-        assertThat(flyway.info().applied()).hasSizeGreaterThanOrEqualTo(16);
+        assertThat(current.getVersion().getVersion()).isEqualTo("17");
+        assertThat(flyway.info().applied()).hasSizeGreaterThanOrEqualTo(17);
 
         DataSource ds = flyway.getConfiguration().getDataSource();
         try (Connection c = ds.getConnection(); Statement st = c.createStatement()) {
@@ -76,6 +76,19 @@ class FlywayMigrationTest {
                 assertThat(rs.next()).as("patient_number column exists").isTrue();
                 assertThat(rs.getString(1)).as("patient_number default uses the sequence")
                         .contains("patient_number_seq");
+            }
+            try (ResultSet rs = st.executeQuery(
+                    "select 1 from pg_tables where tablename = 'appointment_daily_counters'")) {
+                assertThat(rs.next()).as("appointment_daily_counters table exists").isTrue();
+            }
+            try (ResultSet rs = st.executeQuery(
+                    "select 1 from information_schema.columns "
+                            + "where table_name = 'appointments' and column_name = 'appointment_number'")) {
+                assertThat(rs.next()).as("appointments.appointment_number column exists").isTrue();
+            }
+            try (ResultSet rs = st.executeQuery(
+                    "select 1 from pg_constraint where conname = 'appointments_appointment_number_key' and contype = 'u'")) {
+                assertThat(rs.next()).as("appointment_number UNIQUE constraint").isTrue();
             }
         }
     }

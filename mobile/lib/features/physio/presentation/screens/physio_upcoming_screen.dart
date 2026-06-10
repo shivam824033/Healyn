@@ -121,6 +121,15 @@ class _UpcomingTile extends StatelessWidget {
                         patientName ?? 'Patient',
                         style: HealynTypography.body,
                       ),
+                      if (appointment.appointmentNumber != null) ...[
+                        const SizedBox(height: HealynSpacing.s1),
+                        Text(
+                          appointment.appointmentNumber!,
+                          style: HealynTypography.caption.copyWith(
+                            color: HealynColors.textMuted,
+                          ),
+                        ),
+                      ],
                       const SizedBox(height: HealynSpacing.s2),
                       Wrap(
                         spacing: HealynSpacing.s2,

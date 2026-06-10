@@ -9,6 +9,7 @@ final class AppointmentMapper {
     static AppointmentDtos.AppointmentView toView(Appointment a) {
         return new AppointmentDtos.AppointmentView(
                 a.getId(),
+                a.getAppointmentNumber(),
                 a.getPatientId(),
                 a.getBookedByAccountId(),
                 a.getPhysiotherapistId(),

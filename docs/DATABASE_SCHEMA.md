@@ -237,8 +237,15 @@ CREATE TABLE blackout_windows (
 ### 3.8 `appointments`
 
 ```sql
+-- V17: per clinic-local day counter backing the human-friendly Appointment Number.
+CREATE TABLE appointment_daily_counters (
+    day                 DATE PRIMARY KEY,
+    last_seq            INTEGER NOT NULL
+);
+
 CREATE TABLE appointments (
     id                  UUID PRIMARY KEY,
+    appointment_number  VARCHAR(32) NOT NULL UNIQUE,          -- V17: business id, e.g. PHY-20260610-0001
     patient_id          UUID NOT NULL REFERENCES patients(id) ON DELETE RESTRICT,
     booked_by_account_id UUID NOT NULL REFERENCES accounts(id) ON DELETE RESTRICT,
     physiotherapist_id  UUID NOT NULL REFERENCES accounts(id) ON DELETE RESTRICT,
@@ -301,6 +308,8 @@ CREATE INDEX idx_appt_requested_date
 ```
 
 `requested_date`, `preferred_time`, nullable `scheduled_at`/`scheduled_end_at`, and `is_follow_up` are added by `V15__appointments_request_first.sql`. State transitions and conflict rules: [APPOINTMENT_FLOW.md](./APPOINTMENT_FLOW.md).
+
+`appointment_number` (V17) is a **business identifier** distinct from the UUID `id` (never shown to users): `PHY-YYYYMMDD-NNNN`, where the `YYYYMMDD` stem is the row's creation date in the **clinic timezone** (`healyn.clinic.timezone`) and `NNNN` is a per-day counter held in `appointment_daily_counters` and advanced with an atomic `INSERT … ON CONFLICT … RETURNING` upsert. Generation is application-side (`AppointmentNumberGenerator`) so the stem uses the configured zone and child rows can later derive `-R1`/`-F1` suffixes. See [FEATURE_ROADMAP.md](./FEATURE_ROADMAP.md) "Identifiers & lifecycle note".
 
 ### 3.9 `treatment_notes`
 

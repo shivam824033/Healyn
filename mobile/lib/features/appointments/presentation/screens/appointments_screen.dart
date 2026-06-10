@@ -150,6 +150,15 @@ class _AppointmentTile extends StatelessWidget {
                         const SizedBox(height: HealynSpacing.s1),
                         Text(meta, style: HealynTypography.caption),
                       ],
+                      if (appointment.appointmentNumber != null) ...[
+                        const SizedBox(height: HealynSpacing.s1),
+                        Text(
+                          appointment.appointmentNumber!,
+                          style: HealynTypography.caption.copyWith(
+                            color: HealynColors.textMuted,
+                          ),
+                        ),
+                      ],
                       const SizedBox(height: HealynSpacing.s2),
                       AppointmentStatusChip(status: appointment.status),
                     ],

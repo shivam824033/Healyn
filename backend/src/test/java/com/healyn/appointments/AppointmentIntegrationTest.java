@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.healyn.appointments.domain.Appointment;
 import com.healyn.appointments.repository.AppointmentRepository;
+import com.healyn.appointments.service.AppointmentNumberGenerator;
 import com.healyn.auth.adapter.OtpSender;
 import com.healyn.auth.domain.Account;
 import com.healyn.auth.domain.AccountRole;
@@ -91,6 +92,7 @@ class AppointmentIntegrationTest {
     @Autowired AccountRepository accounts;
     @Autowired AppointmentRepository appointments;
     @Autowired AccessTokenIssuer tokenIssuer;
+    @Autowired AppointmentNumberGenerator numbers;
 
     @BeforeEach
     void reset() {
@@ -131,6 +133,20 @@ class AppointmentIntegrationTest {
                 .andExpect(jsonPath("$.scheduled_at").doesNotExist())
                 .andExpect(jsonPath("$.requested_date").value(requestDate(10)))
                 .andExpect(jsonPath("$.is_follow_up").value(false));
+    }
+
+    @Test
+    void request_carries_a_human_friendly_appointment_number() throws Exception {
+        seedPhysio();
+        Session a = registerPatient("zoe");
+        UUID patientA = primaryPatientId(a);
+        UUID id = requestOk(a, patientA, requestDate(7), "idem-z-1");
+
+        mvc.perform(get("/appointments/" + id)
+                        .header("Authorization", "Bearer " + a.access))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.appointment_number")
+                        .value(org.hamcrest.Matchers.matchesPattern("PHY-\\d{8}-\\d{4}")));
     }
 
     @Test
@@ -358,6 +374,7 @@ class AppointmentIntegrationTest {
                     (short) 30,
                     "seed-" + i,
                     null);
+            appt.assignNumber(numbers.generate());
             appointments.save(appt);
         }
 
@@ -486,7 +503,7 @@ class AppointmentIntegrationTest {
     // ---- helpers ----
 
     private void seedAppointment(UUID patientId, UUID physioId, UUID bookedBy, int dayOffset) {
-        appointments.save(new Appointment(
+        Appointment a = new Appointment(
                 UuidV7.generate(),
                 patientId,
                 bookedBy,
@@ -494,7 +511,9 @@ class AppointmentIntegrationTest {
                 ZonedDateTime.now(KOLKATA).plusDays(dayOffset).toInstant(),
                 (short) 30,
                 "seed",
-                null));
+                null);
+        a.assignNumber(numbers.generate());
+        appointments.save(a);
     }
 
     private UUID requestOk(Session actor, UUID patientId, String requestedDate, String key) throws Exception {
@@ -521,6 +540,7 @@ class AppointmentIntegrationTest {
         Appointment a = Appointment.request(
                 UuidV7.generate(), patientId, bookedBy, physioId,
                 LocalDate.now(KOLKATA).plusDays(daysAhead), null, "seed-request", null);
+        a.assignNumber(numbers.generate());
         appointments.save(a);
         return a.getId();
     }
@@ -532,6 +552,7 @@ class AppointmentIntegrationTest {
         Appointment a = new Appointment(
                 UuidV7.generate(), patientId, bookedBy, physioId, at, (short) 30, "seed-confirmed", null);
         a.schedule(at, (short) 30, Instant.now());
+        a.assignNumber(numbers.generate());
         appointments.save(a);
         return a.getId();
     }

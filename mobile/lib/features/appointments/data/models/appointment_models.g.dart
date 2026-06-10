@@ -8,6 +8,7 @@ part of 'appointment_models.dart';
 
 _Appointment _$AppointmentFromJson(Map<String, dynamic> json) => _Appointment(
   id: json['id'] as String,
+  appointmentNumber: json['appointment_number'] as String?,
   patientId: json['patient_id'] as String,
   bookedByAccountId: json['booked_by_account_id'] as String,
   physiotherapistId: json['physiotherapist_id'] as String,
@@ -55,6 +56,7 @@ Map<String, dynamic> _$AppointmentToJson(
   _Appointment instance,
 ) => <String, dynamic>{
   'id': instance.id,
+  'appointment_number': ?instance.appointmentNumber,
   'patient_id': instance.patientId,
   'booked_by_account_id': instance.bookedByAccountId,
   'physiotherapist_id': instance.physiotherapistId,

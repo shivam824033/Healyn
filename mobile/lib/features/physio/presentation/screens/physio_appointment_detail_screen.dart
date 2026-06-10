@@ -411,6 +411,15 @@ class _PhysioAppointmentDetailScreenState
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   AppointmentStatusChip(status: _appt.status),
+                  if (_appt.appointmentNumber != null) ...[
+                    const SizedBox(height: HealynSpacing.s2),
+                    Text(
+                      _appt.appointmentNumber!,
+                      style: HealynTypography.caption.copyWith(
+                        color: HealynColors.textMuted,
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: HealynSpacing.s3),
                   Text(
                     formatDateShort(_appt.day),

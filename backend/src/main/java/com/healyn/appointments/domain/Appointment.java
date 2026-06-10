@@ -34,6 +34,13 @@ public class Appointment extends BaseEntity {
     @Column(name = "physiotherapist_id", nullable = false, updatable = false)
     private UUID physiotherapistId;
 
+    /// Human-friendly Appointment Number (e.g. PHY-20260610-0001) shown to users on cards,
+    /// detail pages and search. The UUID {@code id} stays the internal technical identifier
+    /// and is never exposed. Assigned once at creation by {@code AppointmentNumberGenerator}
+    /// (updatable=false); insertable so the application-set value is written.
+    @Column(name = "appointment_number", updatable = false)
+    private String appointmentNumber;
+
     @Column(name = "requested_date", nullable = false, updatable = false)
     private LocalDate requestedDate;
 
@@ -165,6 +172,7 @@ public class Appointment extends BaseEntity {
         return a;
     }
 
+    public String getAppointmentNumber() { return appointmentNumber; }
     public UUID getPatientId() { return patientId; }
     public UUID getBookedByAccountId() { return bookedByAccountId; }
     public UUID getPhysiotherapistId() { return physiotherapistId; }
@@ -201,6 +209,12 @@ public class Appointment extends BaseEntity {
     /// used when a physio reschedule must carry the follow-up nature onto the replacement row.
     public void markFollowUp() {
         this.followUp = true;
+    }
+
+    /// Assigns the human-friendly Appointment Number exactly once, at creation, before the
+    /// first persist. The value is owned by {@code AppointmentNumberGenerator}.
+    public void assignNumber(String appointmentNumber) {
+        this.appointmentNumber = appointmentNumber;
     }
 
     public void start(Instant now) {

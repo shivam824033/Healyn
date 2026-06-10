@@ -68,6 +68,7 @@ public class AppointmentService {
     private final IdempotencyGuard idempotency;
     private final NotificationPublisher notifications;
     private final AuditLogger audit;
+    private final AppointmentNumberGenerator numbers;
     private final Clock clock;
 
     public AppointmentService(AppointmentRepository appointments,
@@ -77,6 +78,7 @@ public class AppointmentService {
                               IdempotencyGuard idempotency,
                               NotificationPublisher notifications,
                               AuditLogger audit,
+                              AppointmentNumberGenerator numbers,
                               Clock clock) {
         this.appointments = appointments;
         this.accounts = accounts;
@@ -85,6 +87,7 @@ public class AppointmentService {
         this.idempotency = idempotency;
         this.notifications = notifications;
         this.audit = audit;
+        this.numbers = numbers;
         this.clock = clock;
     }
 
@@ -117,6 +120,7 @@ public class AppointmentService {
                 req.preferredTime(),
                 req.reason(),
                 null);
+        appt.assignNumber(numbers.generate());
         Appointment saved = appointments.save(appt);
         idempotency.store(actorId, idempotencyKey, saved.getId());
         notifications.enqueueToAccount(NotificationKind.BOOKING_REQUESTED, saved.getPhysiotherapistId(),
@@ -163,6 +167,7 @@ public class AppointmentService {
                 req.durationMinutes(),
                 req.reason(),
                 Instant.now(clock));
+        fu.assignNumber(numbers.generate());
 
         Appointment saved = saveAndFlushOrConflict(fu);
         notifications.enqueueToPatientManagers(NotificationKind.BOOKING_CONFIRMED,
@@ -339,6 +344,7 @@ public class AppointmentService {
                     old.getPhysiotherapistId(), req.requestedDate(), req.preferredTime(), reason, old.getId());
             kind = NotificationKind.BOOKING_REQUESTED;
         }
+        fresh.assignNumber(numbers.generate());
 
         Appointment saved = saveAndFlushOrConflict(fresh);
         old.markRescheduled();

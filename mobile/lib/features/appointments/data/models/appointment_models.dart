@@ -78,6 +78,10 @@ extension AppointmentCancelReasonLabel on AppointmentCancelReason {
 
 /// A single appointment. Mirrors the backend `AppointmentView`.
 ///
+/// [appointmentNumber] is the human-friendly business id (e.g. `PHY-20260610-0001`)
+/// shown on cards, detail and search; [id] is the internal UUID and is never displayed.
+/// Optional only for resilience to older cached payloads — the backend always sends it.
+///
 /// Request-first: the patient submits a [requestedDate] (mandatory) and an
 /// optional [preferredTime] hint; the physiotherapist later assigns the final
 /// time. Until they do, [scheduledAt]/[scheduledEndAt] are null and the status
@@ -90,6 +94,7 @@ extension AppointmentCancelReasonLabel on AppointmentCancelReason {
 abstract class Appointment with _$Appointment {
   const factory Appointment({
     required String id,
+    String? appointmentNumber,
     required String patientId,
     required String bookedByAccountId,
     required String physiotherapistId,

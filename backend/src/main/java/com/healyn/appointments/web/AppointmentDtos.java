@@ -54,6 +54,7 @@ public final class AppointmentDtos {
 
     public record AppointmentView(
             UUID id,
+            String appointmentNumber,
             UUID patientId,
             UUID bookedByAccountId,
             UUID physiotherapistId,
