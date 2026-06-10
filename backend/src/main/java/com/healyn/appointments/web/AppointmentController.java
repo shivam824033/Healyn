@@ -130,7 +130,8 @@ public class AppointmentController {
         UUID actorId = UUID.fromString(jwt.getSubject());
         AccountRole role = roleOf(jwt);
         FollowUpRequest req = new FollowUpRequest(
-                body.patientId(), body.scheduledAt(), body.durationMinutes(), body.reason());
+                body.patientId(), body.sourceAppointmentId(),
+                body.scheduledAt(), body.durationMinutes(), body.reason());
         return AppointmentMapper.toView(service.createFollowUp(actorId, role, req));
     }
 

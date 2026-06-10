@@ -312,6 +312,95 @@ class AppointmentIntegrationTest {
     }
 
     @Test
+    void physio_reschedule_numbers_children_and_links_the_lineage() throws Exception {
+        Session physio = seedPhysio();
+        Session a = registerPatient("seb");
+        UUID patientA = primaryPatientId(a);
+        UUID rootId = seedConfirmed(patientA, physio.id, accountIdOf(a), 10, 9);
+        String rootNumber = appointmentNumber(physio, rootId);
+
+        // First reschedule: a -R1 child of the root, linked by source and root.
+        MvcResult r1 = mvc.perform(post("/appointments/" + rootId + "/reschedule")
+                        .header("Authorization", "Bearer " + physio.access)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json.writeValueAsString(Map.of(
+                                "scheduled_at", futureInstantAt(11, 15, 0),
+                                "duration_minutes", 30))))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.appointment_number").value(rootNumber + "-R1"))
+                .andExpect(jsonPath("$.child_kind").value("RESCHEDULE"))
+                .andExpect(jsonPath("$.root_appointment_id").value(rootId.toString()))
+                .andExpect(jsonPath("$.source_appointment_id").value(rootId.toString()))
+                .andReturn();
+        UUID r1Id = UUID.fromString(
+                json.readTree(r1.getResponse().getContentAsByteArray()).get("id").asText());
+
+        // Rescheduling the -R1 row again continues the same lineage as -R2 (root stem preserved).
+        mvc.perform(post("/appointments/" + r1Id + "/reschedule")
+                        .header("Authorization", "Bearer " + physio.access)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json.writeValueAsString(Map.of(
+                                "scheduled_at", futureInstantAt(12, 15, 0),
+                                "duration_minutes", 30))))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.appointment_number").value(rootNumber + "-R2"))
+                .andExpect(jsonPath("$.child_kind").value("RESCHEDULE"))
+                .andExpect(jsonPath("$.root_appointment_id").value(rootId.toString()))
+                .andExpect(jsonPath("$.source_appointment_id").value(r1Id.toString()));
+    }
+
+    @Test
+    void follow_up_with_a_source_is_numbered_and_linked_as_a_child() throws Exception {
+        Session physio = seedPhysio();
+        Session a = registerPatient("tom");
+        UUID patientA = primaryPatientId(a);
+        UUID rootId = seedConfirmed(patientA, physio.id, accountIdOf(a), 10, 9);
+        String rootNumber = appointmentNumber(physio, rootId);
+
+        mvc.perform(post("/appointments/follow-ups")
+                        .header("Authorization", "Bearer " + physio.access)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json.writeValueAsString(Map.of(
+                                "patient_id", patientA.toString(),
+                                "source_appointment_id", rootId.toString(),
+                                "scheduled_at", futureInstantAt(20, 14, 0),
+                                "duration_minutes", 45,
+                                "reason", "Review progress"))))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.is_follow_up").value(true))
+                .andExpect(jsonPath("$.appointment_number").value(rootNumber + "-F1"))
+                .andExpect(jsonPath("$.child_kind").value("FOLLOW_UP"))
+                .andExpect(jsonPath("$.root_appointment_id").value(rootId.toString()))
+                .andExpect(jsonPath("$.source_appointment_id").value(rootId.toString()));
+    }
+
+    @Test
+    void standalone_follow_up_is_its_own_root_with_a_per_day_number() throws Exception {
+        Session physio = seedPhysio();
+        Session a = registerPatient("uri");
+        UUID patientA = primaryPatientId(a);
+
+        MvcResult res = mvc.perform(post("/appointments/follow-ups")
+                        .header("Authorization", "Bearer " + physio.access)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json.writeValueAsString(Map.of(
+                                "patient_id", patientA.toString(),
+                                "scheduled_at", futureInstantAt(21, 14, 0),
+                                "duration_minutes", 30))))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.is_follow_up").value(true))
+                // No source -> a normal per-day number (no child suffix) and child_kind omitted.
+                .andExpect(jsonPath("$.appointment_number")
+                        .value(org.hamcrest.Matchers.matchesPattern("PHY-\\d{8}-\\d{4}")))
+                .andExpect(jsonPath("$.child_kind").doesNotExist())
+                .andReturn();
+        JsonNode body = json.readTree(res.getResponse().getContentAsByteArray());
+        // A root is its own lineage root and has no source.
+        assertThat(body.get("root_appointment_id").asText()).isEqualTo(body.get("id").asText());
+        assertThat(body.has("source_appointment_id")).isFalse();
+    }
+
+    @Test
     void cancel_without_reason_returns_422() throws Exception {
         seedPhysio();
         Session a = registerPatient("fay");
@@ -514,6 +603,15 @@ class AppointmentIntegrationTest {
                 null);
         a.assignNumber(numbers.generate());
         appointments.save(a);
+    }
+
+    /// Reads an appointment's human-friendly number via the API (the root stem children hang off).
+    private String appointmentNumber(Session actor, UUID appointmentId) throws Exception {
+        MvcResult res = mvc.perform(get("/appointments/" + appointmentId)
+                        .header("Authorization", "Bearer " + actor.access))
+                .andExpect(status().isOk())
+                .andReturn();
+        return json.readTree(res.getResponse().getContentAsByteArray()).get("appointment_number").asText();
     }
 
     private UUID requestOk(Session actor, UUID patientId, String requestedDate, String key) throws Exception {

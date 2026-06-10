@@ -1,6 +1,7 @@
 package com.healyn.appointments.service;
 
 import com.healyn.appointments.domain.Appointment;
+import com.healyn.appointments.domain.AppointmentChildKind;
 import com.healyn.appointments.domain.AppointmentStatus;
 import com.healyn.appointments.policy.AppointmentAccessPolicy;
 import com.healyn.appointments.repository.AppointmentRepository;
@@ -167,7 +168,7 @@ public class AppointmentService {
                 req.durationMinutes(),
                 req.reason(),
                 Instant.now(clock));
-        fu.assignNumber(numbers.generate());
+        assignFollowUpNumber(fu, req.sourceAppointmentId(), req.patientId());
 
         Appointment saved = saveAndFlushOrConflict(fu);
         notifications.enqueueToPatientManagers(NotificationKind.BOOKING_CONFIRMED,
@@ -344,7 +345,12 @@ public class AppointmentService {
                     old.getPhysiotherapistId(), req.requestedDate(), req.preferredTime(), reason, old.getId());
             kind = NotificationKind.BOOKING_REQUESTED;
         }
-        fresh.assignNumber(numbers.generate());
+        // The replacement is a reschedule child of the old row's lineage, numbered ...-R{n}.
+        fresh.linkToParent(old, AppointmentChildKind.RESCHEDULE);
+        long priorReschedules = appointments.countByRootAppointmentIdAndChildKind(
+                fresh.getRootAppointmentId(), AppointmentChildKind.RESCHEDULE);
+        fresh.assignNumber(numbers.childNumber(
+                old.getAppointmentNumber(), AppointmentChildKind.RESCHEDULE, priorReschedules));
 
         Appointment saved = saveAndFlushOrConflict(fresh);
         old.markRescheduled();
@@ -382,6 +388,26 @@ public class AppointmentService {
             }
             throw e;
         }
+    }
+
+    /// A follow-up linked to a source becomes a child of that source's lineage (numbered ...-F{n});
+    /// without a source it is a standalone follow-up with a normal per-day number. The source must
+    /// belong to the same patient, so a lineage never mixes patients.
+    private void assignFollowUpNumber(Appointment followUp, UUID sourceAppointmentId, UUID patientId) {
+        if (sourceAppointmentId == null) {
+            followUp.assignNumber(numbers.generate());
+            return;
+        }
+        Appointment source = loadActive(sourceAppointmentId);
+        if (!source.getPatientId().equals(patientId)) {
+            throw new UnprocessableException(ErrorCode.APPOINTMENT_INVALID_SCHEDULE,
+                    "sourceAppointmentId must belong to the same patient as the follow-up");
+        }
+        followUp.linkToParent(source, AppointmentChildKind.FOLLOW_UP);
+        long priorFollowUps = appointments.countByRootAppointmentIdAndChildKind(
+                followUp.getRootAppointmentId(), AppointmentChildKind.FOLLOW_UP);
+        followUp.assignNumber(numbers.childNumber(
+                source.getAppointmentNumber(), AppointmentChildKind.FOLLOW_UP, priorFollowUps));
     }
 
     private static Map<String, String> payload(Appointment appt) {

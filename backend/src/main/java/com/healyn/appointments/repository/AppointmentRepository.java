@@ -1,6 +1,7 @@
 package com.healyn.appointments.repository;
 
 import com.healyn.appointments.domain.Appointment;
+import com.healyn.appointments.domain.AppointmentChildKind;
 import com.healyn.appointments.domain.AppointmentStatus;
 import org.springframework.data.domain.Limit;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -16,6 +17,12 @@ import java.util.UUID;
 public interface AppointmentRepository extends JpaRepository<Appointment, UUID> {
 
     Optional<Appointment> findByIdAndDeletedAtIsNull(UUID id);
+
+    /// Counts same-kind children already in a lineage so the next child's suffix ordinal is
+    /// {@code count + 1}. Counts ALL rows, including soft-deleted ones, so a suffix is never
+    /// reused even after a child is cancelled or removed (the appointment_number UNIQUE
+    /// constraint is the backstop).
+    long countByRootAppointmentIdAndChildKind(UUID rootAppointmentId, AppointmentChildKind childKind);
 
     @Query("""
             select a

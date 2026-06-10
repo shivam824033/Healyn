@@ -32,6 +32,12 @@ _Appointment _$AppointmentFromJson(Map<String, dynamic> json) => _Appointment(
   ),
   cancelNote: json['cancel_note'] as String?,
   rescheduledFromId: json['rescheduled_from_id'] as String?,
+  rootAppointmentId: json['root_appointment_id'] as String?,
+  sourceAppointmentId: json['source_appointment_id'] as String?,
+  childKind: $enumDecodeNullable(
+    _$AppointmentChildKindEnumMap,
+    json['child_kind'],
+  ),
   confirmedAt: json['confirmed_at'] == null
       ? null
       : DateTime.parse(json['confirmed_at'] as String),
@@ -71,6 +77,9 @@ Map<String, dynamic> _$AppointmentToJson(
   'cancel_reason': ?_$AppointmentCancelReasonEnumMap[instance.cancelReason],
   'cancel_note': ?instance.cancelNote,
   'rescheduled_from_id': ?instance.rescheduledFromId,
+  'root_appointment_id': ?instance.rootAppointmentId,
+  'source_appointment_id': ?instance.sourceAppointmentId,
+  'child_kind': ?_$AppointmentChildKindEnumMap[instance.childKind],
   'confirmed_at': ?instance.confirmedAt?.toIso8601String(),
   'started_at': ?instance.startedAt?.toIso8601String(),
   'completed_at': ?instance.completedAt?.toIso8601String(),
@@ -94,6 +103,13 @@ const _$AppointmentCancelReasonEnumMap = {
   AppointmentCancelReason.physioCancelled: 'PHYSIO_CANCELLED',
   AppointmentCancelReason.clinicClosed: 'CLINIC_CLOSED',
   AppointmentCancelReason.other: 'OTHER',
+};
+
+const _$AppointmentChildKindEnumMap = {
+  AppointmentChildKind.reschedule: 'RESCHEDULE',
+  AppointmentChildKind.followUp: 'FOLLOW_UP',
+  AppointmentChildKind.review: 'REVIEW',
+  AppointmentChildKind.reopen: 'REOPEN',
 };
 
 _AppointmentPage _$AppointmentPageFromJson(Map<String, dynamic> json) =>

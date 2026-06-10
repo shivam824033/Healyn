@@ -79,6 +79,22 @@ public class Appointment extends BaseEntity {
     @Column(name = "rescheduled_from_id", updatable = false)
     private UUID rescheduledFromId;
 
+    /// Lineage (APPOINTMENT_FLOW §6, §6a). {@code rootAppointmentId} is the origin of the chain —
+    /// a root is its own root (= id). {@code sourceAppointmentId} is the immediate appointment this
+    /// row derived from, and {@code childKind} how (null on a root). Set once at creation
+    /// (insert-only): {@link #linkToParent} for a child, otherwise the constructors default the
+    /// root to self.
+    @Column(name = "root_appointment_id", nullable = false, updatable = false)
+    private UUID rootAppointmentId;
+
+    @Column(name = "source_appointment_id", updatable = false)
+    private UUID sourceAppointmentId;
+
+    @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    @Column(name = "child_kind", columnDefinition = "appointment_child_kind", updatable = false)
+    private AppointmentChildKind childKind;
+
     @Column(name = "confirmed_at")
     private Instant confirmedAt;
 
@@ -118,6 +134,7 @@ public class Appointment extends BaseEntity {
         this.requestedDate = scheduledAt.atZone(ZoneOffset.UTC).toLocalDate();
         this.reason = reason;
         this.rescheduledFromId = rescheduledFromId;
+        this.rootAppointmentId = id; // root of its own lineage until linkToParent says otherwise
         this.followUp = false;
         this.status = AppointmentStatus.REQUESTED;
     }
@@ -143,6 +160,7 @@ public class Appointment extends BaseEntity {
         a.durationMinutes = DEFAULT_DURATION_MINUTES;
         a.reason = reason;
         a.rescheduledFromId = rescheduledFromId;
+        a.rootAppointmentId = id; // root of its own lineage until linkToParent says otherwise
         a.followUp = false;
         a.status = AppointmentStatus.REQUESTED;
         return a;
@@ -167,6 +185,7 @@ public class Appointment extends BaseEntity {
         a.physiotherapistId = physiotherapistId;
         a.requestedDate = scheduledAt.atZone(ZoneOffset.UTC).toLocalDate();
         a.reason = reason;
+        a.rootAppointmentId = id; // root of its own lineage until linkToParent says otherwise
         a.followUp = true;
         a.schedule(scheduledAt, durationMinutes, now);
         return a;
@@ -187,6 +206,9 @@ public class Appointment extends BaseEntity {
     public AppointmentCancelReason getCancelReason() { return cancelReason; }
     public String getCancelNote() { return cancelNote; }
     public UUID getRescheduledFromId() { return rescheduledFromId; }
+    public UUID getRootAppointmentId() { return rootAppointmentId; }
+    public UUID getSourceAppointmentId() { return sourceAppointmentId; }
+    public AppointmentChildKind getChildKind() { return childKind; }
     public Instant getConfirmedAt() { return confirmedAt; }
     public Instant getStartedAt() { return startedAt; }
     public Instant getCompletedAt() { return completedAt; }
@@ -215,6 +237,16 @@ public class Appointment extends BaseEntity {
     /// first persist. The value is owned by {@code AppointmentNumberGenerator}.
     public void assignNumber(String appointmentNumber) {
         this.appointmentNumber = appointmentNumber;
+    }
+
+    /// Links this not-yet-persisted child into an existing lineage: it inherits the source's
+    /// lineage root, records the immediate source it derived from, and how (reschedule /
+    /// follow-up). Insert-only fields, so call before the first persist. Overrides the
+    /// self-root the constructors set by default.
+    public void linkToParent(Appointment source, AppointmentChildKind kind) {
+        this.rootAppointmentId = source.getRootAppointmentId();
+        this.sourceAppointmentId = source.getId();
+        this.childKind = kind;
     }
 
     public void start(Instant now) {

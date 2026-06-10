@@ -31,8 +31,8 @@ class FlywayMigrationTest {
 
         // Pins the latest migration version as a tripwire — bump it with every new migration.
         MigrationInfo current = flyway.info().current();
-        assertThat(current.getVersion().getVersion()).isEqualTo("17");
-        assertThat(flyway.info().applied()).hasSizeGreaterThanOrEqualTo(17);
+        assertThat(current.getVersion().getVersion()).isEqualTo("18");
+        assertThat(flyway.info().applied()).hasSizeGreaterThanOrEqualTo(18);
 
         DataSource ds = flyway.getConfiguration().getDataSource();
         try (Connection c = ds.getConnection(); Statement st = c.createStatement()) {
@@ -89,6 +89,39 @@ class FlywayMigrationTest {
             try (ResultSet rs = st.executeQuery(
                     "select 1 from pg_constraint where conname = 'appointments_appointment_number_key' and contype = 'u'")) {
                 assertThat(rs.next()).as("appointment_number UNIQUE constraint").isTrue();
+            }
+            // V18 lineage: the child-kind enum type, the three columns, the self-FKs and indexes.
+            try (ResultSet rs = st.executeQuery(
+                    "select 1 from pg_type where typname = 'appointment_child_kind'")) {
+                assertThat(rs.next()).as("appointment_child_kind enum type exists").isTrue();
+            }
+            try (ResultSet rs = st.executeQuery(
+                    "select is_nullable from information_schema.columns "
+                            + "where table_name = 'appointments' and column_name = 'root_appointment_id'")) {
+                assertThat(rs.next()).as("appointments.root_appointment_id column exists").isTrue();
+                assertThat(rs.getString(1)).as("root_appointment_id is NOT NULL").isEqualTo("NO");
+            }
+            try (ResultSet rs = st.executeQuery(
+                    "select 1 from information_schema.columns "
+                            + "where table_name = 'appointments' and column_name = 'source_appointment_id'")) {
+                assertThat(rs.next()).as("appointments.source_appointment_id column exists").isTrue();
+            }
+            try (ResultSet rs = st.executeQuery(
+                    "select 1 from information_schema.columns "
+                            + "where table_name = 'appointments' and column_name = 'child_kind'")) {
+                assertThat(rs.next()).as("appointments.child_kind column exists").isTrue();
+            }
+            try (ResultSet rs = st.executeQuery(
+                    "select 1 from pg_constraint where conname = 'appointments_root_fk' and contype = 'f'")) {
+                assertThat(rs.next()).as("root_appointment_id self FK").isTrue();
+            }
+            try (ResultSet rs = st.executeQuery(
+                    "select 1 from pg_constraint where conname = 'appointments_source_fk' and contype = 'f'")) {
+                assertThat(rs.next()).as("source_appointment_id self FK").isTrue();
+            }
+            try (ResultSet rs = st.executeQuery(
+                    "select 1 from pg_indexes where indexname = 'idx_appointments_root'")) {
+                assertThat(rs.next()).as("root_appointment_id index").isTrue();
             }
         }
     }

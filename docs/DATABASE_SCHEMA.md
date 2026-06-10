@@ -41,6 +41,9 @@ CREATE TYPE appointment_status AS ENUM (
 CREATE TYPE appointment_cancel_reason AS ENUM (
     'PATIENT_CANCELLED', 'PHYSIO_CANCELLED', 'CLINIC_CLOSED', 'OTHER'
 );
+CREATE TYPE appointment_child_kind AS ENUM (         -- V18: how a child row derived from its lineage
+    'RESCHEDULE', 'FOLLOW_UP', 'REVIEW', 'REOPEN'
+);
 
 CREATE TYPE discussion_message_type AS ENUM (
     'QUESTION', 'REPLY', 'INSTRUCTION', 'ATTACHMENT_ONLY'
@@ -260,6 +263,9 @@ CREATE TABLE appointments (
     cancel_reason       appointment_cancel_reason,
     cancel_note         TEXT,
     rescheduled_from_id UUID REFERENCES appointments(id),
+    root_appointment_id   UUID NOT NULL REFERENCES appointments(id),  -- V18: lineage origin (a root is its own root)
+    source_appointment_id UUID REFERENCES appointments(id),           -- V18: immediate parent (NULL on a root)
+    child_kind            appointment_child_kind,                     -- V18: how it derived (NULL on a root)
     confirmed_at        TIMESTAMPTZ,
     started_at          TIMESTAMPTZ,
     completed_at        TIMESTAMPTZ,
@@ -305,11 +311,19 @@ CREATE INDEX idx_appt_status_scheduled
 CREATE INDEX idx_appt_requested_date
     ON appointments(physiotherapist_id, requested_date)
     WHERE status = 'REQUESTED' AND deleted_at IS NULL;
+
+-- Lineage lookups: every row in a chain, and reverse "what derived from this".
+CREATE INDEX idx_appointments_root
+    ON appointments(root_appointment_id) WHERE deleted_at IS NULL;
+CREATE INDEX idx_appointments_source
+    ON appointments(source_appointment_id) WHERE deleted_at IS NULL;
 ```
 
 `requested_date`, `preferred_time`, nullable `scheduled_at`/`scheduled_end_at`, and `is_follow_up` are added by `V15__appointments_request_first.sql`. State transitions and conflict rules: [APPOINTMENT_FLOW.md](./APPOINTMENT_FLOW.md).
 
-`appointment_number` (V17) is a **business identifier** distinct from the UUID `id` (never shown to users): `PHY-YYYYMMDD-NNNN`, where the `YYYYMMDD` stem is the row's creation date in the **clinic timezone** (`healyn.clinic.timezone`) and `NNNN` is a per-day counter held in `appointment_daily_counters` and advanced with an atomic `INSERT … ON CONFLICT … RETURNING` upsert. Generation is application-side (`AppointmentNumberGenerator`) so the stem uses the configured zone and child rows can later derive `-R1`/`-F1` suffixes. See [FEATURE_ROADMAP.md](./FEATURE_ROADMAP.md) "Identifiers & lifecycle note".
+`appointment_number` (V17) is a **business identifier** distinct from the UUID `id` (never shown to users): `PHY-YYYYMMDD-NNNN`, where the `YYYYMMDD` stem is the row's creation date in the **clinic timezone** (`healyn.clinic.timezone`) and `NNNN` is a per-day counter held in `appointment_daily_counters` and advanced with an atomic `INSERT … ON CONFLICT … RETURNING` upsert. Generation is application-side (`AppointmentNumberGenerator`) so the stem uses the configured zone and child rows can derive `-R1`/`-F1` suffixes. See [FEATURE_ROADMAP.md](./FEATURE_ROADMAP.md) "Identifiers & lifecycle note".
+
+**Lineage** (V18) links only rows that spawn a *new bookable row* — a reschedule replacement or a follow-up tied to a prior appointment. `root_appointment_id` is the origin of the chain (a root is its own root, `= id`); `source_appointment_id` is the immediate appointment a child derived from; `child_kind` is how (`RESCHEDULE`/`FOLLOW_UP`/`REVIEW`/`REOPEN`, `NULL` on a root). A child's number is its root's stem plus a per-kind suffix and 1-based ordinal (`PHY-20260610-0001-R1`, `-F2`); the count of same-kind children in the lineage (including soft-deleted) decides the ordinal, so numbers are never reused. `rescheduled_from_id` is retained for backward compatibility and equals `source_appointment_id` where `child_kind = 'RESCHEDULE'`. In-place lifecycle changes (confirm/start/complete/cancel) are **not** lineage — they belong to the future `appointment_events` timeline. See [APPOINTMENT_FLOW.md](./APPOINTMENT_FLOW.md) §6, §6a.
 
 ### 3.9 `treatment_notes`
 

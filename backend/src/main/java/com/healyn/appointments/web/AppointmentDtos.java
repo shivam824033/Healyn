@@ -1,6 +1,7 @@
 package com.healyn.appointments.web;
 
 import com.healyn.appointments.domain.AppointmentCancelReason;
+import com.healyn.appointments.domain.AppointmentChildKind;
 import com.healyn.appointments.domain.AppointmentStatus;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -35,9 +36,11 @@ public final class AppointmentDtos {
             @NotNull Instant scheduledAt,
             @NotNull @Min(5) @Max(240) Short durationMinutes) {}
 
-    /// A physiotherapist-created follow-up at a time the physiotherapist sets.
+    /// A physiotherapist-created follow-up at a time the physiotherapist sets. The optional
+    /// sourceAppointmentId links it as a child of an existing appointment's lineage (numbered -F1…).
     public record FollowUpRequestBody(
             @NotNull UUID patientId,
+            UUID sourceAppointmentId,
             @NotNull Instant scheduledAt,
             @NotNull @Min(5) @Max(240) Short durationMinutes,
             @Size(max = 280) String reason) {}
@@ -69,6 +72,9 @@ public final class AppointmentDtos {
             AppointmentCancelReason cancelReason,
             String cancelNote,
             UUID rescheduledFromId,
+            UUID rootAppointmentId,
+            UUID sourceAppointmentId,
+            AppointmentChildKind childKind,
             Instant confirmedAt,
             Instant startedAt,
             Instant completedAt,

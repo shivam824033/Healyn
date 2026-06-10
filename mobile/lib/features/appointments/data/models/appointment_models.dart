@@ -76,6 +76,29 @@ extension AppointmentCancelReasonLabel on AppointmentCancelReason {
   };
 }
 
+/// How an appointment derived from its lineage root (null on a root booking). Only actions
+/// that spawn a new bookable row are children: a reschedule replacement or a follow-up tied
+/// to a prior appointment. Mirrors the backend `AppointmentChildKind`.
+enum AppointmentChildKind {
+  @JsonValue('RESCHEDULE')
+  reschedule,
+  @JsonValue('FOLLOW_UP')
+  followUp,
+  @JsonValue('REVIEW')
+  review,
+  @JsonValue('REOPEN')
+  reopen,
+}
+
+extension AppointmentChildKindLabel on AppointmentChildKind {
+  String get label => switch (this) {
+    AppointmentChildKind.reschedule => 'Rescheduled',
+    AppointmentChildKind.followUp => 'Follow-up',
+    AppointmentChildKind.review => 'Review',
+    AppointmentChildKind.reopen => 'Reopened',
+  };
+}
+
 /// A single appointment. Mirrors the backend `AppointmentView`.
 ///
 /// [appointmentNumber] is the human-friendly business id (e.g. `PHY-20260610-0001`)
@@ -109,6 +132,12 @@ abstract class Appointment with _$Appointment {
     AppointmentCancelReason? cancelReason,
     String? cancelNote,
     String? rescheduledFromId,
+    // Lineage: [rootAppointmentId] is the origin of the chain (equals [id] on a root);
+    // [sourceAppointmentId] is the immediate appointment this one derived from; [childKind]
+    // is how (null on a root). The richer timeline view is built on these in a later chunk.
+    String? rootAppointmentId,
+    String? sourceAppointmentId,
+    AppointmentChildKind? childKind,
     DateTime? confirmedAt,
     DateTime? startedAt,
     DateTime? completedAt,
