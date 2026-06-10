@@ -7,23 +7,29 @@ import '../../../appointments/presentation/appointment_format.dart';
 import '../../../appointments/presentation/widgets/appointment_status_chip.dart';
 import '../../../patients/presentation/patients_providers.dart';
 import '../../../shared/design/colors.dart';
-import '../../../shared/design/elevation.dart';
 import '../../../shared/design/radii.dart';
 import '../../../shared/design/spacing.dart';
 import '../../../shared/design/typography.dart';
-import '../../../shared/widgets/app_bar.dart';
 import '../../../shared/widgets/error_banner.dart';
+import '../../../shared/widgets/healyn_hero.dart';
+import '../../../shared/widgets/healyn_info_banner.dart';
+import '../../../shared/widgets/healyn_list_row.dart';
+import '../../../shared/widgets/healyn_section_header.dart';
+import '../../../shared/widgets/healyn_stat_card.dart';
+import '../../../shared/widgets/healyn_time_block.dart';
+import '../../../shared/widgets/healyn_tonal_icon.dart';
+import '../../../shared/widgets/healyn_week_strip.dart';
 import '../month_grid.dart';
 import '../physio_calendar_providers.dart';
 import '../physio_requests_providers.dart';
 import '../physio_schedule_providers.dart';
 import '../widgets/month_calendar.dart';
 
-/// The physiotherapist's schedule (F1.12): a month calendar that marks the days
-/// holding appointments, over the selected day's roster (by start time, with
-/// status and patient name). Picking a day in the grid moves the roster; the
-/// month arrows page the grid without moving it. An app-bar action opens the
-/// pushed Upcoming list. Tapping a row opens the appointment detail.
+/// The physiotherapist's schedule (F1.12), in the *Refined Indigo* direction: a
+/// gradient hero greeting, three floating stat cards, a compact week strip over
+/// the selected day's roster, a requests banner, and rich appointment rows. The
+/// full month grid stays reachable from the hero's calendar action. Picking a
+/// day moves the roster; tapping a row opens the appointment detail.
 class PhysioTodayScreen extends ConsumerWidget {
   const PhysioTodayScreen({super.key});
 
@@ -37,14 +43,22 @@ class PhysioTodayScreen extends ConsumerWidget {
     final schedule = ref.watch(physioScheduleProvider);
     final patients = ref.watch(patientsProvider).valueOrNull ?? const [];
     final names = {for (final p in patients) p.id: p.fullName};
+    final activityAsync = ref.watch(physioScheduleActivityProvider);
     final activity =
-        ref.watch(physioScheduleActivityProvider).valueOrNull ??
-        const <String, ScheduleActivity>{};
+        activityAsync.valueOrNull ?? const <String, ScheduleActivity>{};
+    final requestsCount =
+        ref.watch(physioRequestsProvider).valueOrNull?.length ?? 0;
+
+    final todayCount = schedule.valueOrNull?.length;
+    final unreadTotal = activityAsync.valueOrNull?.values.fold<int>(
+      0,
+      (sum, a) => sum + a.unreadCount,
+    );
 
     void selectDay(DateTime picked) {
       final d = DateTime(picked.year, picked.month, picked.day);
       ref.read(scheduleDayProvider.notifier).state = d;
-      // Tapping a leading/trailing cell flips the grid to that month.
+      // Picking a day in another month flips the grid to that month too.
       if (picked.year != month.year || picked.month != month.month) {
         ref.read(calendarMonthProvider.notifier).state = DateTime(
           picked.year,
@@ -73,124 +87,245 @@ class PhysioTodayScreen extends ConsumerWidget {
       );
     }
 
-    final now = DateTime.now();
-    final onToday =
-        (isSameDay(day, now) && month.year == now.year && month.month == now.month)
-        ? null
-        : jumpToToday;
-
-    return Scaffold(
-      appBar: HealynAppBar(
-        title: 'Schedule',
-        actions: [
-          IconButton(
-            tooltip: 'Upcoming',
-            icon: const Icon(Icons.upcoming_outlined),
-            onPressed: () => context.push('/physio/upcoming'),
+    // The full month grid, reachable from the hero — preserves every bit of the
+    // original navigation (month paging, arbitrary day pick, jump-to-today).
+    void openMonth() {
+      showModalBottomSheet<void>(
+        context: context,
+        backgroundColor: HealynColors.surfaceBase,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(
+            top: Radius.circular(HealynRadii.xl),
           ),
-        ],
-      ),
-      body: SafeArea(
-        child: Column(
-          children: [
-            const _RequestsBanner(),
-            MonthCalendar(
-              month: month,
-              selectedDay: day,
-              markedDays: markedDays,
-              onSelectDay: selectDay,
-              onPrevMonth: () => stepMonth(-1),
-              onNextMonth: () => stepMonth(1),
-              onToday: onToday,
-            ),
-            _SelectedDayHeader(day: day),
-            Expanded(
-              child: RefreshIndicator(
-                onRefresh: () async {
-                  ref
-                    ..invalidate(physioScheduleProvider)
-                    ..invalidate(physioScheduleActivityProvider)
-                    ..invalidate(calendarMarkedDaysProvider)
-                    ..invalidate(physioRequestsProvider);
-                  await ref.read(physioScheduleProvider.future);
-                },
-                child: schedule.when(
-                  loading: () =>
-                      const Center(child: CircularProgressIndicator()),
-                  error: (_, _) => ListView(
-                    padding: const EdgeInsets.all(HealynSpacing.screenEdge),
-                    children: const [
-                      ErrorBanner(
-                        message:
-                            'Could not load the schedule. Pull down to retry.',
-                      ),
-                    ],
-                  ),
-                  data: (appointments) {
-                    if (appointments.isEmpty) return const _EmptyDay();
-                    return ListView.separated(
-                      padding: const EdgeInsets.all(HealynSpacing.screenEdge),
-                      itemCount: appointments.length,
-                      separatorBuilder: (_, _) =>
-                          const SizedBox(height: HealynSpacing.s3),
-                      itemBuilder: (_, i) => _ScheduleTile(
-                        appointment: appointments[i],
-                        patientName: names[appointments[i].patientId],
-                        activity: activity[appointments[i].id],
-                      ),
-                    );
+        ),
+        builder: (_) => Consumer(
+          builder: (sheetContext, sheetRef, _) {
+            final sheetMonth = sheetRef.watch(calendarMonthProvider);
+            final sheetDay = sheetRef.watch(scheduleDayProvider);
+            final sheetMarked =
+                sheetRef.watch(calendarMarkedDaysProvider).valueOrNull ??
+                const <DateTime>{};
+            final now = DateTime.now();
+            final onToday =
+                (isSameDay(sheetDay, now) &&
+                    sheetMonth.year == now.year &&
+                    sheetMonth.month == now.month)
+                ? null
+                : () {
+                    jumpToToday();
+                    Navigator.of(sheetContext).pop();
+                  };
+            return SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.only(bottom: HealynSpacing.s4),
+                child: MonthCalendar(
+                  month: sheetMonth,
+                  selectedDay: sheetDay,
+                  markedDays: sheetMarked,
+                  onSelectDay: (d) {
+                    selectDay(d);
+                    Navigator.of(sheetContext).pop();
                   },
+                  onPrevMonth: () => stepMonth(-1),
+                  onNextMonth: () => stepMonth(1),
+                  onToday: onToday,
                 ),
               ),
+            );
+          },
+        ),
+      );
+    }
+
+    final onToday = isToday(day);
+
+    return Scaffold(
+      backgroundColor: HealynColors.surfaceAlt,
+      body: RefreshIndicator(
+        onRefresh: () async {
+          ref
+            ..invalidate(physioScheduleProvider)
+            ..invalidate(physioScheduleActivityProvider)
+            ..invalidate(calendarMarkedDaysProvider)
+            ..invalidate(physioRequestsProvider);
+          await ref.read(physioScheduleProvider.future);
+        },
+        child: ListView(
+          padding: EdgeInsets.zero,
+          physics: const AlwaysScrollableScrollPhysics(),
+          children: [
+            HealynHero(
+              eyebrow: _greeting(DateTime.now()),
+              title: 'Your schedule',
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _HeroAction(
+                    icon: Icons.calendar_month_outlined,
+                    tooltip: 'Open calendar',
+                    onTap: openMonth,
+                  ),
+                  const SizedBox(width: HealynSpacing.s2),
+                  _HeroAction(
+                    icon: Icons.upcoming_outlined,
+                    tooltip: 'Upcoming',
+                    onTap: () => context.push('/physio/upcoming'),
+                  ),
+                ],
+              ),
+              pill: HealynHeroPill(
+                icon: Icons.calendar_today_outlined,
+                label: formatDateLong(day),
+              ),
             ),
+            HealynStatRow(
+              cards: [
+                HealynStatCard(
+                  icon: Icons.event_available,
+                  tint: HealynColors.brandPrimary,
+                  value: _stat(todayCount),
+                  label: 'Today',
+                ),
+                HealynStatCard(
+                  icon: Icons.inbox_outlined,
+                  tint: HealynColors.statusWarning,
+                  value: '$requestsCount',
+                  label: 'Requests',
+                  onTap: () => context.push('/physio/requests'),
+                ),
+                HealynStatCard(
+                  icon: Icons.mark_email_unread_outlined,
+                  tint: HealynColors.statusInfo,
+                  value: _stat(unreadTotal),
+                  label: 'Unread',
+                ),
+              ],
+            ),
+            HealynWeekStrip(
+              weekOf: day,
+              selected: day,
+              markedDays: markedDays,
+              onSelect: selectDay,
+            ),
+            const SizedBox(height: HealynSpacing.s5),
+            if (requestsCount > 0) ...[
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: HealynSpacing.screenEdge,
+                ),
+                child: HealynInfoBanner(
+                  icon: Icons.inbox_outlined,
+                  title: requestsCount == 1
+                      ? '1 new booking request'
+                      : '$requestsCount new booking requests',
+                  subtitle: 'Tap to review & confirm',
+                  onTap: () => context.push('/physio/requests'),
+                ),
+              ),
+              const SizedBox(height: HealynSpacing.s5),
+            ],
+            Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: HealynSpacing.screenEdge,
+              ),
+              child: HealynSectionHeader(
+                title: onToday ? "Today's schedule" : 'Schedule',
+                countLabel: _apptCountLabel(todayCount),
+                trailing: onToday
+                    ? null
+                    : _TextAction(label: 'Today', onTap: jumpToToday),
+              ),
+            ),
+            const SizedBox(height: HealynSpacing.s3),
+            ...schedule.when(
+              loading: () => const [
+                Padding(
+                  padding: EdgeInsets.all(HealynSpacing.s8),
+                  child: Center(child: CircularProgressIndicator()),
+                ),
+              ],
+              error: (_, _) => const [
+                Padding(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: HealynSpacing.screenEdge,
+                  ),
+                  child: ErrorBanner(
+                    message:
+                        'Could not load the schedule. Pull down to retry.',
+                  ),
+                ),
+              ],
+              data: (appointments) {
+                if (appointments.isEmpty) return const [_EmptyDay()];
+                return [
+                  for (final a in appointments)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(
+                        HealynSpacing.screenEdge,
+                        0,
+                        HealynSpacing.screenEdge,
+                        HealynSpacing.s3,
+                      ),
+                      child: _ScheduleTile(
+                        appointment: a,
+                        patientName: names[a.patientId],
+                        activity: activity[a.id],
+                      ),
+                    ),
+                ];
+              },
+            ),
+            const SizedBox(height: HealynSpacing.s8),
           ],
         ),
       ),
     );
   }
+
+  /// A real, clock-derived greeting — no fabricated name (none is available).
+  static String _greeting(DateTime now) {
+    final h = now.hour;
+    if (h < 12) return 'Good morning';
+    if (h < 17) return 'Good afternoon';
+    return 'Good evening';
+  }
+
+  /// A stat value, or an en-dash while its source is still loading.
+  static String _stat(int? value) => value?.toString() ?? '–';
+
+  /// "5 appts" / "1 appt", or null while the roster is loading.
+  static String? _apptCountLabel(int? count) {
+    if (count == null) return null;
+    return count == 1 ? '1 appt' : '$count appts';
+  }
 }
 
-/// "N new requests" banner above the schedule (D2). Watches the pending-requests
-/// queue and taps through to the dedicated requests screen. Renders nothing while
-/// loading/failed or when there is nothing pending, so Today stays calm.
-class _RequestsBanner extends ConsumerWidget {
-  const _RequestsBanner();
+/// A circular icon action that reads cleanly on the gradient hero.
+class _HeroAction extends StatelessWidget {
+  const _HeroAction({
+    required this.icon,
+    required this.tooltip,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String tooltip;
+  final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final count = ref.watch(physioRequestsProvider).valueOrNull?.length ?? 0;
-    if (count == 0) return const SizedBox.shrink();
-
+  Widget build(BuildContext context) {
     return Material(
-      color: HealynColors.brandPrimarySubtle,
+      color: HealynColors.textInverse.withValues(alpha: 0.16),
+      shape: const CircleBorder(),
+      clipBehavior: Clip.antiAlias,
       child: InkWell(
-        onTap: () => context.push('/physio/requests'),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(
-            horizontal: HealynSpacing.screenEdge,
-            vertical: HealynSpacing.s3,
-          ),
-          child: Row(
-            children: [
-              const Icon(
-                Icons.inbox_outlined,
-                size: 20,
-                color: HealynColors.brandPrimary,
-              ),
-              const SizedBox(width: HealynSpacing.s3),
-              Expanded(
-                child: Text(
-                  count == 1 ? '1 new request' : '$count new requests',
-                  style: HealynTypography.bodyStrong.copyWith(
-                    color: HealynColors.brandPrimary,
-                  ),
-                ),
-              ),
-              const Icon(
-                Icons.chevron_right,
-                color: HealynColors.brandPrimary,
-              ),
-            ],
+        onTap: onTap,
+        child: Tooltip(
+          message: tooltip,
+          child: SizedBox(
+            width: 40,
+            height: 40,
+            child: Icon(icon, color: HealynColors.textInverse, size: 20),
           ),
         ),
       ),
@@ -198,40 +333,41 @@ class _RequestsBanner extends ConsumerWidget {
   }
 }
 
-/// The selected day's label above its roster. "Today" is called out so the
-/// roster reads clearly once the calendar selection scrolls out of mind.
-class _SelectedDayHeader extends StatelessWidget {
-  const _SelectedDayHeader({required this.day});
+/// A compact, low-emphasis text action (e.g. "Today") for a section header.
+class _TextAction extends StatelessWidget {
+  const _TextAction({required this.label, required this.onTap});
 
-  final DateTime day;
+  final String label;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(
-        HealynSpacing.screenEdge,
-        HealynSpacing.s3,
-        HealynSpacing.screenEdge,
-        HealynSpacing.s2,
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(formatDateLong(day), style: HealynTypography.bodyStrong),
+    return Material(
+      type: MaterialType.transparency,
+      child: InkWell(
+        borderRadius: HealynRadii.brSm,
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: HealynSpacing.s2,
+            vertical: HealynSpacing.s1,
           ),
-          if (isToday(day))
-            Text(
-              'Today',
-              style: HealynTypography.caption.copyWith(
-                color: HealynColors.textMuted,
-              ),
+          child: Text(
+            label,
+            style: HealynTypography.caption.copyWith(
+              color: HealynColors.brandPrimary,
+              fontWeight: FontWeight.w600,
             ),
-        ],
+          ),
+        ),
       ),
     );
   }
 }
 
+/// One appointment in the day's roster: a leading time block (or a fallback when
+/// somehow unscheduled), the patient's name, the patient-given reason when
+/// present, and the status + activity badges. Tapping opens the detail.
 class _ScheduleTile extends StatelessWidget {
   const _ScheduleTile({
     required this.appointment,
@@ -246,72 +382,34 @@ class _ScheduleTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final act = activity;
-    return Container(
-      decoration: BoxDecoration(
-        color: HealynColors.surfaceBase,
-        borderRadius: HealynRadii.brLg,
-        border: Border.all(color: HealynColors.borderSubtle),
-        boxShadow: HealynElevation.e1,
-      ),
-      child: Material(
-        type: MaterialType.transparency,
-        child: InkWell(
-          borderRadius: HealynRadii.brLg,
-          onTap: () => context.push(
-            '/physio/appointments/${appointment.id}',
-            extra: appointment,
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(HealynSpacing.s4),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        _timeRange(appointment),
-                        style: HealynTypography.bodyStrong,
-                      ),
-                      const SizedBox(height: HealynSpacing.s1),
-                      Text(
-                        patientName ?? 'Patient',
-                        style: HealynTypography.body,
-                      ),
-                      const SizedBox(height: HealynSpacing.s2),
-                      Wrap(
-                        spacing: HealynSpacing.s2,
-                        runSpacing: HealynSpacing.s2,
-                        crossAxisAlignment: WrapCrossAlignment.center,
-                        children: [
-                          AppointmentStatusChip(status: appointment.status),
-                          if (act != null && act.hasUnread)
-                            _UnreadBadge(act.unreadCount),
-                          if (act != null && act.hasPendingFiles)
-                            _PendingFilesBadge(act.pendingFileCount),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                const Icon(Icons.chevron_right, color: HealynColors.textMuted),
-              ],
+    final reason = appointment.reason?.trim();
+    final startsAt = appointment.scheduledAt;
+
+    return HealynListRow(
+      leading: startsAt != null
+          ? HealynTimeBlock(start: startsAt, end: appointment.scheduledEndAt)
+          : const HealynTonalIcon(
+              icon: Icons.schedule_outlined,
+              color: HealynColors.textMuted,
             ),
-          ),
-        ),
+      title: patientName ?? 'Patient',
+      subtitle: (reason != null && reason.isNotEmpty) ? reason : null,
+      footer: Wrap(
+        spacing: HealynSpacing.s2,
+        runSpacing: HealynSpacing.s2,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        children: [
+          AppointmentStatusChip(status: appointment.status),
+          if (act != null && act.hasUnread) _UnreadBadge(act.unreadCount),
+          if (act != null && act.hasPendingFiles)
+            _PendingFilesBadge(act.pendingFileCount),
+        ],
+      ),
+      onTap: () => context.push(
+        '/physio/appointments/${appointment.id}',
+        extra: appointment,
       ),
     );
-  }
-
-  /// The start–end time for a scheduled row. An unscheduled request has no time
-  /// (it never reaches this day list, which filters on `scheduled_at`), so it
-  /// falls back to a safe label rather than rendering a null instant.
-  static String _timeRange(Appointment a) {
-    final startsAt = a.scheduledAt;
-    final endsAt = a.scheduledEndAt;
-    if (startsAt == null) return 'Time to be confirmed';
-    if (endsAt == null) return formatTimeOfDay(startsAt);
-    return '${formatTimeOfDay(startsAt)} – ${formatTimeOfDay(endsAt)}';
   }
 }
 
@@ -407,27 +505,45 @@ class _EmptyDay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Inside a scrollable so pull-to-refresh still works on an empty day.
-    return ListView(
-      padding: const EdgeInsets.all(HealynSpacing.s8),
-      children: [
-        const SizedBox(height: HealynSpacing.s8),
-        const Icon(Icons.event_available_outlined, size: 48, color: HealynColors.textMuted),
-        const SizedBox(height: HealynSpacing.s4),
-        const Text(
-          'Nothing scheduled',
-          style: HealynTypography.h3,
-          textAlign: TextAlign.center,
-        ),
-        const SizedBox(height: HealynSpacing.s2),
-        Text(
-          'No appointments for this day.',
-          style: HealynTypography.body.copyWith(
-            color: HealynColors.textSecondary,
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        HealynSpacing.s8,
+        HealynSpacing.s8,
+        HealynSpacing.s8,
+        HealynSpacing.s8,
+      ),
+      child: Column(
+        children: [
+          Container(
+            width: 64,
+            height: 64,
+            alignment: Alignment.center,
+            decoration: const BoxDecoration(
+              color: HealynColors.surfaceAlt,
+              borderRadius: HealynRadii.brLg,
+            ),
+            child: const Icon(
+              Icons.event_available_outlined,
+              size: 30,
+              color: HealynColors.textMuted,
+            ),
           ),
-          textAlign: TextAlign.center,
-        ),
-      ],
+          const SizedBox(height: HealynSpacing.s4),
+          const Text(
+            'Nothing scheduled',
+            style: HealynTypography.h3,
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: HealynSpacing.s2),
+          Text(
+            'No appointments for this day.',
+            style: HealynTypography.body.copyWith(
+              color: HealynColors.textSecondary,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
     );
   }
 }
