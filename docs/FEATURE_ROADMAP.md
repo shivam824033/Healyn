@@ -47,10 +47,14 @@ Architecture in Phase 1 must **enable** Phase 2 and Phase 3 without rewrites. It
 | F1.18 | Push notifications via FCM (confirmations, reminders, new replies) | P0 | `notifications` |
 | F1.19 | Audit log for clinical data access | P1 | `audit` |
 | F1.20 | Mobile app offline read cache (today's schedule, last 5 appointments) | P2 | `mobile-core` |
+| F1.21 | Unified appointment + treatment timeline (physiotherapist & patient) | P1 | `appointments` |
+| F1.22 | Global appointment search (by Appointment Number) | P2 | `appointments` |
 
 **Priority legend:** P0 = must ship to release Phase 1. P1 = strongly desired but releasable without. P2 = nice to have.
 
 > **Booking model note (F1.8–F1.13):** booking is **request-first** — the patient requests a date (no self-assigned time) and the physiotherapist assigns/confirms the final date and time, reschedules, and creates follow-ups. This refines the listed features; it does not add new scope. See [APPOINTMENT_FLOW.md](./APPOINTMENT_FLOW.md).
+>
+> **Identifiers & lifecycle note (F1.5–F1.6, F1.9–F1.13, F1.21–F1.22):** appointments and patients carry human-readable **business IDs** (Appointment Number `PHY-YYYYMMDD-NNNN`, Patient ID `PAT-NNNNNN`) alongside their UUID primary keys; the UUID is never exposed to users. Appointments gain **parent-child lineage** (reschedules / follow-ups / reviews link to a lineage root) and an append-only **`appointment_events`** timeline. The ID and lineage work refines existing P0 features; the events table is the realization of the §4 Phase-3 enabler *"all clinical writes already produce a domain event"* (pulled forward, **not** new scope). The unified timeline (F1.21) and Appointment-Number search (F1.22) are new P1/P2 surfaces over that data. See [APPOINTMENT_FLOW.md](./APPOINTMENT_FLOW.md).
 
 ### 2.2 Phase 1 Acceptance Criteria
 
