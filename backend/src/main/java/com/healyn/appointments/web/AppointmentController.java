@@ -92,6 +92,19 @@ public class AppointmentController {
         return new AppointmentDtos.AppointmentList(views);
     }
 
+    /// Global appointment search for the header autocomplete (API_STANDARDS §9.4). [q] is matched
+    /// against the appointment / patient number (prefix) and patient name (substring), scoped to
+    /// the caller's patients. A literal segment, so it resolves ahead of the {id} path below.
+    @GetMapping("/search")
+    public AppointmentDtos.SearchResults search(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestParam("q") String q,
+            @RequestParam(value = "limit", required = false, defaultValue = "10") int limit) {
+        UUID actorId = UUID.fromString(jwt.getSubject());
+        AccountRole role = roleOf(jwt);
+        return AppointmentMapper.toSearchResults(service.search(actorId, role, q, limit));
+    }
+
     @GetMapping("/{id}")
     public AppointmentDtos.AppointmentView get(@AuthenticationPrincipal Jwt jwt,
                                                @PathVariable("id") UUID id) {

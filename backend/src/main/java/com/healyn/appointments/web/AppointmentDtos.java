@@ -107,4 +107,22 @@ public final class AppointmentDtos {
     /// The whole lineage's timeline, oldest first. Unpaginated: a lineage is a handful of
     /// appointments, each contributing a bounded number of lifecycle events.
     public record TimelineView(List<TimelineEventView> items) {}
+
+    /// One global-search suggestion: enough to render an autocomplete row (the appointment's
+    /// human-friendly number, its patient's name + number, status and date) and to navigate to
+    /// the appointment by id. Deliberately a thin, extensible shape — distinct from the full
+    /// AppointmentView so the header autocomplete stays cheap and future match types can be added.
+    public record AppointmentSuggestion(
+            UUID appointmentId,
+            String appointmentNumber,
+            UUID patientId,
+            String patientName,
+            String patientNumber,
+            AppointmentStatus status,
+            Instant scheduledAt,
+            LocalDate requestedDate) {}
+
+    /// A bounded list of search suggestions, most recent first. Wrapper (not a bare list) so the
+    /// result can later grow facets / a cursor without breaking the wire shape.
+    public record SearchResults(List<AppointmentSuggestion> items) {}
 }

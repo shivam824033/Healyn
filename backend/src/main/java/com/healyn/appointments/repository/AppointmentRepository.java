@@ -108,6 +108,36 @@ public interface AppointmentRepository extends JpaRepository<Appointment, UUID> 
             @Param("filterPatients") boolean filterPatients,
             @Param("patientIds") Collection<UUID> patientIds);
 
+    // Global appointment search (header autocomplete). Matches a typed term against the
+    // human-friendly identifiers as a prefix (case-insensitive: the term is upper-cased in
+    // the service and the stored numbers are upper-case, so a case-sensitive LIKE hits the
+    // text_pattern_ops indexes from V21) and the patient name as a substring (ILIKE, served
+    // by the V4 gin_trgm_ops index). Native because JPQL has no ILIKE and to keep the index
+    // operators explicit. Patient scope is toggled by the same boolean-flag + sentinel trick
+    // as the cursor list. Bounded by :limit; the join is 1:1 (a.patient_id = p.id), so no
+    // appointment row is duplicated.
+    @Query(value = """
+            select a.*
+            from appointments a
+            join patients p on p.id = a.patient_id
+            where a.deleted_at is null
+              and p.deleted_at is null
+              and (:filterPatients = false or a.patient_id in (:patientIds))
+              and (
+                    a.appointment_number like :numberPrefix
+                 or p.patient_number like :numberPrefix
+                 or p.full_name ilike :nameContains
+              )
+            order by a.scheduled_at desc nulls last, a.created_at desc
+            limit :limit
+            """, nativeQuery = true)
+    List<Appointment> search(
+            @Param("filterPatients") boolean filterPatients,
+            @Param("patientIds") Collection<UUID> patientIds,
+            @Param("numberPrefix") String numberPrefix,
+            @Param("nameContains") String nameContains,
+            @Param("limit") int limit);
+
     @Query("""
             select a
             from Appointment a

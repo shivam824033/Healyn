@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -13,6 +15,7 @@ import '../../../shared/widgets/error_banner.dart';
 import '../../data/models/appointment_models.dart';
 import '../appointment_format.dart';
 import '../appointments_providers.dart';
+import '../widgets/appointment_search_delegate.dart';
 import '../widgets/appointment_status_chip.dart';
 
 /// Appointments tab — the patient's timeline of upcoming and past
@@ -31,6 +34,11 @@ class AppointmentsScreen extends ConsumerWidget {
       appBar: HealynAppBar(
         title: 'Appointments',
         actions: [
+          IconButton(
+            tooltip: 'Search appointments',
+            icon: const Icon(Icons.search),
+            onPressed: () => _openSearch(context),
+          ),
           IconButton(
             tooltip: 'Book appointment',
             icon: const Icon(Icons.add),
@@ -117,6 +125,18 @@ class AppointmentsScreen extends ConsumerWidget {
         ),
       ),
     );
+  }
+
+  /// Opens the header search overlay; on a chosen suggestion, navigates to that
+  /// appointment's detail (the patient detail route resolves it by id).
+  Future<void> _openSearch(BuildContext context) async {
+    final selected = await showSearch<AppointmentSuggestion?>(
+      context: context,
+      delegate: AppointmentSearchDelegate(),
+    );
+    if (selected != null && context.mounted) {
+      unawaited(context.push('/appointments/${selected.appointmentId}'));
+    }
   }
 }
 

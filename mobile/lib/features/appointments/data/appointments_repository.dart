@@ -38,6 +38,13 @@ class AppointmentsRepository {
     return _guard(() => _api.get(id));
   }
 
+  /// Global appointment search for the header autocomplete — matches the term
+  /// against appointment / patient numbers and patient names, scoped to the
+  /// caller's patients server-side.
+  Future<List<AppointmentSuggestion>> search(String q, {int? limit}) async {
+    return _guard(() => _api.search(q, limit: limit));
+  }
+
   /// The next live scheduled appointments from now, ascending (capped server
   /// side). Backs the physiotherapist's Upcoming dashboard.
   Future<List<Appointment>> upcoming({int? limit}) async {

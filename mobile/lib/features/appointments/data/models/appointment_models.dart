@@ -216,6 +216,35 @@ extension AppointmentX on Appointment {
   DateTime get day => scheduledAt ?? requestedDate;
 }
 
+/// One global-search hit for the header autocomplete. Mirrors the backend
+/// `AppointmentSuggestion`: a thin row carrying the appointment's human-friendly
+/// [appointmentNumber], its patient's [patientName]/[patientNumber], [status] and
+/// date, plus [appointmentId] to navigate by. Patient name is PHI — it's only
+/// returned for the caller's own patients, so don't log it. Optional fields are
+/// null-tolerant for resilience; the backend populates them for live rows.
+@freezed
+abstract class AppointmentSuggestion with _$AppointmentSuggestion {
+  const factory AppointmentSuggestion({
+    required String appointmentId,
+    String? appointmentNumber,
+    required String patientId,
+    String? patientName,
+    String? patientNumber,
+    required AppointmentStatus status,
+    DateTime? scheduledAt,
+    @LocalDateConverter() required DateTime requestedDate,
+  }) = _AppointmentSuggestion;
+
+  factory AppointmentSuggestion.fromJson(Map<String, dynamic> json) =>
+      _$AppointmentSuggestionFromJson(json);
+}
+
+extension AppointmentSuggestionX on AppointmentSuggestion {
+  /// The day to show whatever the status: the confirmed instant once scheduled,
+  /// otherwise the requested calendar day (mirrors [AppointmentX.day]).
+  DateTime get day => scheduledAt ?? requestedDate;
+}
+
 /// One cursor page of appointments. [nextCursor] is null on the last page.
 @freezed
 abstract class AppointmentPage with _$AppointmentPage {

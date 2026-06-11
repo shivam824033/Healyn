@@ -2,6 +2,7 @@ package com.healyn.appointments.web;
 
 import com.healyn.appointments.domain.Appointment;
 import com.healyn.appointments.domain.AppointmentEvent;
+import com.healyn.appointments.service.AppointmentSearchResult;
 import com.healyn.appointments.service.TimelineEntry;
 
 import java.util.List;
@@ -9,6 +10,25 @@ import java.util.List;
 final class AppointmentMapper {
 
     private AppointmentMapper() {}
+
+    static AppointmentDtos.SearchResults toSearchResults(List<AppointmentSearchResult> hits) {
+        return new AppointmentDtos.SearchResults(hits.stream()
+                .map(AppointmentMapper::toSuggestion)
+                .toList());
+    }
+
+    private static AppointmentDtos.AppointmentSuggestion toSuggestion(AppointmentSearchResult hit) {
+        Appointment a = hit.appointment();
+        return new AppointmentDtos.AppointmentSuggestion(
+                a.getId(),
+                a.getAppointmentNumber(),
+                a.getPatientId(),
+                hit.patientName(),
+                hit.patientNumber(),
+                a.getStatus(),
+                a.getScheduledAt(),
+                a.getRequestedDate());
+    }
 
     static AppointmentDtos.TimelineView toTimelineView(List<TimelineEntry> entries) {
         return new AppointmentDtos.TimelineView(entries.stream()

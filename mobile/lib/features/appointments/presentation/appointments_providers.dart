@@ -179,6 +179,25 @@ final appointmentTimelineProvider =
       (ref, id) => ref.watch(appointmentsRepositoryProvider).timeline(id),
     );
 
+/// The shortest term the backend will search — anything shorter returns nothing,
+/// so the UI skips the round-trip entirely. Mirrors the server-side guard.
+const appointmentSearchMinLength = 2;
+
+/// Global appointment-search results for the header autocomplete, keyed by the
+/// (already-debounced) query. Returns an empty list below
+/// [appointmentSearchMinLength] without hitting the network; autoDispose so the
+/// cache clears when the search field closes, and the family caches per-term so
+/// re-typing a prefix is instant.
+final appointmentSearchProvider =
+    FutureProvider.autoDispose.family<List<AppointmentSuggestion>, String>((
+      ref,
+      query,
+    ) async {
+      final q = query.trim();
+      if (q.length < appointmentSearchMinLength) return const [];
+      return ref.watch(appointmentsRepositoryProvider).search(q);
+    });
+
 /// Open appointments (Requested/Confirmed/In progress), soonest first. Sorts by
 /// [AppointmentX.day] so unscheduled requests (no [Appointment.scheduledAt])
 /// order by their requested date.

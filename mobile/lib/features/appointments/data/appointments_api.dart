@@ -45,6 +45,20 @@ class AppointmentsApi {
     return Appointment.fromJson(res.data!);
   }
 
+  /// Global appointment search backing the header autocomplete. [q] is matched
+  /// against the appointment / patient number (prefix) and patient name
+  /// (substring), scoped server-side to the caller's patients. The backend
+  /// returns nothing for a term shorter than two characters and caps [limit].
+  Future<List<AppointmentSuggestion>> search(String q, {int? limit}) async {
+    final res = await _dio.get<Map<String, dynamic>>(
+      '/appointments/search',
+      queryParameters: <String, dynamic>{'q': q, 'limit': ?limit},
+    );
+    return ((res.data!['items'] as List<dynamic>?) ?? const <dynamic>[])
+        .map((e) => AppointmentSuggestion.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
   /// The next live scheduled appointments from now (CONFIRMED / IN_PROGRESS),
   /// ascending. The backend caps [limit] (default 30, ≤ 50) and returns a
   /// cursorless `{items}` window — unscheduled REQUESTED rows never appear.

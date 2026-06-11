@@ -827,7 +827,115 @@ class AppointmentIntegrationTest {
                 .andExpect(jsonPath("$.error.code").value("appointments.invalid_schedule"));
     }
 
+    @Test
+    void search_finds_an_appointment_by_patient_name() throws Exception {
+        Session physio = seedPhysio();
+        Session a = registerPatient("ned");
+        UUID patientA = primaryPatientId(a);
+        UUID id = requestOk(a, patientA, requestDate(7), "idem-ned-1");
+
+        JsonNode items = searchItems(physio, "ned");
+        boolean found = false;
+        for (JsonNode it : items) {
+            if (it.get("appointment_id").asText().equals(id.toString())) {
+                found = true;
+                assertThat(it.get("patient_name").asText()).contains("ned");
+                assertThat(it.get("patient_id").asText()).isEqualTo(patientA.toString());
+                assertThat(it.get("appointment_number").asText()).startsWith("PHY-");
+            }
+        }
+        assertThat(found).as("search by patient name finds the appointment").isTrue();
+    }
+
+    @Test
+    void search_matches_the_appointment_number_prefix_case_insensitively() throws Exception {
+        Session physio = seedPhysio();
+        Session a = registerPatient("mae");
+        UUID patientA = primaryPatientId(a);
+        UUID id = requestOk(a, patientA, requestDate(7), "idem-mae-1");
+        String number = appointmentNumber(a, id); // PHY-YYYYMMDD-NNNN
+
+        // Full number, a date-stem prefix, and a lower-cased term all match (the service
+        // upper-cases the term to hit the upper-case-stored numbers via the prefix index).
+        assertThat(containsAppointment(searchItems(physio, number), id)).isTrue();
+        assertThat(containsAppointment(searchItems(physio, number.substring(0, 12)), id)).isTrue();
+        assertThat(containsAppointment(searchItems(physio, number.toLowerCase()), id)).isTrue();
+    }
+
+    @Test
+    void search_matches_the_patient_number() throws Exception {
+        Session physio = seedPhysio();
+        Session a = registerPatient("lou");
+        UUID patientA = primaryPatientId(a);
+        UUID id = requestOk(a, patientA, requestDate(7), "idem-lou-1");
+        String patientNumber = patientNumberOf(a); // PAT-NNNNNN
+
+        JsonNode items = searchItems(physio, patientNumber);
+        assertThat(containsAppointment(items, id)).isTrue();
+        for (JsonNode it : items) {
+            if (it.get("appointment_id").asText().equals(id.toString())) {
+                assertThat(it.get("patient_number").asText()).isEqualTo(patientNumber);
+            }
+        }
+    }
+
+    @Test
+    void search_is_scoped_to_the_callers_own_patients() throws Exception {
+        Session physio = seedPhysio();
+        Session a = registerPatient("kim");
+        Session b = registerPatient("kev");
+        UUID patientA = primaryPatientId(a);
+        UUID patientB = primaryPatientId(b);
+        UUID idA = requestOk(a, patientA, requestDate(7), "idem-kim-1");
+        UUID idB = requestOk(b, patientB, requestDate(7), "idem-kev-1");
+
+        // An account never finds another account's appointment, even by a matching name.
+        assertThat(containsAppointment(searchItems(a, "kev"), idB)).isFalse();
+        assertThat(containsAppointment(searchItems(a, "kim"), idA)).isTrue();
+
+        // The physiotherapist sees across patients.
+        assertThat(containsAppointment(searchItems(physio, "kim"), idA)).isTrue();
+        assertThat(containsAppointment(searchItems(physio, "kev"), idB)).isTrue();
+    }
+
+    @Test
+    void search_returns_nothing_for_a_term_shorter_than_two_characters() throws Exception {
+        Session physio = seedPhysio();
+        Session a = registerPatient("jo");
+        UUID patientA = primaryPatientId(a);
+        requestOk(a, patientA, requestDate(7), "idem-jo-1");
+
+        assertThat(searchItems(physio, "j").size()).isZero();
+    }
+
     // ---- helpers ----
+
+    private JsonNode searchItems(Session actor, String q) throws Exception {
+        MvcResult res = mvc.perform(get("/appointments/search")
+                        .header("Authorization", "Bearer " + actor.access)
+                        .param("q", q)
+                        .param("limit", "20"))
+                .andExpect(status().isOk())
+                .andReturn();
+        return json.readTree(res.getResponse().getContentAsByteArray()).get("items");
+    }
+
+    private static boolean containsAppointment(JsonNode items, UUID id) {
+        for (JsonNode it : items) {
+            if (it.get("appointment_id").asText().equals(id.toString())) return true;
+        }
+        return false;
+    }
+
+    /// Reads the caller's primary patient's human-friendly number (PAT-…) via the API.
+    private String patientNumberOf(Session session) throws Exception {
+        MvcResult res = mvc.perform(get("/patients")
+                        .header("Authorization", "Bearer " + session.access))
+                .andExpect(status().isOk())
+                .andReturn();
+        JsonNode list = json.readTree(res.getResponse().getContentAsByteArray()).get("patients");
+        return list.get(0).get("patient_number").asText();
+    }
 
     private void seedAppointment(UUID patientId, UUID physioId, UUID bookedBy, int dayOffset) {
         Appointment a = new Appointment(

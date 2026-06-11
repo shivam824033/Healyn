@@ -278,6 +278,7 @@ GET /api/v1/appointments?cursor=eyJpZCI6Ii4uLiJ9&limit=20
 | `GET`  | `/appointments?patientId=&status=&is_follow_up=&from=&to=&cursor=&limit=` | List (cursor pagination, `limit ≤ 50`, default 20). `status` is a CSV of statuses; `is_follow_up` (true/false, omit for either) filters follow-ups |
 | `GET`  | `/appointments/upcoming?limit=` | Next live scheduled appointments ascending from now (`CONFIRMED`/`IN_PROGRESS`, `limit ≤ 50`, default 30). Role-scoped. Returns `{items}` (no cursor) |
 | `GET`  | `/appointments/calendar?from=&to=` | All scheduled appointments in an instant window, ascending (month grid). `from`/`to` are ISO date-times; range ≤ 62 days. Role-scoped. Returns `{items}` |
+| `GET`  | `/appointments/search?q=&limit=` | Header autocomplete. Matches `q` against the Appointment Number / Patient Number (prefix) and patient name (substring), role-scoped to the caller's patients. `q` shorter than 2 chars returns empty; `limit ≤ 20`, default 10. Returns `{items}` of `AppointmentSuggestion` (no cursor), most recent first |
 | `POST` | `/appointments` | Request an appointment for a date — patient-side, no time (requires `Idempotency-Key` header) |
 | `GET`  | `/appointments/{id}` | Get |
 | `GET`  | `/appointments/{id}/timeline` | Unified lineage timeline: lifecycle events (`CREATED`/`SCHEDULED`/`STARTED`/`COMPLETED`/`CANCELLED`/`NO_SHOW`/`RESCHEDULED`/`REJECTED`) of every appointment sharing this row's lineage root, oldest first, each tagged with its Appointment Number. Returns `{items}` (no cursor) |
@@ -315,7 +316,26 @@ GET /api/v1/appointments?cursor=eyJpZCI6Ii4uLiJ9&limit=20
 }
 ```
 
-Status values: `REQUESTED`, `CONFIRMED`, `IN_PROGRESS`, `COMPLETED`, `CANCELLED`, `NO_SHOW`, `RESCHEDULED`.
+`GET /appointments/search` response envelope (`AppointmentSuggestion` is a thin, extensible shape — not the full `AppointmentView`):
+
+```json
+{
+  "items": [
+    {
+      "appointmentId": "uuid",
+      "appointmentNumber": "PHY-20260615-0001",
+      "patientId": "uuid",
+      "patientName": "Asha Rao",
+      "patientNumber": "PAT-100001",
+      "status": "CONFIRMED",
+      "scheduledAt": "2026-06-15T09:00:00+05:30",
+      "requestedDate": "2026-06-15"
+    }
+  ]
+}
+```
+
+Status values: `REQUESTED`, `CONFIRMED`, `IN_PROGRESS`, `COMPLETED`, `CANCELLED`, `NO_SHOW`, `RESCHEDULED`, `REJECTED`.
 Cancel reasons: `PATIENT_CANCELLED`, `PHYSIO_CANCELLED`, `CLINIC_CLOSED`, `OTHER`.
 
 ### 9.5 Discussion

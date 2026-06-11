@@ -21,7 +21,9 @@ import com.healyn.common.pagination.Cursor;
 import com.healyn.common.pagination.CursorPage;
 import com.healyn.notifications.domain.NotificationKind;
 import com.healyn.notifications.service.NotificationPublisher;
+import com.healyn.patients.domain.Patient;
 import com.healyn.patients.repository.AccountPatientRepository;
+import com.healyn.patients.repository.PatientRepository;
 import org.postgresql.util.PSQLException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Limit;
@@ -35,6 +37,7 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -52,6 +55,10 @@ public class AppointmentService {
     private static final int UPCOMING_DEFAULT_LIMIT = 30;
     private static final int UPCOMING_MAX_LIMIT = 50;
     private static final Duration CALENDAR_MAX_RANGE = Duration.ofDays(62);
+    // Global search: short terms ('a') would match almost everything, so require two chars.
+    private static final int SEARCH_MIN_QUERY_LENGTH = 2;
+    private static final int SEARCH_DEFAULT_LIMIT = 10;
+    private static final int SEARCH_MAX_LIMIT = 20;
     // Never-matching placeholders bound to the IN lists when a filter is disabled.
     private static final Collection<UUID> PATIENT_FILTER_SENTINEL = List.of(new UUID(0L, 0L));
     private static final Collection<AppointmentStatus> STATUS_FILTER_SENTINEL =
@@ -67,6 +74,7 @@ public class AppointmentService {
     private final AppointmentRepository appointments;
     private final AccountRepository accounts;
     private final AccountPatientRepository accountPatients;
+    private final PatientRepository patients;
     private final AppointmentAccessPolicy access;
     private final IdempotencyGuard idempotency;
     private final NotificationPublisher notifications;
@@ -79,6 +87,7 @@ public class AppointmentService {
     public AppointmentService(AppointmentRepository appointments,
                               AccountRepository accounts,
                               AccountPatientRepository accountPatients,
+                              PatientRepository patients,
                               AppointmentAccessPolicy access,
                               IdempotencyGuard idempotency,
                               NotificationPublisher notifications,
@@ -90,6 +99,7 @@ public class AppointmentService {
         this.appointments = appointments;
         this.accounts = accounts;
         this.accountPatients = accountPatients;
+        this.patients = patients;
         this.access = access;
         this.idempotency = idempotency;
         this.notifications = notifications;
@@ -425,7 +435,53 @@ public class AppointmentService {
                 .toList();
     }
 
+    /// Global appointment search for the header autocomplete (API_STANDARDS §9.4). Matches the
+    /// term against the appointment number / patient number as a prefix and the patient name as
+    /// a substring, scoped to the actor's own patients (a physiotherapist sees every patient; an
+    /// account only the patients it manages — the same scope as {@link #list}). Each hit carries
+    /// its patient's display fields, resolved in one bounded lookup. Returns at most the capped
+    /// limit, most recent first; a term shorter than two characters yields nothing.
+    @Transactional(readOnly = true)
+    public List<AppointmentSearchResult> search(UUID actorId, AccountRole role, String q, int limit) {
+        int capped = (limit <= 0 || limit > SEARCH_MAX_LIMIT) ? SEARCH_DEFAULT_LIMIT : limit;
+        String term = q == null ? "" : q.trim();
+        if (term.length() < SEARCH_MIN_QUERY_LENGTH) return List.of();
+
+        Collection<UUID> scope = resolvePatientIdScope(actorId, role, null);
+        if (scope != null && scope.isEmpty()) return List.of();
+        boolean filterPatients = scope != null;
+        Collection<UUID> patientParam = filterPatients ? scope : PATIENT_FILTER_SENTINEL;
+
+        String escaped = escapeLike(term);
+        // Identifiers are stored upper-case; upper-case the term so a case-sensitive LIKE
+        // hits the text_pattern_ops indexes. Names use ILIKE (the trigram index is case-folding).
+        String numberPrefix = escaped.toUpperCase(Locale.ROOT) + "%";
+        String nameContains = "%" + escaped + "%";
+
+        List<Appointment> hits =
+                appointments.search(filterPatients, patientParam, numberPrefix, nameContains, capped);
+        if (hits.isEmpty()) return List.of();
+
+        Set<UUID> patientIds = hits.stream().map(Appointment::getPatientId).collect(Collectors.toSet());
+        Map<UUID, Patient> patientsById = patients.findAllById(patientIds).stream()
+                .collect(Collectors.toMap(Patient::getId, p -> p));
+        return hits.stream()
+                .map(a -> {
+                    Patient p = patientsById.get(a.getPatientId());
+                    return new AppointmentSearchResult(a,
+                            p == null ? null : p.getFullName(),
+                            p == null ? null : p.getPatientNumber());
+                })
+                .toList();
+    }
+
     // ---- helpers ----
+
+    /// Escapes the LIKE/ILIKE wildcards (`%`, `_`) and the escape char itself so a typed term is
+    /// matched literally — a user typing "%" searches for a percent sign, not "match anything".
+    private static String escapeLike(String term) {
+        return term.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
+    }
 
     private Appointment loadActive(UUID id) {
         return appointments.findByIdAndDeletedAtIsNull(id)

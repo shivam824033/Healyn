@@ -31,8 +31,8 @@ class FlywayMigrationTest {
 
         // Pins the latest migration version as a tripwire — bump it with every new migration.
         MigrationInfo current = flyway.info().current();
-        assertThat(current.getVersion().getVersion()).isEqualTo("20");
-        assertThat(flyway.info().applied()).hasSizeGreaterThanOrEqualTo(20);
+        assertThat(current.getVersion().getVersion()).isEqualTo("21");
+        assertThat(flyway.info().applied()).hasSizeGreaterThanOrEqualTo(21);
 
         DataSource ds = flyway.getConfiguration().getDataSource();
         try (Connection c = ds.getConnection(); Statement st = c.createStatement()) {
@@ -145,6 +145,15 @@ class FlywayMigrationTest {
                     "select 1 from pg_enum e join pg_type t on t.oid = e.enumtypid "
                             + "where t.typname = 'appointment_status' and e.enumlabel = 'REJECTED'")) {
                 assertThat(rs.next()).as("appointment_status REJECTED value exists").isTrue();
+            }
+            // V21: text_pattern_ops prefix-scan indexes backing the global search autocomplete.
+            try (ResultSet rs = st.executeQuery(
+                    "select 1 from pg_indexes where indexname = 'idx_appointments_number_pattern'")) {
+                assertThat(rs.next()).as("appointment_number prefix-scan index").isTrue();
+            }
+            try (ResultSet rs = st.executeQuery(
+                    "select 1 from pg_indexes where indexname = 'idx_patients_number_pattern'")) {
+                assertThat(rs.next()).as("patient_number prefix-scan index").isTrue();
             }
         }
     }

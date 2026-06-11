@@ -161,6 +161,36 @@ const _$AppointmentStatusEnumMap = {
   AppointmentStatus.rejected: 'REJECTED',
 };
 
+_AppointmentSuggestion _$AppointmentSuggestionFromJson(
+  Map<String, dynamic> json,
+) => _AppointmentSuggestion(
+  appointmentId: json['appointment_id'] as String,
+  appointmentNumber: json['appointment_number'] as String?,
+  patientId: json['patient_id'] as String,
+  patientName: json['patient_name'] as String?,
+  patientNumber: json['patient_number'] as String?,
+  status: $enumDecode(_$AppointmentStatusEnumMap, json['status']),
+  scheduledAt: json['scheduled_at'] == null
+      ? null
+      : DateTime.parse(json['scheduled_at'] as String),
+  requestedDate: const LocalDateConverter().fromJson(
+    json['requested_date'] as String,
+  ),
+);
+
+Map<String, dynamic> _$AppointmentSuggestionToJson(
+  _AppointmentSuggestion instance,
+) => <String, dynamic>{
+  'appointment_id': instance.appointmentId,
+  'appointment_number': ?instance.appointmentNumber,
+  'patient_id': instance.patientId,
+  'patient_name': ?instance.patientName,
+  'patient_number': ?instance.patientNumber,
+  'status': _$AppointmentStatusEnumMap[instance.status]!,
+  'scheduled_at': ?instance.scheduledAt?.toIso8601String(),
+  'requested_date': const LocalDateConverter().toJson(instance.requestedDate),
+};
+
 _AppointmentPage _$AppointmentPageFromJson(Map<String, dynamic> json) =>
     _AppointmentPage(
       items: (json['items'] as List<dynamic>)

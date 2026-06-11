@@ -318,6 +318,14 @@ CREATE INDEX idx_appointments_root
     ON appointments(root_appointment_id) WHERE deleted_at IS NULL;
 CREATE INDEX idx_appointments_source
     ON appointments(source_appointment_id) WHERE deleted_at IS NULL;
+
+-- V21: prefix scans for the global-search autocomplete. text_pattern_ops makes
+-- `appointment_number LIKE 'PHY-2026%'` index-backed regardless of server collation
+-- (the collation-aware UNIQUE btree cannot serve a prefix LIKE). Same for PAT-….
+CREATE INDEX idx_appointments_number_pattern
+    ON appointments(appointment_number text_pattern_ops) WHERE deleted_at IS NULL;
+CREATE INDEX idx_patients_number_pattern
+    ON patients(patient_number text_pattern_ops) WHERE deleted_at IS NULL;
 ```
 
 `requested_date`, `preferred_time`, nullable `scheduled_at`/`scheduled_end_at`, and `is_follow_up` are added by `V15__appointments_request_first.sql`. State transitions and conflict rules: [APPOINTMENT_FLOW.md](./APPOINTMENT_FLOW.md).
@@ -585,6 +593,7 @@ DB role `healyn_app` is granted `INSERT, SELECT` on `audit.*`. There is no `UPDA
 | Patient history newest-first | `idx_appt_patient_scheduled` |
 | Pending bookings sweeper | `idx_appt_status_scheduled` |
 | Patient name autocomplete | `idx_patients_name_trgm` (GIN trigram) |
+| Appointment / patient number prefix search | `idx_appointments_number_pattern`, `idx_patients_number_pattern` (`text_pattern_ops`, partial) |
 | Outbox poller | `idx_notif_due` (partial) |
 | Active sessions for account | `idx_device_sessions_account` (partial) |
 | Open OTP per target | `idx_otp_target_purpose_open` (partial) |

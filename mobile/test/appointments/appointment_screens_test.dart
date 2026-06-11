@@ -71,6 +71,33 @@ class _CapturingListRepo extends AppointmentsRepository {
   }
 }
 
+/// Answers the header search with a fixed set and records the query it received,
+/// so the autocomplete wiring can be asserted offline. [list] resolves empty so
+/// the underlying screen settles.
+class _SearchRepo extends AppointmentsRepository {
+  _SearchRepo(this._results) : super(AppointmentsApi(Dio()));
+
+  final List<AppointmentSuggestion> _results;
+  String? lastQuery;
+
+  @override
+  Future<List<AppointmentSuggestion>> search(String q, {int? limit}) async {
+    lastQuery = q;
+    return _results;
+  }
+
+  @override
+  Future<AppointmentPage> list({
+    String? patientId,
+    String? statusCsv,
+    bool? isFollowUp,
+    DateTime? from,
+    DateTime? to,
+    String? cursor,
+    int? limit,
+  }) async => const AppointmentPage(items: [], nextCursor: null);
+}
+
 /// Seeds the appointments list with a fixed set and no further pages, so the
 /// screens render without hitting the network.
 class _FakeAppointmentsNotifier extends AppointmentsNotifier {
@@ -114,6 +141,17 @@ final _asha = Patient(
   dateOfBirth: DateTime(1990, 5, 21),
   relationship: PatientRelationship.self,
   primary: true,
+);
+
+final _suggestion = AppointmentSuggestion(
+  appointmentId: 'ap1',
+  appointmentNumber: 'PHY-20260611-0001',
+  patientId: 'pt1',
+  patientName: 'Asha Rao',
+  patientNumber: 'PAT-100001',
+  status: AppointmentStatus.confirmed,
+  scheduledAt: DateTime(2026, 6, 11, 9),
+  requestedDate: DateTime(2026, 6, 11),
 );
 
 Appointment _appt({
@@ -299,6 +337,69 @@ void main() {
 
       expect(find.text('No appointments match this filter'), findsOneWidget);
       expect(find.text('No appointments yet'), findsNothing);
+    });
+  });
+
+  group('header search', () {
+    test('the search provider skips the network below the minimum length', () async {
+      final repo = _SearchRepo([_suggestion]);
+      final container = ProviderContainer(
+        overrides: [appointmentsRepositoryProvider.overrideWithValue(repo)],
+      );
+      addTearDown(container.dispose);
+
+      // One character is below the minimum: no network call.
+      expect(
+        await container.read(appointmentSearchProvider('a').future),
+        isEmpty,
+      );
+      expect(repo.lastQuery, isNull);
+
+      // Two or more: the repository is queried with the trimmed term.
+      final hits = await container.read(appointmentSearchProvider('asha').future);
+      expect(hits, hasLength(1));
+      expect(repo.lastQuery, 'asha');
+    });
+
+    testWidgets('the search action opens autocomplete and lists matches', (
+      tester,
+    ) async {
+      final repo = _SearchRepo([_suggestion]);
+      await _pump(tester, const AppointmentsScreen(), repo: repo);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byIcon(Icons.search));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.byType(TextField), 'asha');
+      await tester.pump(); // rebuild the body, arming the debounce timer
+      await tester.pump(const Duration(milliseconds: 350)); // fire the debounce
+      await tester.pumpAndSettle(); // resolve the search future + render rows
+
+      expect(repo.lastQuery, 'asha');
+      expect(find.text('Asha Rao'), findsOneWidget);
+      // The row's subtitle carries the appointment's human-friendly number.
+      expect(find.textContaining('PHY-20260611-0001'), findsOneWidget);
+    });
+
+    testWidgets('a term below the minimum shows the hint and skips the network', (
+      tester,
+    ) async {
+      final repo = _SearchRepo([_suggestion]);
+      await _pump(tester, const AppointmentsScreen(), repo: repo);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byIcon(Icons.search));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.byType(TextField), 'a');
+      await tester.pumpAndSettle();
+
+      expect(
+        find.textContaining('Search by appointment number'),
+        findsOneWidget,
+      );
+      expect(repo.lastQuery, isNull);
     });
   });
 
