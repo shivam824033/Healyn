@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../appointments/data/models/appointment_models.dart';
 import '../../../appointments/presentation/appointment_format.dart';
 import '../../../appointments/presentation/widgets/appointment_status_chip.dart';
+import '../../../patients/data/models/patient_models.dart';
 import '../../../patients/presentation/patients_providers.dart';
 import '../../../shared/design/colors.dart';
 import '../../../shared/design/elevation.dart';
@@ -14,6 +15,7 @@ import '../../../shared/design/typography.dart';
 import '../../../shared/widgets/app_bar.dart';
 import '../../../shared/widgets/error_banner.dart';
 import '../physio_requests_providers.dart';
+import '../widgets/patient_avatar_button.dart';
 
 /// The physiotherapist's incoming-requests queue (F1.11): pending REQUESTED
 /// appointments grouped by day, earliest first. Tapping a row opens the existing
@@ -25,7 +27,7 @@ class PhysioRequestsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final requests = ref.watch(physioRequestsProvider);
     final patients = ref.watch(patientsProvider).valueOrNull ?? const [];
-    final names = {for (final p in patients) p.id: p.fullName};
+    final byId = {for (final p in patients) p.id: p};
 
     return Scaffold(
       appBar: const HealynAppBar(title: 'Requests'),
@@ -64,7 +66,7 @@ class PhysioRequestsScreen extends ConsumerWidget {
                     for (final a in entry.value) ...[
                       _RequestTile(
                         appointment: a,
-                        patientName: names[a.patientId],
+                        patient: byId[a.patientId],
                       ),
                       const SizedBox(height: HealynSpacing.s3),
                     ],
@@ -91,13 +93,14 @@ class _DayHeader extends StatelessWidget {
 }
 
 class _RequestTile extends StatelessWidget {
-  const _RequestTile({required this.appointment, this.patientName});
+  const _RequestTile({required this.appointment, this.patient});
 
   final Appointment appointment;
-  final String? patientName;
+  final Patient? patient;
 
   @override
   Widget build(BuildContext context) {
+    final patientName = patient?.fullName;
     final preferred = formatClockTime(appointment.preferredTime);
     return Container(
       decoration: BoxDecoration(
@@ -118,6 +121,12 @@ class _RequestTile extends StatelessWidget {
             padding: const EdgeInsets.all(HealynSpacing.s4),
             child: Row(
               children: [
+                PatientAvatarButton(
+                  patientId: appointment.patientId,
+                  name: patientName,
+                  patient: patient,
+                ),
+                const SizedBox(width: HealynSpacing.s4),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,

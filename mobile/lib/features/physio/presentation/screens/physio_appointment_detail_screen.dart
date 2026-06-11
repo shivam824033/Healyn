@@ -8,10 +8,16 @@ import '../../../appointments/presentation/appointment_format.dart';
 import '../../../appointments/presentation/appointments_providers.dart';
 import '../../../appointments/presentation/widgets/appointment_status_chip.dart';
 import '../../../appointments/presentation/widgets/appointment_timeline_section.dart';
+import '../../../patients/data/models/patient_models.dart';
+import '../../../patients/presentation/patient_format.dart';
 import '../../../patients/presentation/patients_providers.dart';
+import '../../../patients/presentation/widgets/patient_avatar.dart';
 import '../../../shared/design/colors.dart';
+import '../../../shared/design/elevation.dart';
+import '../../../shared/design/radii.dart';
 import '../../../shared/design/spacing.dart';
 import '../../../shared/design/typography.dart';
+import '../../../shared/domain/patient_sex.dart';
 import '../../../shared/network/api_exception.dart';
 import '../../../shared/widgets/app_bar.dart';
 import '../../../shared/widgets/error_banner.dart';
@@ -373,15 +379,14 @@ class _PhysioAppointmentDetailScreenState
   @override
   Widget build(BuildContext context) {
     final patients = ref.watch(patientsProvider).valueOrNull ?? const [];
-    final patientName = {
-      for (final p in patients) p.id: p.fullName,
-    }[_appt.patientId];
+    final patient = {for (final p in patients) p.id: p}[_appt.patientId];
 
     final scheduledAt = _appt.scheduledAt;
     final scheduledEndAt = _appt.scheduledEndAt;
     final preferred = formatClockTime(_appt.preferredTime);
+    // The patient now reads as a tappable card above (quick patient access), so
+    // it is no longer repeated as a detail row.
     final rows = <(String, String)>[
-      if (patientName != null) ('Patient', patientName),
       if (_appt.isFollowUp) ('Type', 'Follow-up review'),
       ('When', formatDateLong(_appt.day)),
       if (scheduledAt != null)
@@ -444,6 +449,10 @@ class _PhysioAppointmentDetailScreenState
                 ],
               ),
             ),
+            if (patient != null) ...[
+              const SizedBox(height: HealynSpacing.s6),
+              _PatientCard(patient: patient),
+            ],
             const SizedBox(height: HealynSpacing.s6),
             const _SectionTitle('Details'),
             const SizedBox(height: HealynSpacing.s3),
@@ -557,6 +566,66 @@ class _ActionButton extends StatelessWidget {
     PhysioAppointmentAction.noShow => Icons.person_off_outlined,
     PhysioAppointmentAction.cancel => Icons.event_busy_outlined,
   };
+}
+
+/// A tappable summary of the appointment's patient — the physiotherapist's
+/// one-tap jump to the full patient profile + treatment history. Shows the
+/// monogram, name and a non-PHI identity line (patient number · age · sex).
+class _PatientCard extends StatelessWidget {
+  const _PatientCard({required this.patient});
+
+  final Patient patient;
+
+  @override
+  Widget build(BuildContext context) {
+    final meta = <String>[
+      if (patient.patientNumber != null) patient.patientNumber!,
+      '${patientAgeInYears(patient.dateOfBirth)}y',
+      if (patient.sex != null) patient.sex!.label,
+    ].join(' · ');
+
+    return Container(
+      decoration: BoxDecoration(
+        color: HealynColors.surfaceBase,
+        borderRadius: HealynRadii.brLg,
+        border: Border.all(color: HealynColors.borderSubtle),
+        boxShadow: HealynElevation.e1,
+      ),
+      child: Material(
+        type: MaterialType.transparency,
+        child: InkWell(
+          borderRadius: HealynRadii.brLg,
+          onTap: () =>
+              context.push('/physio/patients/${patient.id}', extra: patient),
+          child: Padding(
+            padding: const EdgeInsets.all(HealynSpacing.s4),
+            child: Row(
+              children: [
+                PatientAvatar(name: patient.fullName),
+                const SizedBox(width: HealynSpacing.s4),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(patient.fullName, style: HealynTypography.bodyStrong),
+                      const SizedBox(height: HealynSpacing.s1),
+                      Text(
+                        meta,
+                        style: HealynTypography.caption.copyWith(
+                          color: HealynColors.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const Icon(Icons.chevron_right, color: HealynColors.textMuted),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class _SectionTitle extends StatelessWidget {

@@ -83,6 +83,9 @@ void main() {
 
     expect(find.text('Asha Rao'), findsOneWidget);
     expect(find.text('Vikram Singh'), findsOneWidget);
+    // Each row leads with a tappable patient monogram (quick patient access).
+    expect(find.text('AR'), findsOneWidget);
+    expect(find.text('VS'), findsOneWidget);
     expect(find.text('Confirmed'), findsOneWidget);
     expect(find.text('In progress'), findsOneWidget);
     expect(find.text('Follow-up'), findsOneWidget);

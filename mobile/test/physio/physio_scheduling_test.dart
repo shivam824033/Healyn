@@ -215,6 +215,17 @@ void main() {
     await tester.pumpAndSettle(const Duration(seconds: 5));
   });
 
+  testWidgets('surfaces the patient as a card above the appointment details', (
+    tester,
+  ) async {
+    await _pump(tester, _appt(AppointmentStatus.confirmed));
+
+    // The patient reads as its own card (monogram + name) — the quick jump to
+    // the full profile — rather than a plain detail row.
+    expect(find.text('Asha Rao'), findsOneWidget);
+    expect(find.text('AR'), findsOneWidget);
+  });
+
   testWidgets('a completed appointment can schedule a follow-up review', (
     tester,
   ) async {

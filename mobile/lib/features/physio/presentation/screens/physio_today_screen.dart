@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../appointments/data/models/appointment_models.dart';
 import '../../../appointments/presentation/appointment_format.dart';
 import '../../../appointments/presentation/widgets/appointment_status_chip.dart';
+import '../../../patients/data/models/patient_models.dart';
 import '../../../patients/presentation/patients_providers.dart';
 import '../../../shared/design/colors.dart';
 import '../../../shared/design/radii.dart';
@@ -24,6 +25,7 @@ import '../physio_calendar_providers.dart';
 import '../physio_requests_providers.dart';
 import '../physio_schedule_providers.dart';
 import '../widgets/month_calendar.dart';
+import '../widgets/patient_avatar_button.dart';
 
 /// The physiotherapist's schedule (F1.12), in the *Refined Indigo* direction: a
 /// gradient hero greeting, three floating stat cards, a compact week strip over
@@ -42,7 +44,7 @@ class PhysioTodayScreen extends ConsumerWidget {
         const <DateTime>{};
     final schedule = ref.watch(physioScheduleProvider);
     final patients = ref.watch(patientsProvider).valueOrNull ?? const [];
-    final names = {for (final p in patients) p.id: p.fullName};
+    final byId = {for (final p in patients) p.id: p};
     final activityAsync = ref.watch(physioScheduleActivityProvider);
     final activity =
         activityAsync.valueOrNull ?? const <String, ScheduleActivity>{};
@@ -268,7 +270,7 @@ class PhysioTodayScreen extends ConsumerWidget {
                       ),
                       child: _ScheduleTile(
                         appointment: a,
-                        patientName: names[a.patientId],
+                        patient: byId[a.patientId],
                         activity: activity[a.id],
                       ),
                     ),
@@ -365,33 +367,48 @@ class _TextAction extends StatelessWidget {
   }
 }
 
-/// One appointment in the day's roster: a leading time block (or a fallback when
-/// somehow unscheduled), the patient's name, the patient-given reason when
-/// present, and the status + activity badges. Tapping opens the detail.
+/// One appointment in the day's roster: a tappable patient monogram (quick jump
+/// to the patient) beside a time block (or a fallback when somehow unscheduled),
+/// the patient's name, the patient-given reason when present, and the status +
+/// activity badges. Tapping the row opens the appointment detail.
 class _ScheduleTile extends StatelessWidget {
   const _ScheduleTile({
     required this.appointment,
-    this.patientName,
+    this.patient,
     this.activity,
   });
 
   final Appointment appointment;
-  final String? patientName;
+  final Patient? patient;
   final ScheduleActivity? activity;
 
   @override
   Widget build(BuildContext context) {
     final act = activity;
+    final patientName = patient?.fullName;
     final reason = appointment.reason?.trim();
     final startsAt = appointment.scheduledAt;
 
     return HealynListRow(
-      leading: startsAt != null
-          ? HealynTimeBlock(start: startsAt, end: appointment.scheduledEndAt)
-          : const HealynTonalIcon(
+      leading: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          PatientAvatarButton(
+            patientId: appointment.patientId,
+            name: patientName,
+            patient: patient,
+            radius: 18,
+          ),
+          const SizedBox(width: HealynSpacing.s2),
+          if (startsAt != null)
+            HealynTimeBlock(start: startsAt, end: appointment.scheduledEndAt)
+          else
+            const HealynTonalIcon(
               icon: Icons.schedule_outlined,
               color: HealynColors.textMuted,
             ),
+        ],
+      ),
       title: patientName ?? 'Patient',
       subtitle: (reason != null && reason.isNotEmpty) ? reason : null,
       footer: Wrap(
