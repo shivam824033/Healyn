@@ -13,6 +13,293 @@ part of 'appointment_models.dart';
 T _$identity<T>(T value) => value;
 
 /// @nodoc
+mixin _$TimelineEvent {
+
+ String get appointmentId; String? get appointmentNumber; AppointmentEventType get eventType; String? get actorAccountId; AccountRole? get actorRole; String? get relatedAppointmentId; AppointmentChildKind? get childKind; AppointmentCancelReason? get cancelReason; DateTime get occurredAt;
+/// Create a copy of TimelineEvent
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$TimelineEventCopyWith<TimelineEvent> get copyWith => _$TimelineEventCopyWithImpl<TimelineEvent>(this as TimelineEvent, _$identity);
+
+  /// Serializes this TimelineEvent to a JSON map.
+  Map<String, dynamic> toJson();
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is TimelineEvent&&(identical(other.appointmentId, appointmentId) || other.appointmentId == appointmentId)&&(identical(other.appointmentNumber, appointmentNumber) || other.appointmentNumber == appointmentNumber)&&(identical(other.eventType, eventType) || other.eventType == eventType)&&(identical(other.actorAccountId, actorAccountId) || other.actorAccountId == actorAccountId)&&(identical(other.actorRole, actorRole) || other.actorRole == actorRole)&&(identical(other.relatedAppointmentId, relatedAppointmentId) || other.relatedAppointmentId == relatedAppointmentId)&&(identical(other.childKind, childKind) || other.childKind == childKind)&&(identical(other.cancelReason, cancelReason) || other.cancelReason == cancelReason)&&(identical(other.occurredAt, occurredAt) || other.occurredAt == occurredAt));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,appointmentId,appointmentNumber,eventType,actorAccountId,actorRole,relatedAppointmentId,childKind,cancelReason,occurredAt);
+
+@override
+String toString() {
+  return 'TimelineEvent(appointmentId: $appointmentId, appointmentNumber: $appointmentNumber, eventType: $eventType, actorAccountId: $actorAccountId, actorRole: $actorRole, relatedAppointmentId: $relatedAppointmentId, childKind: $childKind, cancelReason: $cancelReason, occurredAt: $occurredAt)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $TimelineEventCopyWith<$Res>  {
+  factory $TimelineEventCopyWith(TimelineEvent value, $Res Function(TimelineEvent) _then) = _$TimelineEventCopyWithImpl;
+@useResult
+$Res call({
+ String appointmentId, String? appointmentNumber, AppointmentEventType eventType, String? actorAccountId, AccountRole? actorRole, String? relatedAppointmentId, AppointmentChildKind? childKind, AppointmentCancelReason? cancelReason, DateTime occurredAt
+});
+
+
+
+
+}
+/// @nodoc
+class _$TimelineEventCopyWithImpl<$Res>
+    implements $TimelineEventCopyWith<$Res> {
+  _$TimelineEventCopyWithImpl(this._self, this._then);
+
+  final TimelineEvent _self;
+  final $Res Function(TimelineEvent) _then;
+
+/// Create a copy of TimelineEvent
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? appointmentId = null,Object? appointmentNumber = freezed,Object? eventType = null,Object? actorAccountId = freezed,Object? actorRole = freezed,Object? relatedAppointmentId = freezed,Object? childKind = freezed,Object? cancelReason = freezed,Object? occurredAt = null,}) {
+  return _then(_self.copyWith(
+appointmentId: null == appointmentId ? _self.appointmentId : appointmentId // ignore: cast_nullable_to_non_nullable
+as String,appointmentNumber: freezed == appointmentNumber ? _self.appointmentNumber : appointmentNumber // ignore: cast_nullable_to_non_nullable
+as String?,eventType: null == eventType ? _self.eventType : eventType // ignore: cast_nullable_to_non_nullable
+as AppointmentEventType,actorAccountId: freezed == actorAccountId ? _self.actorAccountId : actorAccountId // ignore: cast_nullable_to_non_nullable
+as String?,actorRole: freezed == actorRole ? _self.actorRole : actorRole // ignore: cast_nullable_to_non_nullable
+as AccountRole?,relatedAppointmentId: freezed == relatedAppointmentId ? _self.relatedAppointmentId : relatedAppointmentId // ignore: cast_nullable_to_non_nullable
+as String?,childKind: freezed == childKind ? _self.childKind : childKind // ignore: cast_nullable_to_non_nullable
+as AppointmentChildKind?,cancelReason: freezed == cancelReason ? _self.cancelReason : cancelReason // ignore: cast_nullable_to_non_nullable
+as AppointmentCancelReason?,occurredAt: null == occurredAt ? _self.occurredAt : occurredAt // ignore: cast_nullable_to_non_nullable
+as DateTime,
+  ));
+}
+
+}
+
+
+/// Adds pattern-matching-related methods to [TimelineEvent].
+extension TimelineEventPatterns on TimelineEvent {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _TimelineEvent value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _TimelineEvent() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _TimelineEvent value)  $default,){
+final _that = this;
+switch (_that) {
+case _TimelineEvent():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _TimelineEvent value)?  $default,){
+final _that = this;
+switch (_that) {
+case _TimelineEvent() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String appointmentId,  String? appointmentNumber,  AppointmentEventType eventType,  String? actorAccountId,  AccountRole? actorRole,  String? relatedAppointmentId,  AppointmentChildKind? childKind,  AppointmentCancelReason? cancelReason,  DateTime occurredAt)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _TimelineEvent() when $default != null:
+return $default(_that.appointmentId,_that.appointmentNumber,_that.eventType,_that.actorAccountId,_that.actorRole,_that.relatedAppointmentId,_that.childKind,_that.cancelReason,_that.occurredAt);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String appointmentId,  String? appointmentNumber,  AppointmentEventType eventType,  String? actorAccountId,  AccountRole? actorRole,  String? relatedAppointmentId,  AppointmentChildKind? childKind,  AppointmentCancelReason? cancelReason,  DateTime occurredAt)  $default,) {final _that = this;
+switch (_that) {
+case _TimelineEvent():
+return $default(_that.appointmentId,_that.appointmentNumber,_that.eventType,_that.actorAccountId,_that.actorRole,_that.relatedAppointmentId,_that.childKind,_that.cancelReason,_that.occurredAt);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String appointmentId,  String? appointmentNumber,  AppointmentEventType eventType,  String? actorAccountId,  AccountRole? actorRole,  String? relatedAppointmentId,  AppointmentChildKind? childKind,  AppointmentCancelReason? cancelReason,  DateTime occurredAt)?  $default,) {final _that = this;
+switch (_that) {
+case _TimelineEvent() when $default != null:
+return $default(_that.appointmentId,_that.appointmentNumber,_that.eventType,_that.actorAccountId,_that.actorRole,_that.relatedAppointmentId,_that.childKind,_that.cancelReason,_that.occurredAt);case _:
+  return null;
+
+}
+}
+
+}
+
+/// @nodoc
+@JsonSerializable()
+
+class _TimelineEvent implements TimelineEvent {
+  const _TimelineEvent({required this.appointmentId, this.appointmentNumber, required this.eventType, this.actorAccountId, this.actorRole, this.relatedAppointmentId, this.childKind, this.cancelReason, required this.occurredAt});
+  factory _TimelineEvent.fromJson(Map<String, dynamic> json) => _$TimelineEventFromJson(json);
+
+@override final  String appointmentId;
+@override final  String? appointmentNumber;
+@override final  AppointmentEventType eventType;
+@override final  String? actorAccountId;
+@override final  AccountRole? actorRole;
+@override final  String? relatedAppointmentId;
+@override final  AppointmentChildKind? childKind;
+@override final  AppointmentCancelReason? cancelReason;
+@override final  DateTime occurredAt;
+
+/// Create a copy of TimelineEvent
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$TimelineEventCopyWith<_TimelineEvent> get copyWith => __$TimelineEventCopyWithImpl<_TimelineEvent>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$TimelineEventToJson(this, );
+}
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _TimelineEvent&&(identical(other.appointmentId, appointmentId) || other.appointmentId == appointmentId)&&(identical(other.appointmentNumber, appointmentNumber) || other.appointmentNumber == appointmentNumber)&&(identical(other.eventType, eventType) || other.eventType == eventType)&&(identical(other.actorAccountId, actorAccountId) || other.actorAccountId == actorAccountId)&&(identical(other.actorRole, actorRole) || other.actorRole == actorRole)&&(identical(other.relatedAppointmentId, relatedAppointmentId) || other.relatedAppointmentId == relatedAppointmentId)&&(identical(other.childKind, childKind) || other.childKind == childKind)&&(identical(other.cancelReason, cancelReason) || other.cancelReason == cancelReason)&&(identical(other.occurredAt, occurredAt) || other.occurredAt == occurredAt));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,appointmentId,appointmentNumber,eventType,actorAccountId,actorRole,relatedAppointmentId,childKind,cancelReason,occurredAt);
+
+@override
+String toString() {
+  return 'TimelineEvent(appointmentId: $appointmentId, appointmentNumber: $appointmentNumber, eventType: $eventType, actorAccountId: $actorAccountId, actorRole: $actorRole, relatedAppointmentId: $relatedAppointmentId, childKind: $childKind, cancelReason: $cancelReason, occurredAt: $occurredAt)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$TimelineEventCopyWith<$Res> implements $TimelineEventCopyWith<$Res> {
+  factory _$TimelineEventCopyWith(_TimelineEvent value, $Res Function(_TimelineEvent) _then) = __$TimelineEventCopyWithImpl;
+@override @useResult
+$Res call({
+ String appointmentId, String? appointmentNumber, AppointmentEventType eventType, String? actorAccountId, AccountRole? actorRole, String? relatedAppointmentId, AppointmentChildKind? childKind, AppointmentCancelReason? cancelReason, DateTime occurredAt
+});
+
+
+
+
+}
+/// @nodoc
+class __$TimelineEventCopyWithImpl<$Res>
+    implements _$TimelineEventCopyWith<$Res> {
+  __$TimelineEventCopyWithImpl(this._self, this._then);
+
+  final _TimelineEvent _self;
+  final $Res Function(_TimelineEvent) _then;
+
+/// Create a copy of TimelineEvent
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? appointmentId = null,Object? appointmentNumber = freezed,Object? eventType = null,Object? actorAccountId = freezed,Object? actorRole = freezed,Object? relatedAppointmentId = freezed,Object? childKind = freezed,Object? cancelReason = freezed,Object? occurredAt = null,}) {
+  return _then(_TimelineEvent(
+appointmentId: null == appointmentId ? _self.appointmentId : appointmentId // ignore: cast_nullable_to_non_nullable
+as String,appointmentNumber: freezed == appointmentNumber ? _self.appointmentNumber : appointmentNumber // ignore: cast_nullable_to_non_nullable
+as String?,eventType: null == eventType ? _self.eventType : eventType // ignore: cast_nullable_to_non_nullable
+as AppointmentEventType,actorAccountId: freezed == actorAccountId ? _self.actorAccountId : actorAccountId // ignore: cast_nullable_to_non_nullable
+as String?,actorRole: freezed == actorRole ? _self.actorRole : actorRole // ignore: cast_nullable_to_non_nullable
+as AccountRole?,relatedAppointmentId: freezed == relatedAppointmentId ? _self.relatedAppointmentId : relatedAppointmentId // ignore: cast_nullable_to_non_nullable
+as String?,childKind: freezed == childKind ? _self.childKind : childKind // ignore: cast_nullable_to_non_nullable
+as AppointmentChildKind?,cancelReason: freezed == cancelReason ? _self.cancelReason : cancelReason // ignore: cast_nullable_to_non_nullable
+as AppointmentCancelReason?,occurredAt: null == occurredAt ? _self.occurredAt : occurredAt // ignore: cast_nullable_to_non_nullable
+as DateTime,
+  ));
+}
+
+
+}
+
+
+/// @nodoc
 mixin _$Appointment {
 
  String get id; String? get appointmentNumber; String get patientId; String get bookedByAccountId; String get physiotherapistId;@LocalDateConverter() DateTime get requestedDate; String? get preferredTime; DateTime? get scheduledAt; DateTime? get scheduledEndAt; int get durationMinutes; AppointmentStatus get status; bool get isFollowUp; String? get reason; AppointmentCancelReason? get cancelReason; String? get cancelNote; String? get rescheduledFromId; String? get rootAppointmentId; String? get sourceAppointmentId; AppointmentChildKind? get childKind; DateTime? get confirmedAt; DateTime? get startedAt; DateTime? get completedAt; DateTime? get cancelledAt; DateTime? get createdAt; DateTime? get updatedAt;

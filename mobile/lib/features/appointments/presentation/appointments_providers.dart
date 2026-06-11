@@ -91,6 +91,15 @@ final appointmentByIdProvider =
       (ref, id) => ref.watch(appointmentsRepositoryProvider).get(id),
     );
 
+/// The lineage-wide event timeline of one appointment, oldest first — the
+/// History section on the detail screens. Keyed by the appointment being
+/// viewed; the backend expands to its whole lineage. Invalidate the family
+/// after any lifecycle action so the section reflects the event just recorded.
+final appointmentTimelineProvider =
+    FutureProvider.autoDispose.family<List<TimelineEvent>, String>(
+      (ref, id) => ref.watch(appointmentsRepositoryProvider).timeline(id),
+    );
+
 /// Open appointments (Requested/Confirmed/In progress), soonest first. Sorts by
 /// [AppointmentX.day] so unscheduled requests (no [Appointment.scheduledAt])
 /// order by their requested date.

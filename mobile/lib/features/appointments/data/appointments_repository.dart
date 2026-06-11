@@ -51,6 +51,12 @@ class AppointmentsRepository {
     return _guard(() => _api.calendar(from: from, to: to));
   }
 
+  /// The lineage-wide event timeline of appointment [id], oldest first — the
+  /// source of the History section on both detail screens.
+  Future<List<TimelineEvent>> timeline(String id) async {
+    return _guard(() => _api.timeline(id));
+  }
+
   Future<Appointment> book(
     BookAppointmentRequest body, {
     required String idempotencyKey,

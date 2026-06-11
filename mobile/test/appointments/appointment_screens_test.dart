@@ -41,6 +41,11 @@ class _RecordingApptRepo extends AppointmentsRepository {
     rescheduleCalled = true;
     return Completer<Appointment>().future;
   }
+
+  // The detail screen's History section loads the lineage timeline; resolve it
+  // empty so the section settles offline.
+  @override
+  Future<List<TimelineEvent>> timeline(String id) async => const [];
 }
 
 /// Seeds the appointments list with a fixed set and no further pages, so the
@@ -244,6 +249,7 @@ void main() {
             scheduledAt: DateTime.now().add(const Duration(days: 3)),
           ),
         ),
+        repo: _RecordingApptRepo(),
       );
       await tester.pumpAndSettle();
 
@@ -263,6 +269,7 @@ void main() {
             scheduledAt: DateTime.now().subtract(const Duration(days: 3)),
           ),
         ),
+        repo: _RecordingApptRepo(),
       );
       await tester.pumpAndSettle();
 

@@ -16,6 +16,7 @@ import '../../data/models/appointment_models.dart';
 import '../appointment_format.dart';
 import '../appointments_providers.dart';
 import '../widgets/appointment_status_chip.dart';
+import '../widgets/appointment_timeline_section.dart';
 
 /// Read view of one appointment, with the patient's write actions while it is
 /// still open (Requested or Confirmed): reschedule to a new time, or cancel.
@@ -223,6 +224,8 @@ class _AppointmentDetailScreenState
                 ),
               ),
             ],
+            const SizedBox(height: HealynSpacing.s6),
+            AppointmentTimelineSection(appointmentId: _appt.id),
           ],
         ),
       ),

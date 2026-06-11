@@ -6,6 +6,68 @@ part of 'appointment_models.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
+_TimelineEvent _$TimelineEventFromJson(Map<String, dynamic> json) =>
+    _TimelineEvent(
+      appointmentId: json['appointment_id'] as String,
+      appointmentNumber: json['appointment_number'] as String?,
+      eventType: $enumDecode(_$AppointmentEventTypeEnumMap, json['event_type']),
+      actorAccountId: json['actor_account_id'] as String?,
+      actorRole: $enumDecodeNullable(_$AccountRoleEnumMap, json['actor_role']),
+      relatedAppointmentId: json['related_appointment_id'] as String?,
+      childKind: $enumDecodeNullable(
+        _$AppointmentChildKindEnumMap,
+        json['child_kind'],
+      ),
+      cancelReason: $enumDecodeNullable(
+        _$AppointmentCancelReasonEnumMap,
+        json['cancel_reason'],
+      ),
+      occurredAt: DateTime.parse(json['occurred_at'] as String),
+    );
+
+Map<String, dynamic> _$TimelineEventToJson(_TimelineEvent instance) =>
+    <String, dynamic>{
+      'appointment_id': instance.appointmentId,
+      'appointment_number': ?instance.appointmentNumber,
+      'event_type': _$AppointmentEventTypeEnumMap[instance.eventType]!,
+      'actor_account_id': ?instance.actorAccountId,
+      'actor_role': ?_$AccountRoleEnumMap[instance.actorRole],
+      'related_appointment_id': ?instance.relatedAppointmentId,
+      'child_kind': ?_$AppointmentChildKindEnumMap[instance.childKind],
+      'cancel_reason': ?_$AppointmentCancelReasonEnumMap[instance.cancelReason],
+      'occurred_at': instance.occurredAt.toIso8601String(),
+    };
+
+const _$AppointmentEventTypeEnumMap = {
+  AppointmentEventType.created: 'CREATED',
+  AppointmentEventType.scheduled: 'SCHEDULED',
+  AppointmentEventType.started: 'STARTED',
+  AppointmentEventType.completed: 'COMPLETED',
+  AppointmentEventType.cancelled: 'CANCELLED',
+  AppointmentEventType.noShow: 'NO_SHOW',
+  AppointmentEventType.rescheduled: 'RESCHEDULED',
+  AppointmentEventType.rejected: 'REJECTED',
+};
+
+const _$AccountRoleEnumMap = {
+  AccountRole.account: 'ROLE_ACCOUNT',
+  AccountRole.physio: 'ROLE_PHYSIO',
+};
+
+const _$AppointmentChildKindEnumMap = {
+  AppointmentChildKind.reschedule: 'RESCHEDULE',
+  AppointmentChildKind.followUp: 'FOLLOW_UP',
+  AppointmentChildKind.review: 'REVIEW',
+  AppointmentChildKind.reopen: 'REOPEN',
+};
+
+const _$AppointmentCancelReasonEnumMap = {
+  AppointmentCancelReason.patientCancelled: 'PATIENT_CANCELLED',
+  AppointmentCancelReason.physioCancelled: 'PHYSIO_CANCELLED',
+  AppointmentCancelReason.clinicClosed: 'CLINIC_CLOSED',
+  AppointmentCancelReason.other: 'OTHER',
+};
+
 _Appointment _$AppointmentFromJson(Map<String, dynamic> json) => _Appointment(
   id: json['id'] as String,
   appointmentNumber: json['appointment_number'] as String?,
@@ -96,20 +158,6 @@ const _$AppointmentStatusEnumMap = {
   AppointmentStatus.cancelled: 'CANCELLED',
   AppointmentStatus.noShow: 'NO_SHOW',
   AppointmentStatus.rescheduled: 'RESCHEDULED',
-};
-
-const _$AppointmentCancelReasonEnumMap = {
-  AppointmentCancelReason.patientCancelled: 'PATIENT_CANCELLED',
-  AppointmentCancelReason.physioCancelled: 'PHYSIO_CANCELLED',
-  AppointmentCancelReason.clinicClosed: 'CLINIC_CLOSED',
-  AppointmentCancelReason.other: 'OTHER',
-};
-
-const _$AppointmentChildKindEnumMap = {
-  AppointmentChildKind.reschedule: 'RESCHEDULE',
-  AppointmentChildKind.followUp: 'FOLLOW_UP',
-  AppointmentChildKind.review: 'REVIEW',
-  AppointmentChildKind.reopen: 'REOPEN',
 };
 
 _AppointmentPage _$AppointmentPageFromJson(Map<String, dynamic> json) =>

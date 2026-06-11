@@ -1,5 +1,6 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
+import '../../../shared/auth/account_role.dart';
 import '../../../shared/network/json_converters.dart';
 
 part 'appointment_models.freezed.dart';
@@ -97,6 +98,54 @@ extension AppointmentChildKindLabel on AppointmentChildKind {
     AppointmentChildKind.review => 'Review',
     AppointmentChildKind.reopen => 'Reopened',
   };
+}
+
+/// One recorded lifecycle moment of an appointment. Wire values are the backend
+/// `AppointmentEventType` names. Child-spawning actions appear twice on a
+/// timeline: [rescheduled] on the replaced appointment plus a [created] (with a
+/// `childKind`) on its replacement.
+enum AppointmentEventType {
+  @JsonValue('CREATED')
+  created,
+  @JsonValue('SCHEDULED')
+  scheduled,
+  @JsonValue('STARTED')
+  started,
+  @JsonValue('COMPLETED')
+  completed,
+  @JsonValue('CANCELLED')
+  cancelled,
+  @JsonValue('NO_SHOW')
+  noShow,
+  @JsonValue('RESCHEDULED')
+  rescheduled,
+  @JsonValue('REJECTED')
+  rejected,
+}
+
+/// One entry of `GET /appointments/{id}/timeline` — the unified, lineage-wide
+/// history (every appointment sharing the same root contributes its events).
+/// Mirrors the backend `TimelineEventView`: identifiers, enums and a timestamp
+/// only, never free text. [actorAccountId] is null for system/backfilled
+/// events; compare it with the signed-in account's id to render "You".
+/// [relatedAppointmentId]/[childKind] carry the parent-child link of a
+/// reschedule or follow-up; [cancelReason] only accompanies [AppointmentEventType.cancelled].
+@freezed
+abstract class TimelineEvent with _$TimelineEvent {
+  const factory TimelineEvent({
+    required String appointmentId,
+    String? appointmentNumber,
+    required AppointmentEventType eventType,
+    String? actorAccountId,
+    AccountRole? actorRole,
+    String? relatedAppointmentId,
+    AppointmentChildKind? childKind,
+    AppointmentCancelReason? cancelReason,
+    required DateTime occurredAt,
+  }) = _TimelineEvent;
+
+  factory TimelineEvent.fromJson(Map<String, dynamic> json) =>
+      _$TimelineEventFromJson(json);
 }
 
 /// A single appointment. Mirrors the backend `AppointmentView`.

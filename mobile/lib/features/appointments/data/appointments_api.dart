@@ -72,6 +72,18 @@ class AppointmentsApi {
     return _items(res.data!);
   }
 
+  /// The unified lineage timeline of appointment [id]: every lifecycle event
+  /// of every appointment sharing its root, oldest first. Cursorless `{items}`
+  /// (a lineage is a handful of appointments, each with a bounded event count).
+  Future<List<TimelineEvent>> timeline(String id) async {
+    final res = await _dio.get<Map<String, dynamic>>(
+      '/appointments/$id/timeline',
+    );
+    return ((res.data!['items'] as List<dynamic>?) ?? const <dynamic>[])
+        .map((e) => TimelineEvent.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
   /// Reads the cursorless `{items: [...]}` body shared by `/upcoming` and
   /// `/calendar` (the backend `AppointmentList`) into typed appointments.
   static List<Appointment> _items(Map<String, dynamic> data) =>

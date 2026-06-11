@@ -5,7 +5,9 @@ import 'package:go_router/go_router.dart';
 import '../../../appointments/data/appointments_repository.dart';
 import '../../../appointments/data/models/appointment_models.dart';
 import '../../../appointments/presentation/appointment_format.dart';
+import '../../../appointments/presentation/appointments_providers.dart';
 import '../../../appointments/presentation/widgets/appointment_status_chip.dart';
+import '../../../appointments/presentation/widgets/appointment_timeline_section.dart';
 import '../../../patients/presentation/patients_providers.dart';
 import '../../../shared/design/colors.dart';
 import '../../../shared/design/spacing.dart';
@@ -153,7 +155,9 @@ class _PhysioAppointmentDetailScreenState
         ..invalidate(physioScheduleProvider)
         // A confirm/reject moves the appointment out of REQUESTED, so refresh
         // the incoming-requests queue (Today banner + requests screen).
-        ..invalidate(physioRequestsProvider);
+        ..invalidate(physioRequestsProvider)
+        // Every transition appends a timeline event; refresh the History section.
+        ..invalidate(appointmentTimelineProvider);
       if (!mounted) return;
       setState(() => _appt = updated);
       messenger.showSnackBar(SnackBar(content: Text(_successMessage(action))));
@@ -266,7 +270,10 @@ class _PhysioAppointmentDetailScreenState
       final updated = await call();
       ref
         ..invalidate(physioScheduleProvider)
-        ..invalidate(physioRequestsProvider);
+        ..invalidate(physioRequestsProvider)
+        // Scheduling actions append timeline events — a follow-up even appends
+        // to the *current* appointment's lineage — so refresh the History section.
+        ..invalidate(appointmentTimelineProvider);
       if (!mounted) return;
       setState(() {
         if (replaceAppt) _appt = updated;
@@ -472,6 +479,8 @@ class _PhysioAppointmentDetailScreenState
               const SizedBox(height: HealynSpacing.s3),
               _DetailCard(rows: cancellation),
             ],
+            const SizedBox(height: HealynSpacing.s6),
+            AppointmentTimelineSection(appointmentId: _appt.id),
           ],
         ),
       ),
