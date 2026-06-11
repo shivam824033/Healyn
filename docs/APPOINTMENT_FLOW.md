@@ -134,6 +134,18 @@ setting its time are the same physiotherapist action (`/schedule`); the plain
 
 `COMPLETED`, `CANCELLED`, `NO_SHOW`, `RESCHEDULED` are terminal. They never transition again.
 
+### 3.3 Timeline Events
+
+Every action above also appends one row to the **`appointment_events`** timeline
+([DATABASE_SCHEMA.md §3.8a](./DATABASE_SCHEMA.md)) in the same transaction: row creation →
+`CREATED` (a lineage child's `CREATED` carries its `child_kind` and source), `/schedule` →
+`SCHEDULED`, and `/transitions` / `/reschedule` → `STARTED`, `COMPLETED`, `CANCELLED`
+(reason enum only — the free-text note stays on the appointment), `NO_SHOW`, or
+`RESCHEDULED` on the replaced row (pointing at its replacement). Events are append-only and
+PHI-free (IDs, enums, timestamps). `GET /appointments/{id}/timeline` returns the merged
+events of the row's whole lineage (every appointment sharing its `root_appointment_id`),
+oldest first — the unified timeline a detail screen renders.
+
 ---
 
 ## 4. Conflict Prevention

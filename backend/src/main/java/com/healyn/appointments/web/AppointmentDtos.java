@@ -2,7 +2,9 @@ package com.healyn.appointments.web;
 
 import com.healyn.appointments.domain.AppointmentCancelReason;
 import com.healyn.appointments.domain.AppointmentChildKind;
+import com.healyn.appointments.domain.AppointmentEventType;
 import com.healyn.appointments.domain.AppointmentStatus;
+import com.healyn.auth.domain.AccountRole;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
@@ -87,4 +89,22 @@ public final class AppointmentDtos {
     /// A bounded, non-paginated result (upcoming dashboard, month calendar). No cursor: the
     /// caller asks for a capped or range-bounded window and gets the whole window back.
     public record AppointmentList(List<AppointmentView> items) {}
+
+    /// One entry on a lineage's unified timeline. relatedAppointmentId / childKind carry the
+    /// parent-child link of a reschedule or follow-up; cancelReason only on CANCELLED. The
+    /// client compares actorAccountId with its own to render "you" vs the other party.
+    public record TimelineEventView(
+            UUID appointmentId,
+            String appointmentNumber,
+            AppointmentEventType eventType,
+            UUID actorAccountId,
+            AccountRole actorRole,
+            UUID relatedAppointmentId,
+            AppointmentChildKind childKind,
+            AppointmentCancelReason cancelReason,
+            Instant occurredAt) {}
+
+    /// The whole lineage's timeline, oldest first. Unpaginated: a lineage is a handful of
+    /// appointments, each contributing a bounded number of lifecycle events.
+    public record TimelineView(List<TimelineEventView> items) {}
 }

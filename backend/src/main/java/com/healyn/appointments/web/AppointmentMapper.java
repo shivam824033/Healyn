@@ -1,10 +1,34 @@
 package com.healyn.appointments.web;
 
 import com.healyn.appointments.domain.Appointment;
+import com.healyn.appointments.domain.AppointmentEvent;
+import com.healyn.appointments.service.TimelineEntry;
+
+import java.util.List;
 
 final class AppointmentMapper {
 
     private AppointmentMapper() {}
+
+    static AppointmentDtos.TimelineView toTimelineView(List<TimelineEntry> entries) {
+        return new AppointmentDtos.TimelineView(entries.stream()
+                .map(AppointmentMapper::toTimelineEventView)
+                .toList());
+    }
+
+    private static AppointmentDtos.TimelineEventView toTimelineEventView(TimelineEntry entry) {
+        AppointmentEvent e = entry.event();
+        return new AppointmentDtos.TimelineEventView(
+                e.getAppointmentId(),
+                entry.appointmentNumber(),
+                e.getEventType(),
+                e.getActorAccountId(),
+                e.getActorRole(),
+                e.getRelatedAppointmentId(),
+                e.getChildKind(),
+                e.getCancelReason(),
+                e.getOccurredAt());
+    }
 
     static AppointmentDtos.AppointmentView toView(Appointment a) {
         return new AppointmentDtos.AppointmentView(

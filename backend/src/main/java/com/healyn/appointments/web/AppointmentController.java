@@ -98,6 +98,16 @@ public class AppointmentController {
         return AppointmentMapper.toView(service.get(actorId, role, id));
     }
 
+    /// The unified timeline of the appointment's whole lineage, oldest first: lifecycle
+    /// events of every appointment sharing this row's lineage root (APPOINTMENT_FLOW §3).
+    @GetMapping("/{id}/timeline")
+    public AppointmentDtos.TimelineView timeline(@AuthenticationPrincipal Jwt jwt,
+                                                 @PathVariable("id") UUID id) {
+        UUID actorId = UUID.fromString(jwt.getSubject());
+        AccountRole role = roleOf(jwt);
+        return AppointmentMapper.toTimelineView(service.timeline(actorId, role, id));
+    }
+
     @PostMapping
     public ResponseEntity<AppointmentDtos.AppointmentView> book(
             @AuthenticationPrincipal Jwt jwt,

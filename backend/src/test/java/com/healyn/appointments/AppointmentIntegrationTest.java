@@ -401,6 +401,132 @@ class AppointmentIntegrationTest {
     }
 
     @Test
+    void timeline_tells_the_full_lineage_story_from_any_member() throws Exception {
+        Session physio = seedPhysio();
+        Session a = registerPatient("yan");
+        UUID patientA = primaryPatientId(a);
+
+        // Book through the API so every lifecycle step lands on the timeline.
+        UUID rootId = requestOk(a, patientA, requestDate(7), "idem-y-1");
+        mvc.perform(post("/appointments/" + rootId + "/schedule")
+                        .header("Authorization", "Bearer " + physio.access)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json.writeValueAsString(Map.of(
+                                "scheduled_at", futureInstantAt(7, 9, 0),
+                                "duration_minutes", 30))))
+                .andExpect(status().isOk());
+        MvcResult res = mvc.perform(post("/appointments/" + rootId + "/reschedule")
+                        .header("Authorization", "Bearer " + physio.access)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json.writeValueAsString(Map.of(
+                                "scheduled_at", futureInstantAt(8, 10, 0),
+                                "duration_minutes", 30))))
+                .andExpect(status().isCreated())
+                .andReturn();
+        UUID childId = UUID.fromString(
+                json.readTree(res.getResponse().getContentAsByteArray()).get("id").asText());
+        String rootNumber = appointmentNumber(physio, rootId);
+
+        // Reading the timeline from the CHILD shows the whole lineage, oldest first.
+        mvc.perform(get("/appointments/" + childId + "/timeline")
+                        .header("Authorization", "Bearer " + a.access))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items.length()").value(4))
+                .andExpect(jsonPath("$.items[0].event_type").value("CREATED"))
+                .andExpect(jsonPath("$.items[0].appointment_id").value(rootId.toString()))
+                .andExpect(jsonPath("$.items[0].appointment_number").value(rootNumber))
+                .andExpect(jsonPath("$.items[0].actor_role").value("ROLE_ACCOUNT"))
+                .andExpect(jsonPath("$.items[1].event_type").value("SCHEDULED"))
+                .andExpect(jsonPath("$.items[1].actor_role").value("ROLE_PHYSIO"))
+                .andExpect(jsonPath("$.items[2].event_type").value("RESCHEDULED"))
+                .andExpect(jsonPath("$.items[2].appointment_id").value(rootId.toString()))
+                .andExpect(jsonPath("$.items[2].related_appointment_id").value(childId.toString()))
+                .andExpect(jsonPath("$.items[3].event_type").value("CREATED"))
+                .andExpect(jsonPath("$.items[3].appointment_id").value(childId.toString()))
+                .andExpect(jsonPath("$.items[3].appointment_number").value(rootNumber + "-R1"))
+                .andExpect(jsonPath("$.items[3].child_kind").value("RESCHEDULE"))
+                .andExpect(jsonPath("$.items[3].related_appointment_id").value(rootId.toString()));
+    }
+
+    @Test
+    void timeline_records_in_place_transitions_with_their_actors() throws Exception {
+        Session physio = seedPhysio();
+        Session a = registerPatient("zed");
+        UUID patientA = primaryPatientId(a);
+
+        UUID id = requestOk(a, patientA, requestDate(7), "idem-zd-1");
+        mvc.perform(post("/appointments/" + id + "/schedule")
+                        .header("Authorization", "Bearer " + physio.access)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json.writeValueAsString(Map.of(
+                                "scheduled_at", futureInstantAt(7, 11, 0),
+                                "duration_minutes", 30))))
+                .andExpect(status().isOk());
+        mvc.perform(post("/appointments/" + id + "/transitions")
+                        .header("Authorization", "Bearer " + physio.access)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json.writeValueAsString(Map.of("to", "IN_PROGRESS"))))
+                .andExpect(status().isOk());
+        mvc.perform(post("/appointments/" + id + "/transitions")
+                        .header("Authorization", "Bearer " + physio.access)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json.writeValueAsString(Map.of("to", "COMPLETED"))))
+                .andExpect(status().isOk());
+
+        mvc.perform(get("/appointments/" + id + "/timeline")
+                        .header("Authorization", "Bearer " + a.access))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items.length()").value(4))
+                .andExpect(jsonPath("$.items[2].event_type").value("STARTED"))
+                .andExpect(jsonPath("$.items[3].event_type").value("COMPLETED"))
+                .andExpect(jsonPath("$.items[3].actor_role").value("ROLE_PHYSIO"));
+    }
+
+    @Test
+    void timeline_cancellation_carries_the_reason_enum_only() throws Exception {
+        seedPhysio();
+        Session a = registerPatient("ada");
+        UUID patientA = primaryPatientId(a);
+
+        UUID id = requestOk(a, patientA, requestDate(7), "idem-ad-1");
+        mvc.perform(post("/appointments/" + id + "/transitions")
+                        .header("Authorization", "Bearer " + a.access)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json.writeValueAsString(Map.of(
+                                "to", "CANCELLED",
+                                "cancel_reason", "PATIENT_CANCELLED",
+                                "cancel_note", "family emergency"))))
+                .andExpect(status().isOk());
+
+        MvcResult res = mvc.perform(get("/appointments/" + id + "/timeline")
+                        .header("Authorization", "Bearer " + a.access))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items.length()").value(2))
+                .andExpect(jsonPath("$.items[1].event_type").value("CANCELLED"))
+                .andExpect(jsonPath("$.items[1].cancel_reason").value("PATIENT_CANCELLED"))
+                .andReturn();
+        // PHI-free: the free-text cancel note must never appear on the timeline.
+        assertThat(res.getResponse().getContentAsString()).doesNotContain("family emergency");
+    }
+
+    @Test
+    void timeline_is_not_visible_to_an_unrelated_account() throws Exception {
+        seedPhysio();
+        Session a = registerPatient("bea");
+        Session other = registerPatient("cal");
+        UUID patientA = primaryPatientId(a);
+        UUID id = requestOk(a, patientA, requestDate(7), "idem-b-2");
+
+        mvc.perform(get("/appointments/" + id + "/timeline")
+                        .header("Authorization", "Bearer " + other.access))
+                .andExpect(status().isForbidden());
+
+        mvc.perform(get("/appointments/" + UUID.randomUUID() + "/timeline")
+                        .header("Authorization", "Bearer " + a.access))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
     void cancel_without_reason_returns_422() throws Exception {
         seedPhysio();
         Session a = registerPatient("fay");

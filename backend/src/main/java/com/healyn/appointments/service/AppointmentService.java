@@ -2,8 +2,10 @@ package com.healyn.appointments.service;
 
 import com.healyn.appointments.domain.Appointment;
 import com.healyn.appointments.domain.AppointmentChildKind;
+import com.healyn.appointments.domain.AppointmentEventType;
 import com.healyn.appointments.domain.AppointmentStatus;
 import com.healyn.appointments.policy.AppointmentAccessPolicy;
+import com.healyn.appointments.repository.AppointmentEventRepository;
 import com.healyn.appointments.repository.AppointmentRepository;
 import com.healyn.audit.domain.AuditAction;
 import com.healyn.audit.domain.AuditResource;
@@ -70,6 +72,8 @@ public class AppointmentService {
     private final NotificationPublisher notifications;
     private final AuditLogger audit;
     private final AppointmentNumberGenerator numbers;
+    private final AppointmentEventRecorder events;
+    private final AppointmentEventRepository eventRepository;
     private final Clock clock;
 
     public AppointmentService(AppointmentRepository appointments,
@@ -80,6 +84,8 @@ public class AppointmentService {
                               NotificationPublisher notifications,
                               AuditLogger audit,
                               AppointmentNumberGenerator numbers,
+                              AppointmentEventRecorder events,
+                              AppointmentEventRepository eventRepository,
                               Clock clock) {
         this.appointments = appointments;
         this.accounts = accounts;
@@ -89,6 +95,8 @@ public class AppointmentService {
         this.notifications = notifications;
         this.audit = audit;
         this.numbers = numbers;
+        this.events = events;
+        this.eventRepository = eventRepository;
         this.clock = clock;
     }
 
@@ -123,6 +131,7 @@ public class AppointmentService {
                 null);
         appt.assignNumber(numbers.generate());
         Appointment saved = appointments.save(appt);
+        events.recordCreated(saved, actorId, role, Instant.now(clock));
         idempotency.store(actorId, idempotencyKey, saved.getId());
         notifications.enqueueToAccount(NotificationKind.BOOKING_REQUESTED, saved.getPhysiotherapistId(),
                 Map.of("appointmentId", saved.getId().toString()), saved.getId());
@@ -143,9 +152,11 @@ public class AppointmentService {
                     "Only a REQUESTED appointment can be scheduled");
         }
         validateSchedule(req.scheduledAt(), req.durationMinutes());
-        appt.schedule(req.scheduledAt(), req.durationMinutes(), Instant.now(clock));
+        Instant now = Instant.now(clock);
+        appt.schedule(req.scheduledAt(), req.durationMinutes(), now);
 
         Appointment result = saveAndFlushOrConflict(appt);
+        events.recordScheduled(result, actorId, role, now);
         notifications.enqueueToPatientManagers(NotificationKind.BOOKING_CONFIRMED,
                 result.getPatientId(), payload(result), result.getId());
         audit.record(AuditAction.UPDATE, actorId, role, AuditResource.APPOINTMENT, result.getId(),
@@ -159,6 +170,7 @@ public class AppointmentService {
     public Appointment createFollowUp(UUID actorId, AccountRole role, FollowUpRequest req) {
         access.requireCreateFollowUp(role);
         validateSchedule(req.scheduledAt(), req.durationMinutes());
+        Instant now = Instant.now(clock);
         Appointment fu = Appointment.followUp(
                 UuidV7.generate(),
                 req.patientId(),
@@ -167,10 +179,11 @@ public class AppointmentService {
                 req.scheduledAt(),
                 req.durationMinutes(),
                 req.reason(),
-                Instant.now(clock));
+                now);
         assignFollowUpNumber(fu, req.sourceAppointmentId(), req.patientId());
 
         Appointment saved = saveAndFlushOrConflict(fu);
+        events.recordCreated(saved, actorId, role, now);
         notifications.enqueueToPatientManagers(NotificationKind.BOOKING_CONFIRMED,
                 saved.getPatientId(), payload(saved), saved.getId());
         audit.record(AuditAction.CREATE, actorId, role, AuditResource.APPOINTMENT, saved.getId(),
@@ -289,10 +302,23 @@ public class AppointmentService {
         }
 
         Appointment result = saveAndFlushOrConflict(appt);
+        events.recordTransition(result, eventTypeFor(req.to()), actorId, role, now);
         notifyTransition(result, role, req.to());
         audit.record(AuditAction.UPDATE, actorId, role, AuditResource.APPOINTMENT, result.getId(),
                 Map.of("status", req.to().name()));
         return result;
+    }
+
+    /// Timeline entry for an in-place transition. Callers reach this only after
+    /// {@code transition()} has narrowed the target to these four states.
+    private static AppointmentEventType eventTypeFor(AppointmentStatus to) {
+        return switch (to) {
+            case IN_PROGRESS -> AppointmentEventType.STARTED;
+            case COMPLETED -> AppointmentEventType.COMPLETED;
+            case CANCELLED -> AppointmentEventType.CANCELLED;
+            case NO_SHOW -> AppointmentEventType.NO_SHOW;
+            default -> throw new IllegalStateException("No timeline event for transition to " + to);
+        };
     }
 
     private void notifyTransition(Appointment appt, AccountRole actorRole, AppointmentStatus to) {
@@ -355,6 +381,10 @@ public class AppointmentService {
         Appointment saved = saveAndFlushOrConflict(fresh);
         old.markRescheduled();
         appointments.save(old);
+        // Both sides of the replacement, in story order: the old row was rescheduled,
+        // then its replacement came into being (same instant; insertion order ties).
+        events.recordRescheduled(old, saved, actorId, role, now);
+        events.recordCreated(saved, actorId, role, now);
 
         if (kind == NotificationKind.BOOKING_CONFIRMED) {
             notifications.enqueueToPatientManagers(kind, saved.getPatientId(), payload(saved), saved.getId());
@@ -366,6 +396,22 @@ public class AppointmentService {
         audit.record(AuditAction.UPDATE, actorId, role, AuditResource.APPOINTMENT, old.getId(),
                 Map.of("status", AppointmentStatus.RESCHEDULED.name()));
         return saved;
+    }
+
+    /// The unified timeline of the appointment's whole lineage (APPOINTMENT_FLOW §3): every
+    /// event of every live appointment sharing this row's root, oldest first, each paired with
+    /// its appointment's human-friendly number. Reading any member shows the full story.
+    @Transactional(readOnly = true)
+    public List<TimelineEntry> timeline(UUID actorId, AccountRole role, UUID appointmentId) {
+        Appointment appt = loadActive(appointmentId);
+        access.requireRead(actorId, role, appt);
+        Map<UUID, String> numbersById = appointments
+                .findByRootAppointmentIdAndDeletedAtIsNull(appt.getRootAppointmentId())
+                .stream()
+                .collect(Collectors.toMap(Appointment::getId, Appointment::getAppointmentNumber));
+        return eventRepository.findLineageTimeline(appt.getRootAppointmentId()).stream()
+                .map(e -> new TimelineEntry(e, numbersById.get(e.getAppointmentId())))
+                .toList();
     }
 
     // ---- helpers ----

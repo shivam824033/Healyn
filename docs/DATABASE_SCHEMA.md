@@ -323,7 +323,37 @@ CREATE INDEX idx_appointments_source
 
 `appointment_number` (V17) is a **business identifier** distinct from the UUID `id` (never shown to users): `PHY-YYYYMMDD-NNNN`, where the `YYYYMMDD` stem is the row's creation date in the **clinic timezone** (`healyn.clinic.timezone`) and `NNNN` is a per-day counter held in `appointment_daily_counters` and advanced with an atomic `INSERT … ON CONFLICT … RETURNING` upsert. Generation is application-side (`AppointmentNumberGenerator`) so the stem uses the configured zone and child rows can derive `-R1`/`-F1` suffixes. See [FEATURE_ROADMAP.md](./FEATURE_ROADMAP.md) "Identifiers & lifecycle note".
 
-**Lineage** (V18) links only rows that spawn a *new bookable row* — a reschedule replacement or a follow-up tied to a prior appointment. `root_appointment_id` is the origin of the chain (a root is its own root, `= id`); `source_appointment_id` is the immediate appointment a child derived from; `child_kind` is how (`RESCHEDULE`/`FOLLOW_UP`/`REVIEW`/`REOPEN`, `NULL` on a root). A child's number is its root's stem plus a per-kind suffix and 1-based ordinal (`PHY-20260610-0001-R1`, `-F2`); the count of same-kind children in the lineage (including soft-deleted) decides the ordinal, so numbers are never reused. `rescheduled_from_id` is retained for backward compatibility and equals `source_appointment_id` where `child_kind = 'RESCHEDULE'`. In-place lifecycle changes (confirm/start/complete/cancel) are **not** lineage — they belong to the future `appointment_events` timeline. See [APPOINTMENT_FLOW.md](./APPOINTMENT_FLOW.md) §6, §6a.
+**Lineage** (V18) links only rows that spawn a *new bookable row* — a reschedule replacement or a follow-up tied to a prior appointment. `root_appointment_id` is the origin of the chain (a root is its own root, `= id`); `source_appointment_id` is the immediate appointment a child derived from; `child_kind` is how (`RESCHEDULE`/`FOLLOW_UP`/`REVIEW`/`REOPEN`, `NULL` on a root). A child's number is its root's stem plus a per-kind suffix and 1-based ordinal (`PHY-20260610-0001-R1`, `-F2`); the count of same-kind children in the lineage (including soft-deleted) decides the ordinal, so numbers are never reused. `rescheduled_from_id` is retained for backward compatibility and equals `source_appointment_id` where `child_kind = 'RESCHEDULE'`. In-place lifecycle changes (confirm/start/complete/cancel) are **not** lineage — they are rows on the `appointment_events` timeline (§3.8a). See [APPOINTMENT_FLOW.md](./APPOINTMENT_FLOW.md) §6, §6a.
+
+### 3.8a `appointment_events` — append-only lifecycle timeline
+
+```sql
+-- V19. One row per lifecycle action on an appointment; never updated or deleted.
+CREATE TYPE appointment_event_type AS ENUM (
+    'CREATED', 'SCHEDULED', 'STARTED', 'COMPLETED',
+    'CANCELLED', 'NO_SHOW', 'RESCHEDULED', 'REJECTED');  -- REJECTED reserved, not emitted yet
+
+CREATE TABLE appointment_events (
+    id                      BIGSERIAL PRIMARY KEY,
+    appointment_id          UUID NOT NULL REFERENCES appointments(id) ON DELETE RESTRICT,
+    event_type              appointment_event_type NOT NULL,
+    occurred_at             TIMESTAMPTZ NOT NULL DEFAULT now(),
+    actor_account_id        UUID REFERENCES accounts(id) ON DELETE RESTRICT,  -- NULL when unknowable (backfill)
+    actor_role              account_role,
+    related_appointment_id  UUID REFERENCES appointments(id) ON DELETE RESTRICT,  -- reschedule child / creation source
+    child_kind              appointment_child_kind,
+    cancel_reason           appointment_cancel_reason
+);
+
+CREATE INDEX idx_appointment_events_appointment
+    ON appointment_events(appointment_id, occurred_at, id);
+CREATE INDEX idx_appointment_events_actor
+    ON appointment_events(actor_account_id) WHERE actor_account_id IS NOT NULL;
+CREATE INDEX idx_appointment_events_related
+    ON appointment_events(related_appointment_id) WHERE related_appointment_id IS NOT NULL;
+```
+
+The realization of the Phase-3 enabler *"all clinical writes already produce a domain event"* ([FEATURE_ROADMAP.md](./FEATURE_ROADMAP.md) §4) for the appointments module. Written by `AppointmentEventRecorder` inside the same transaction as the action it describes; the only writer, and nothing updates or deletes a row. **PHI-free by construction**: IDs, enums and timestamps only — free text (reason, cancel note) stays on `appointments`. There is no `deleted_at`: events are history, and their visibility follows the (soft-deletable) appointments row. `GET /appointments/{id}/timeline` returns the events of every live appointment sharing the row's `root_appointment_id`, oldest first — the unified lineage timeline. V19 backfills events for pre-existing appointments from their lifecycle timestamps (best-effort actors; `NO_SHOW` uses `updated_at`).
 
 ### 3.9 `treatment_notes`
 

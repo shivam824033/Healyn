@@ -31,8 +31,8 @@ class FlywayMigrationTest {
 
         // Pins the latest migration version as a tripwire — bump it with every new migration.
         MigrationInfo current = flyway.info().current();
-        assertThat(current.getVersion().getVersion()).isEqualTo("18");
-        assertThat(flyway.info().applied()).hasSizeGreaterThanOrEqualTo(18);
+        assertThat(current.getVersion().getVersion()).isEqualTo("19");
+        assertThat(flyway.info().applied()).hasSizeGreaterThanOrEqualTo(19);
 
         DataSource ds = flyway.getConfiguration().getDataSource();
         try (Connection c = ds.getConnection(); Statement st = c.createStatement()) {
@@ -122,6 +122,23 @@ class FlywayMigrationTest {
             try (ResultSet rs = st.executeQuery(
                     "select 1 from pg_indexes where indexname = 'idx_appointments_root'")) {
                 assertThat(rs.next()).as("root_appointment_id index").isTrue();
+            }
+            // V19 timeline: the event-type enum, the append-only events table and its FK indexes.
+            try (ResultSet rs = st.executeQuery(
+                    "select 1 from pg_type where typname = 'appointment_event_type'")) {
+                assertThat(rs.next()).as("appointment_event_type enum type exists").isTrue();
+            }
+            try (ResultSet rs = st.executeQuery(
+                    "select 1 from pg_tables where tablename = 'appointment_events'")) {
+                assertThat(rs.next()).as("appointment_events table exists").isTrue();
+            }
+            try (ResultSet rs = st.executeQuery(
+                    "select 1 from pg_indexes where indexname = 'idx_appointment_events_appointment'")) {
+                assertThat(rs.next()).as("appointment_events appointment index").isTrue();
+            }
+            try (ResultSet rs = st.executeQuery(
+                    "select 1 from pg_indexes where indexname = 'idx_appointment_events_related'")) {
+                assertThat(rs.next()).as("appointment_events related index").isTrue();
             }
         }
     }

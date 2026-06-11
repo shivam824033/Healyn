@@ -24,6 +24,10 @@ public interface AppointmentRepository extends JpaRepository<Appointment, UUID> 
     /// constraint is the backstop).
     long countByRootAppointmentIdAndChildKind(UUID rootAppointmentId, AppointmentChildKind childKind);
 
+    /// All live members of a lineage — used to resolve each timeline event's human-friendly
+    /// appointment number without exposing UUIDs as the only handle.
+    List<Appointment> findByRootAppointmentIdAndDeletedAtIsNull(UUID rootAppointmentId);
+
     @Query("""
             select a
             from Appointment a
