@@ -708,6 +708,47 @@ class AppointmentIntegrationTest {
     }
 
     @Test
+    void list_filters_by_is_follow_up() throws Exception {
+        Session physio = seedPhysio();
+        Session a = registerPatient("flo");
+        UUID patientA = primaryPatientId(a);
+        // One ordinary appointment + one physio-created follow-up for the same patient.
+        seedConfirmed(patientA, physio.id, accountIdOf(a), 5, 9);
+        mvc.perform(post("/appointments/follow-ups")
+                        .header("Authorization", "Bearer " + physio.access)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json.writeValueAsString(Map.of(
+                                "patient_id", patientA.toString(),
+                                "scheduled_at", futureInstantAt(9, 14, 0),
+                                "duration_minutes", 30))))
+                .andExpect(status().isCreated());
+
+        // is_follow_up=true returns only the follow-up.
+        JsonNode followUps = listItems(physio, patientA, "true");
+        assertThat(followUps.size()).isEqualTo(1);
+        assertThat(followUps.get(0).get("is_follow_up").asBoolean()).isTrue();
+
+        // is_follow_up=false returns only the ordinary appointment.
+        JsonNode ordinary = listItems(physio, patientA, "false");
+        assertThat(ordinary.size()).isEqualTo(1);
+        assertThat(ordinary.get(0).get("is_follow_up").asBoolean()).isFalse();
+
+        // No filter returns both.
+        JsonNode all = listItems(physio, patientA, null);
+        assertThat(all.size()).isEqualTo(2);
+    }
+
+    private JsonNode listItems(Session actor, UUID patientId, String isFollowUp) throws Exception {
+        var req = get("/appointments")
+                .header("Authorization", "Bearer " + actor.access)
+                .param("patient_id", patientId.toString())
+                .param("limit", "50");
+        if (isFollowUp != null) req = req.param("is_follow_up", isFollowUp);
+        MvcResult res = mvc.perform(req).andExpect(status().isOk()).andReturn();
+        return json.readTree(res.getResponse().getContentAsByteArray()).get("items");
+    }
+
+    @Test
     void upcoming_lists_confirmed_ascending_and_excludes_unscheduled_requests() throws Exception {
         Session physio = seedPhysio();
         Session a = registerPatient("tess");

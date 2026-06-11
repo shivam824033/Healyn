@@ -202,6 +202,7 @@ public class AppointmentService {
     public CursorPage<Appointment> list(UUID actorId, AccountRole role,
                                         UUID patientIdFilter,
                                         Collection<AppointmentStatus> statuses,
+                                        Boolean isFollowUp,
                                         Instant from, Instant to,
                                         String cursorToken, int limit) {
         if (limit <= 0 || limit > 50) limit = 20;
@@ -219,6 +220,9 @@ public class AppointmentService {
         Collection<UUID> patientParam = filterPatients ? patientIds : PATIENT_FILTER_SENTINEL;
         boolean filterStatuses = statusFilter != null;
         Collection<AppointmentStatus> statusParam = filterStatuses ? statusFilter : STATUS_FILTER_SENTINEL;
+        // Tri-state: null = either; the flag toggles a boolean equality (false binds harmlessly).
+        boolean filterFollowUp = isFollowUp != null;
+        boolean followUpParam = Boolean.TRUE.equals(isFollowUp);
         boolean filterFrom = from != null;
         boolean filterTo = to != null;
 
@@ -227,12 +231,12 @@ public class AppointmentService {
         if (cursorToken == null || cursorToken.isBlank()) {
             rows = appointments.listFirstPage(
                     filterPatients, patientParam, filterStatuses, statusParam,
-                    filterFrom, from, filterTo, to, lim);
+                    filterFollowUp, followUpParam, filterFrom, from, filterTo, to, lim);
         } else {
             Cursor c = Cursor.decode(cursorToken);
             rows = appointments.listAfterCursor(
                     filterPatients, patientParam, filterStatuses, statusParam,
-                    filterFrom, from, filterTo, to, c.pivot(), c.id(), lim);
+                    filterFollowUp, followUpParam, filterFrom, from, filterTo, to, c.pivot(), c.id(), lim);
         }
 
         String nextCursor = null;

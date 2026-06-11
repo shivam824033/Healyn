@@ -13,6 +13,7 @@ import 'package:healyn/features/appointments/presentation/screens/appointment_de
 import 'package:healyn/features/appointments/presentation/screens/appointments_screen.dart';
 import 'package:healyn/features/appointments/presentation/screens/book_appointment_screen.dart';
 import 'package:healyn/features/appointments/presentation/screens/reschedule_appointment_screen.dart';
+import 'package:healyn/features/appointments/presentation/widgets/appointment_status_chip.dart';
 import 'package:healyn/features/patients/data/models/patient_models.dart';
 import 'package:healyn/features/patients/presentation/patients_providers.dart';
 import 'package:healyn/features/treatment_notes/data/models/treatment_note_models.dart';
@@ -46,6 +47,28 @@ class _RecordingApptRepo extends AppointmentsRepository {
   // empty so the section settles offline.
   @override
   Future<List<TimelineEvent>> timeline(String id) async => const [];
+}
+
+/// Records the filter params passed to [list] and answers empty, so filter-chip
+/// taps can be asserted while the real [AppointmentsNotifier] drives the query.
+class _CapturingListRepo extends AppointmentsRepository {
+  _CapturingListRepo() : super(AppointmentsApi(Dio()));
+
+  final List<({String? statusCsv, bool? isFollowUp})> listCalls = [];
+
+  @override
+  Future<AppointmentPage> list({
+    String? patientId,
+    String? statusCsv,
+    bool? isFollowUp,
+    DateTime? from,
+    DateTime? to,
+    String? cursor,
+    int? limit,
+  }) async {
+    listCalls.add((statusCsv: statusCsv, isFollowUp: isFollowUp));
+    return const AppointmentPage(items: [], nextCursor: null);
+  }
 }
 
 /// Seeds the appointments list with a fixed set and no further pages, so the
@@ -159,8 +182,15 @@ void main() {
       // Section titles render as uppercased overlines.
       expect(find.text('UPCOMING'), findsOneWidget);
       expect(find.text('PAST'), findsOneWidget);
-      expect(find.text('Confirmed'), findsOneWidget);
-      expect(find.text('Completed'), findsOneWidget);
+      // Scope status to the tile chips — the filter bar also has a 'Completed' chip.
+      expect(
+        find.widgetWithText(AppointmentStatusChip, 'Confirmed'),
+        findsOneWidget,
+      );
+      expect(
+        find.widgetWithText(AppointmentStatusChip, 'Completed'),
+        findsOneWidget,
+      );
     });
 
     testWidgets('shows an empty state with a book action', (tester) async {
@@ -199,6 +229,76 @@ void main() {
       expect(loadMore, findsOneWidget);
       await tester.tap(loadMore);
       expect(notifier.loadMoreCalled, isTrue);
+    });
+  });
+
+  group('appointment filters', () {
+    testWidgets('filter chips drive the list query (status + follow-ups)', (
+      tester,
+    ) async {
+      // A tall surface so the horizontal chip bar and the list area both lay out.
+      tester.view.physicalSize = const Size(1200, 2000);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final repo = _CapturingListRepo();
+      // The real notifier runs (no appointmentsProvider override) so a chip tap
+      // flows through appointmentFilterProvider into repo.list.
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            patientsProvider.overrideWith((ref) => [_asha]),
+            appointmentsRepositoryProvider.overrideWithValue(repo),
+          ],
+          child: const MaterialApp(home: AppointmentsScreen()),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // First load: no filter.
+      expect(repo.listCalls.last.statusCsv, isNull);
+      expect(repo.listCalls.last.isFollowUp, isNull);
+
+      // Selecting a status group sends its CSV.
+      final completed = find.widgetWithText(ChoiceChip, 'Completed');
+      await tester.ensureVisible(completed);
+      await tester.tap(completed);
+      await tester.pumpAndSettle();
+      expect(repo.listCalls.last.statusCsv, 'COMPLETED');
+      expect(repo.listCalls.last.isFollowUp, isNull);
+
+      // The follow-ups toggle combines with the status group.
+      final followUps = find.widgetWithText(FilterChip, 'Follow-ups');
+      await tester.ensureVisible(followUps);
+      await tester.tap(followUps);
+      await tester.pumpAndSettle();
+      expect(repo.listCalls.last.statusCsv, 'COMPLETED');
+      expect(repo.listCalls.last.isFollowUp, isTrue);
+    });
+
+    testWidgets('a filter with no matches shows the no-match state, not '
+        'onboarding', (tester) async {
+      final repo = _CapturingListRepo();
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            patientsProvider.overrideWith((ref) => [_asha]),
+            appointmentsRepositoryProvider.overrideWithValue(repo),
+            // Start already filtered so the empty result is "no match", not first-run.
+            appointmentFilterProvider.overrideWith(
+              (ref) => const AppointmentListFilter(
+                status: AppointmentStatusFilter.rejected,
+              ),
+            ),
+          ],
+          child: const MaterialApp(home: AppointmentsScreen()),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('No appointments match this filter'), findsOneWidget);
+      expect(find.text('No appointments yet'), findsNothing);
     });
   });
 

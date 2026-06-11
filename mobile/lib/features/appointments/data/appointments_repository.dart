@@ -15,6 +15,7 @@ class AppointmentsRepository {
   Future<AppointmentPage> list({
     String? patientId,
     String? statusCsv,
+    bool? isFollowUp,
     DateTime? from,
     DateTime? to,
     String? cursor,
@@ -24,6 +25,7 @@ class AppointmentsRepository {
       () => _api.list(
         patientId: patientId,
         statusCsv: statusCsv,
+        isFollowUp: isFollowUp,
         from: from,
         to: to,
         cursor: cursor,

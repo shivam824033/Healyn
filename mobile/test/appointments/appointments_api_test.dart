@@ -57,6 +57,14 @@ void main() {
     expect(q.containsKey('to'), isFalse);
   });
 
+  test('list sends is_follow_up when set and omits it when absent', () async {
+    await AppointmentsApi(dio).list(isFollowUp: true, limit: 20);
+    expect(captured!.queryParameters['is_follow_up'], true);
+
+    await AppointmentsApi(dio).list(limit: 20);
+    expect(captured!.queryParameters.containsKey('is_follow_up'), isFalse);
+  });
+
   test('upcoming hits /appointments/upcoming with the limit', () async {
     await AppointmentsApi(dio).upcoming(limit: 30);
 

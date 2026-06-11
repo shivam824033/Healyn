@@ -7,6 +7,73 @@ import '../data/models/appointment_models.dart';
 /// appointments page in via [AppointmentsNotifier.loadMore].
 const _pageSize = 20;
 
+/// The status group a filter chip narrows the list to. Single-select: each maps
+/// to the backend `status` CSV (or none for [all]). [upcoming] groups the live
+/// states; the terminal states each stand alone.
+enum AppointmentStatusFilter {
+  all,
+  upcoming,
+  completed,
+  cancelled,
+  rejected;
+
+  String get label => switch (this) {
+    AppointmentStatusFilter.all => 'All',
+    AppointmentStatusFilter.upcoming => 'Upcoming',
+    AppointmentStatusFilter.completed => 'Completed',
+    AppointmentStatusFilter.cancelled => 'Cancelled',
+    AppointmentStatusFilter.rejected => 'Rejected',
+  };
+
+  /// The backend `status` CSV this filter sends, or null for no status filter.
+  String? get statusCsv => switch (this) {
+    AppointmentStatusFilter.all => null,
+    AppointmentStatusFilter.upcoming => 'REQUESTED,CONFIRMED,IN_PROGRESS',
+    AppointmentStatusFilter.completed => 'COMPLETED',
+    AppointmentStatusFilter.cancelled => 'CANCELLED',
+    AppointmentStatusFilter.rejected => 'REJECTED',
+  };
+}
+
+/// The current appointment-list filter: a status group plus an orthogonal
+/// follow-ups-only toggle. Drives [appointmentsProvider] — changing it reloads
+/// the first page (the cursor resets).
+class AppointmentListFilter {
+  const AppointmentListFilter({
+    this.status = AppointmentStatusFilter.all,
+    this.followUpOnly = false,
+  });
+
+  final AppointmentStatusFilter status;
+  final bool followUpOnly;
+
+  bool get isDefault =>
+      status == AppointmentStatusFilter.all && !followUpOnly;
+
+  AppointmentListFilter copyWith({
+    AppointmentStatusFilter? status,
+    bool? followUpOnly,
+  }) => AppointmentListFilter(
+    status: status ?? this.status,
+    followUpOnly: followUpOnly ?? this.followUpOnly,
+  );
+
+  @override
+  bool operator ==(Object other) =>
+      other is AppointmentListFilter &&
+      other.status == status &&
+      other.followUpOnly == followUpOnly;
+
+  @override
+  int get hashCode => Object.hash(status, followUpOnly);
+}
+
+/// The selected filter for the appointments list. Persists across navigation so
+/// returning to the tab keeps the chosen view.
+final appointmentFilterProvider = StateProvider<AppointmentListFilter>(
+  (ref) => const AppointmentListFilter(),
+);
+
 /// The accumulated appointments list plus its cursor-paging state.
 class AppointmentsState {
   const AppointmentsState({
@@ -43,9 +110,15 @@ class AppointmentsNotifier extends AutoDisposeAsyncNotifier<AppointmentsState> {
 
   @override
   Future<AppointmentsState> build() async {
+    // Re-runs whenever the filter changes, reloading the first page (cursor reset).
+    final filter = ref.watch(appointmentFilterProvider);
     final page = await ref
         .watch(appointmentsRepositoryProvider)
-        .list(limit: _pageSize);
+        .list(
+          statusCsv: filter.status.statusCsv,
+          isFollowUp: filter.followUpOnly ? true : null,
+          limit: _pageSize,
+        );
     _nextCursor = page.nextCursor;
     return AppointmentsState(items: page.items, hasMore: _nextCursor != null);
   }
@@ -62,9 +135,15 @@ class AppointmentsNotifier extends AutoDisposeAsyncNotifier<AppointmentsState> {
     }
     state = AsyncData(current.copyWith(isLoadingMore: true));
     try {
+      final filter = ref.read(appointmentFilterProvider);
       final page = await ref
           .read(appointmentsRepositoryProvider)
-          .list(cursor: _nextCursor, limit: _pageSize);
+          .list(
+            statusCsv: filter.status.statusCsv,
+            isFollowUp: filter.followUpOnly ? true : null,
+            cursor: _nextCursor,
+            limit: _pageSize,
+          );
       _nextCursor = page.nextCursor;
       state = AsyncData(
         AppointmentsState(

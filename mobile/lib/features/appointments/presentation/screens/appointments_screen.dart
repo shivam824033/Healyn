@@ -25,6 +25,7 @@ class AppointmentsScreen extends ConsumerWidget {
     final appointments = ref.watch(appointmentsProvider);
     final patients = ref.watch(patientsProvider).valueOrNull ?? const [];
     final names = {for (final p in patients) p.id: p.fullName};
+    final filter = ref.watch(appointmentFilterProvider);
 
     return Scaffold(
       appBar: HealynAppBar(
@@ -38,25 +39,34 @@ class AppointmentsScreen extends ConsumerWidget {
         ],
       ),
       body: SafeArea(
-        child: RefreshIndicator(
-          onRefresh: () async {
-            ref.invalidate(appointmentsProvider);
-            await ref.read(appointmentsProvider.future);
-          },
-          child: appointments.when(
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (_, _) => ListView(
-              padding: const EdgeInsets.all(HealynSpacing.screenEdge),
-              children: const [
-                ErrorBanner(
-                  message:
-                      'Could not load your appointments. Pull down to retry.',
-                ),
-              ],
-            ),
-            data: (state) {
-              final all = state.items;
-              if (all.isEmpty) return const _EmptyAppointments();
+        child: Column(
+          children: [
+            const _AppointmentFilterBar(),
+            Expanded(
+              child: RefreshIndicator(
+                onRefresh: () async {
+                  ref.invalidate(appointmentsProvider);
+                  await ref.read(appointmentsProvider.future);
+                },
+                child: appointments.when(
+                  loading: () =>
+                      const Center(child: CircularProgressIndicator()),
+                  error: (_, _) => ListView(
+                    padding: const EdgeInsets.all(HealynSpacing.screenEdge),
+                    children: const [
+                      ErrorBanner(
+                        message:
+                            'Could not load your appointments. Pull down to retry.',
+                      ),
+                    ],
+                  ),
+                  data: (state) {
+                    final all = state.items;
+                    if (all.isEmpty) {
+                      return filter.isDefault
+                          ? const _EmptyAppointments()
+                          : const _NoMatchingAppointments();
+                    }
               final upcoming = upcomingOf(all);
               final past = pastOf(all);
               // Auto-load the next cursor page as the list nears its bottom.
@@ -99,8 +109,11 @@ class AppointmentsScreen extends ConsumerWidget {
                   ],
                 ),
               );
-            },
-          ),
+                  },
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -170,6 +183,79 @@ class _AppointmentTile extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// The filter row above the list: a single-select status group plus an
+/// orthogonal "Follow-ups" toggle. Selecting any chip updates
+/// [appointmentFilterProvider], which reloads the list's first page.
+class _AppointmentFilterBar extends ConsumerWidget {
+  const _AppointmentFilterBar();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final filter = ref.watch(appointmentFilterProvider);
+    final notifier = ref.read(appointmentFilterProvider.notifier);
+    return SizedBox(
+      height: 52,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(
+          horizontal: HealynSpacing.screenEdge,
+          vertical: HealynSpacing.s2,
+        ),
+        children: [
+          for (final status in AppointmentStatusFilter.values) ...[
+            ChoiceChip(
+              label: Text(status.label),
+              selected: filter.status == status,
+              onSelected: (_) =>
+                  notifier.state = filter.copyWith(status: status),
+            ),
+            const SizedBox(width: HealynSpacing.s2),
+          ],
+          // Orthogonal to the status group: combines with it (AND).
+          const SizedBox(width: HealynSpacing.s2),
+          FilterChip(
+            label: const Text('Follow-ups'),
+            selected: filter.followUpOnly,
+            onSelected: (v) => notifier.state = filter.copyWith(followUpOnly: v),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Shown when a filter is active but nothing matches — distinct from the
+/// first-run [_EmptyAppointments] onboarding (which invites a first booking).
+class _NoMatchingAppointments extends StatelessWidget {
+  const _NoMatchingAppointments();
+
+  @override
+  Widget build(BuildContext context) {
+    // Inside a scrollable so pull-to-refresh still works with no matches.
+    return ListView(
+      padding: const EdgeInsets.all(HealynSpacing.s8),
+      children: [
+        const SizedBox(height: HealynSpacing.s8),
+        const Icon(Icons.event_outlined, size: 48, color: HealynColors.textMuted),
+        const SizedBox(height: HealynSpacing.s4),
+        const Text(
+          'No appointments match this filter',
+          style: HealynTypography.h3,
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: HealynSpacing.s2),
+        Text(
+          'Try a different filter above, or pull down to refresh.',
+          style: HealynTypography.body.copyWith(
+            color: HealynColors.textSecondary,
+          ),
+          textAlign: TextAlign.center,
+        ),
+      ],
     );
   }
 }

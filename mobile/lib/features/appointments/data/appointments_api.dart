@@ -19,6 +19,7 @@ class AppointmentsApi {
   Future<AppointmentPage> list({
     String? patientId,
     String? statusCsv,
+    bool? isFollowUp,
     DateTime? from,
     DateTime? to,
     String? cursor,
@@ -29,6 +30,7 @@ class AppointmentsApi {
       queryParameters: <String, dynamic>{
         'patient_id': ?patientId,
         if (statusCsv != null && statusCsv.isNotEmpty) 'status': statusCsv,
+        'is_follow_up': ?isFollowUp,
         if (from != null) 'from': from.toUtc().toIso8601String(),
         if (to != null) 'to': to.toUtc().toIso8601String(),
         if (cursor != null && cursor.isNotEmpty) 'cursor': cursor,

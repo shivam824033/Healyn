@@ -51,6 +51,7 @@ public interface AppointmentRepository extends JpaRepository<Appointment, UUID> 
             where a.deletedAt is null
               and (:filterPatients = false or a.patientId in :patientIds)
               and (:filterStatuses = false or a.status in :statuses)
+              and (:filterFollowUp = false or a.followUp = :followUp)
               and (:filterFrom = false or a.scheduledAt >= :from)
               and (:filterTo = false or a.scheduledAt < :to)
             order by a.scheduledAt desc, a.id desc
@@ -60,6 +61,8 @@ public interface AppointmentRepository extends JpaRepository<Appointment, UUID> 
             @Param("patientIds") Collection<UUID> patientIds,
             @Param("filterStatuses") boolean filterStatuses,
             @Param("statuses") Collection<AppointmentStatus> statuses,
+            @Param("filterFollowUp") boolean filterFollowUp,
+            @Param("followUp") boolean followUp,
             @Param("filterFrom") boolean filterFrom,
             @Param("from") Instant from,
             @Param("filterTo") boolean filterTo,
@@ -111,6 +114,7 @@ public interface AppointmentRepository extends JpaRepository<Appointment, UUID> 
             where a.deletedAt is null
               and (:filterPatients = false or a.patientId in :patientIds)
               and (:filterStatuses = false or a.status in :statuses)
+              and (:filterFollowUp = false or a.followUp = :followUp)
               and (:filterFrom = false or a.scheduledAt >= :from)
               and (:filterTo = false or a.scheduledAt < :to)
               and (a.scheduledAt < :pivotTime
@@ -122,6 +126,8 @@ public interface AppointmentRepository extends JpaRepository<Appointment, UUID> 
             @Param("patientIds") Collection<UUID> patientIds,
             @Param("filterStatuses") boolean filterStatuses,
             @Param("statuses") Collection<AppointmentStatus> statuses,
+            @Param("filterFollowUp") boolean filterFollowUp,
+            @Param("followUp") boolean followUp,
             @Param("filterFrom") boolean filterFrom,
             @Param("from") Instant from,
             @Param("filterTo") boolean filterTo,

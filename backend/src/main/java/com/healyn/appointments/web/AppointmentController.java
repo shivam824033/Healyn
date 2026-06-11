@@ -48,6 +48,7 @@ public class AppointmentController {
             @AuthenticationPrincipal Jwt jwt,
             @RequestParam(value = "patient_id", required = false) UUID patientId,
             @RequestParam(value = "status", required = false) String statusCsv,
+            @RequestParam(value = "is_follow_up", required = false) Boolean isFollowUp,
             @RequestParam(value = "from", required = false)
                 @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant from,
             @RequestParam(value = "to", required = false)
@@ -59,7 +60,8 @@ public class AppointmentController {
         AccountRole role = roleOf(jwt);
         Set<AppointmentStatus> statuses = parseStatuses(statusCsv);
 
-        CursorPage<Appointment> page = service.list(actorId, role, patientId, statuses, from, to, cursor, limit);
+        CursorPage<Appointment> page =
+                service.list(actorId, role, patientId, statuses, isFollowUp, from, to, cursor, limit);
         List<AppointmentDtos.AppointmentView> views =
                 page.items().stream().map(AppointmentMapper::toView).toList();
         return new AppointmentDtos.AppointmentPage(views, page.nextCursor());
