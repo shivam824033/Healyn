@@ -270,6 +270,15 @@ public class Appointment extends BaseEntity {
         this.status = AppointmentStatus.NO_SHOW;
     }
 
+    /// The physiotherapist declines a request before it is ever scheduled (REQUESTED →
+    /// REJECTED). Not a cancellation, so {@code cancelReason}/{@code cancelledAt} stay null;
+    /// the optional free-text "why" reuses the {@code cancel_note} column (the row's terminal
+    /// note). When the rejection happened is read off the REJECTED timeline event, not the row.
+    public void reject(String note) {
+        this.status = AppointmentStatus.REJECTED;
+        this.cancelNote = note;
+    }
+
     public void markRescheduled() {
         this.status = AppointmentStatus.RESCHEDULED;
     }

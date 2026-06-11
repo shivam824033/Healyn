@@ -90,8 +90,8 @@ setting its time are the same physiotherapist action (`/schedule`); the plain
                           │       └─────────┬─────────┘
                           │                 │
               patient OR  │   physio rejects│        physio confirms
-              physio      │                 │
-              cancels     │   ▼ CANCELLED   ▼
+              physio      │   → REJECTED    │
+              cancels     │   → CANCELLED   ▼
                           │                 ┌───────────────────┐
                           │                 │     CONFIRMED     │
                           │                 └─────────┬─────────┘
@@ -120,6 +120,7 @@ setting its time are the same physiotherapist action (`/schedule`); the plain
 | (none) | `CONFIRMED` (follow-up) | Physio | `POST /appointments/follow-ups` | INSERT row, `is_follow_up = true`, time set by physio, `confirmed_at`; emit `BOOKING_CONFIRMED` |
 | `REQUESTED` | `CONFIRMED` | Physio | `POST /appointments/{id}/schedule` | Set `scheduled_at`, `scheduled_end_at`, `duration_minutes`, `confirmed_at`; emit `BOOKING_CONFIRMED` |
 | `REQUESTED` | `CANCELLED` | Patient-side or Physio | `/transitions` | Set `cancelled_at`, `cancel_reason`; emit `BOOKING_CANCELLED` |
+| `REQUESTED` | `REJECTED` | Physio | `/transitions` | Physio declines the request; optional free-text note in `cancel_note` (no `cancel_reason`); emit `BOOKING_CANCELLED` to the patient |
 | `REQUESTED` | `RESCHEDULED` | Patient-side or Physio | `/reschedule` | New `REQUESTED` row (no time) with `rescheduled_from_id`; emit `BOOKING_REQUESTED` |
 | `CONFIRMED` | `IN_PROGRESS` | Physio | `/transitions` | Set `started_at` |
 | `CONFIRMED` | `CANCELLED` | Patient-side or Physio | `/transitions` | Per cancellation policy (Phase 1: no fee) |
@@ -132,7 +133,7 @@ setting its time are the same physiotherapist action (`/schedule`); the plain
 
 ### 3.2 Terminal States
 
-`COMPLETED`, `CANCELLED`, `NO_SHOW`, `RESCHEDULED` are terminal. They never transition again.
+`COMPLETED`, `CANCELLED`, `NO_SHOW`, `RESCHEDULED`, `REJECTED` are terminal. They never transition again. `REJECTED` is the physiotherapist declining a request that was never scheduled — a first-class state distinct from a cancellation (which can also end a `CONFIRMED` appointment).
 
 ### 3.3 Timeline Events
 
@@ -140,8 +141,9 @@ Every action above also appends one row to the **`appointment_events`** timeline
 ([DATABASE_SCHEMA.md §3.8a](./DATABASE_SCHEMA.md)) in the same transaction: row creation →
 `CREATED` (a lineage child's `CREATED` carries its `child_kind` and source), `/schedule` →
 `SCHEDULED`, and `/transitions` / `/reschedule` → `STARTED`, `COMPLETED`, `CANCELLED`
-(reason enum only — the free-text note stays on the appointment), `NO_SHOW`, or
-`RESCHEDULED` on the replaced row (pointing at its replacement). Events are append-only and
+(reason enum only — the free-text note stays on the appointment), `NO_SHOW`, `REJECTED`
+(physio declined a request), or `RESCHEDULED` on the replaced row (pointing at its
+replacement). Events are append-only and
 PHI-free (IDs, enums, timestamps). `GET /appointments/{id}/timeline` returns the merged
 events of the row's whole lineage (every appointment sharing its `root_appointment_id`),
 oldest first — the unified timeline a detail screen renders.

@@ -43,5 +43,6 @@ class AppointmentStatusChip extends StatelessWidget {
     AppointmentStatus.cancelled => HealynColors.statusDanger,
     AppointmentStatus.noShow => HealynColors.statusDanger,
     AppointmentStatus.rescheduled => HealynColors.textMuted,
+    AppointmentStatus.rejected => HealynColors.statusDanger,
   };
 }

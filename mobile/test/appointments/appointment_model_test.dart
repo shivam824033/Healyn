@@ -72,6 +72,19 @@ void main() {
     expect(appt.status.isCancellableByPatient, isFalse);
   });
 
+  test('parses a rejected request — a terminal, inactive status', () {
+    final appt = Appointment.fromJson(
+      appointmentJson(status: 'REJECTED', scheduled: false),
+    );
+
+    expect(appt.status, AppointmentStatus.rejected);
+    expect(appt.status.label, 'Rejected');
+    // Rejected is terminal: not active, and the patient can do nothing with it.
+    expect(appt.status.isActive, isFalse);
+    expect(appt.status.isCancellableByPatient, isFalse);
+    expect(appt.status.isReschedulableByPatient, isFalse);
+  });
+
   test('is_follow_up defaults to false when absent, true when set', () {
     final without =
         Appointment.fromJson(appointmentJson()..remove('is_follow_up'));

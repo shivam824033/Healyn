@@ -297,6 +297,8 @@ public class AppointmentService {
                 appt.cancel(now, req.cancelReason(), req.cancelNote());
             }
             case NO_SHOW -> appt.markNoShow();
+            // Declining a request: physio-only (enforced above), optional free-text note.
+            case REJECTED -> appt.reject(req.cancelNote());
             default -> throw new ConflictException(ErrorCode.APPOINTMENT_INVALID_TRANSITION,
                     "Cannot transition to " + req.to() + " via this endpoint");
         }
@@ -317,6 +319,7 @@ public class AppointmentService {
             case COMPLETED -> AppointmentEventType.COMPLETED;
             case CANCELLED -> AppointmentEventType.CANCELLED;
             case NO_SHOW -> AppointmentEventType.NO_SHOW;
+            case REJECTED -> AppointmentEventType.REJECTED;
             default -> throw new IllegalStateException("No timeline event for transition to " + to);
         };
     }
@@ -334,6 +337,10 @@ public class AppointmentService {
                             NotificationKind.BOOKING_CANCELLED, appt.getPhysiotherapistId(), payload, appt.getId());
                 }
             }
+            // A rejection is always physio→patient; reuse the cancelled kind (no separate
+            // notification_kind value — the patient's booking did not happen either way).
+            case REJECTED -> notifications.enqueueToPatientManagers(
+                    NotificationKind.BOOKING_CANCELLED, appt.getPatientId(), payload, appt.getId());
             default -> { /* IN_PROGRESS / COMPLETED / NO_SHOW have no push in Phase 1 */ }
         }
     }

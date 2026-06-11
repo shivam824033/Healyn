@@ -280,10 +280,10 @@ GET /api/v1/appointments?cursor=eyJpZCI6Ii4uLiJ9&limit=20
 | `GET`  | `/appointments/calendar?from=&to=` | All scheduled appointments in an instant window, ascending (month grid). `from`/`to` are ISO date-times; range ≤ 62 days. Role-scoped. Returns `{items}` |
 | `POST` | `/appointments` | Request an appointment for a date — patient-side, no time (requires `Idempotency-Key` header) |
 | `GET`  | `/appointments/{id}` | Get |
-| `GET`  | `/appointments/{id}/timeline` | Unified lineage timeline: lifecycle events (`CREATED`/`SCHEDULED`/`STARTED`/`COMPLETED`/`CANCELLED`/`NO_SHOW`/`RESCHEDULED`) of every appointment sharing this row's lineage root, oldest first, each tagged with its Appointment Number. Returns `{items}` (no cursor) |
+| `GET`  | `/appointments/{id}/timeline` | Unified lineage timeline: lifecycle events (`CREATED`/`SCHEDULED`/`STARTED`/`COMPLETED`/`CANCELLED`/`NO_SHOW`/`RESCHEDULED`/`REJECTED`) of every appointment sharing this row's lineage root, oldest first, each tagged with its Appointment Number. Returns `{items}` (no cursor) |
 | `POST` | `/appointments/{id}/schedule` | **Physio only** — assign the final time to a `REQUESTED` request → `CONFIRMED`. Body: `{scheduledAt, durationMinutes}` |
 | `POST` | `/appointments/follow-ups` | **Physio only** — create a follow-up at a time the physio sets (`is_follow_up = true`). Body: `{patientId, scheduledAt, durationMinutes, reason?}` |
-| `POST` | `/appointments/{id}/transitions` | Move status — body: `{to, cancelReason?, cancelNote?}`. Does **not** accept `REQUESTED → CONFIRMED` (use `/schedule`). See [APPOINTMENT_FLOW.md](./APPOINTMENT_FLOW.md) |
+| `POST` | `/appointments/{id}/transitions` | Move status — body: `{to, cancelReason?, cancelNote?}`. Does **not** accept `REQUESTED → CONFIRMED` (use `/schedule`). `REQUESTED → REJECTED` is **physio only** (declines a request; optional `cancelNote`). See [APPOINTMENT_FLOW.md](./APPOINTMENT_FLOW.md) |
 | `POST` | `/appointments/{id}/reschedule` | Reschedule, old → `RESCHEDULED`. Physio body: `{scheduledAt, durationMinutes, reason?}` → new `CONFIRMED`. Patient body: `{requestedDate, preferredTime?, reason?}` → new unscheduled `REQUESTED` |
 
 `POST /appointments` body (patient request — date is mandatory, time is the physiotherapist's to set):

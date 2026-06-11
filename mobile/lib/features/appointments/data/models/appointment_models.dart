@@ -24,6 +24,8 @@ enum AppointmentStatus {
   noShow,
   @JsonValue('RESCHEDULED')
   rescheduled,
+  @JsonValue('REJECTED')
+  rejected,
 }
 
 extension AppointmentStatusX on AppointmentStatus {
@@ -35,6 +37,7 @@ extension AppointmentStatusX on AppointmentStatus {
     AppointmentStatus.cancelled => 'Cancelled',
     AppointmentStatus.noShow => 'No-show',
     AppointmentStatus.rescheduled => 'Rescheduled',
+    AppointmentStatus.rejected => 'Rejected',
   };
 
   /// Still open on the calendar — shown under "Upcoming".

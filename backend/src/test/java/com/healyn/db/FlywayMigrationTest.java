@@ -31,8 +31,8 @@ class FlywayMigrationTest {
 
         // Pins the latest migration version as a tripwire — bump it with every new migration.
         MigrationInfo current = flyway.info().current();
-        assertThat(current.getVersion().getVersion()).isEqualTo("19");
-        assertThat(flyway.info().applied()).hasSizeGreaterThanOrEqualTo(19);
+        assertThat(current.getVersion().getVersion()).isEqualTo("20");
+        assertThat(flyway.info().applied()).hasSizeGreaterThanOrEqualTo(20);
 
         DataSource ds = flyway.getConfiguration().getDataSource();
         try (Connection c = ds.getConnection(); Statement st = c.createStatement()) {
@@ -139,6 +139,12 @@ class FlywayMigrationTest {
             try (ResultSet rs = st.executeQuery(
                     "select 1 from pg_indexes where indexname = 'idx_appointment_events_related'")) {
                 assertThat(rs.next()).as("appointment_events related index").isTrue();
+            }
+            // V20: the REJECTED appointment_status value (first-class request rejection).
+            try (ResultSet rs = st.executeQuery(
+                    "select 1 from pg_enum e join pg_type t on t.oid = e.enumtypid "
+                            + "where t.typname = 'appointment_status' and e.enumlabel = 'REJECTED'")) {
+                assertThat(rs.next()).as("appointment_status REJECTED value exists").isTrue();
             }
         }
     }

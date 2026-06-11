@@ -36,7 +36,8 @@ CREATE TYPE patient_relationship AS ENUM (
 
 CREATE TYPE appointment_status AS ENUM (
     'REQUESTED', 'CONFIRMED', 'IN_PROGRESS',
-    'COMPLETED', 'CANCELLED', 'NO_SHOW', 'RESCHEDULED'
+    'COMPLETED', 'CANCELLED', 'NO_SHOW', 'RESCHEDULED',
+    'REJECTED'  -- V20: physio declines a request (REQUESTED → REJECTED)
 );
 CREATE TYPE appointment_cancel_reason AS ENUM (
     'PATIENT_CANCELLED', 'PHYSIO_CANCELLED', 'CLINIC_CLOSED', 'OTHER'
@@ -331,7 +332,7 @@ CREATE INDEX idx_appointments_source
 -- V19. One row per lifecycle action on an appointment; never updated or deleted.
 CREATE TYPE appointment_event_type AS ENUM (
     'CREATED', 'SCHEDULED', 'STARTED', 'COMPLETED',
-    'CANCELLED', 'NO_SHOW', 'RESCHEDULED', 'REJECTED');  -- REJECTED reserved, not emitted yet
+    'CANCELLED', 'NO_SHOW', 'RESCHEDULED', 'REJECTED');  -- REJECTED emitted since V20
 
 CREATE TABLE appointment_events (
     id                      BIGSERIAL PRIMARY KEY,

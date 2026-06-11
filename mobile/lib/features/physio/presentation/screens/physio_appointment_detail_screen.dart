@@ -55,7 +55,7 @@ class _PhysioAppointmentDetailScreenState
 
   Future<void> _onAction(PhysioAppointmentAction action) async {
     String? note;
-    if (action.isCancellation) {
+    if (action.collectsNote) {
       note = await _promptNote(action);
       if (note == null || !mounted) return; // dismissed
     } else {
@@ -106,9 +106,11 @@ class _PhysioAppointmentDetailScreenState
               maxLines: 3,
               maxLength: 2000,
               textCapitalization: TextCapitalization.sentences,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 labelText: 'Reason (shared with the patient)',
-                hintText: 'Why is this appointment being cancelled?',
+                hintText: action.isRejection
+                    ? 'Why is this request being rejected?'
+                    : 'Why is this appointment being cancelled?',
               ),
             ),
           ],
@@ -484,7 +486,11 @@ class _PhysioAppointmentDetailScreenState
             ],
             if (cancellation.isNotEmpty) ...[
               const SizedBox(height: HealynSpacing.s6),
-              const _SectionTitle('Cancellation'),
+              _SectionTitle(
+                _appt.status == AppointmentStatus.rejected
+                    ? 'Rejection'
+                    : 'Cancellation',
+              ),
               const SizedBox(height: HealynSpacing.s3),
               _DetailCard(rows: cancellation),
             ],
@@ -544,7 +550,7 @@ class _ActionButton extends StatelessWidget {
         style: ElevatedButton.styleFrom(minimumSize: minSize),
       );
     }
-    final color = action.isCancellation
+    final color = action.collectsNote
         ? HealynColors.statusDanger
         : HealynColors.textPrimary;
     return OutlinedButton.icon(

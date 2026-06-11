@@ -158,6 +158,7 @@ const _$AppointmentStatusEnumMap = {
   AppointmentStatus.cancelled: 'CANCELLED',
   AppointmentStatus.noShow: 'NO_SHOW',
   AppointmentStatus.rescheduled: 'RESCHEDULED',
+  AppointmentStatus.rejected: 'REJECTED',
 };
 
 _AppointmentPage _$AppointmentPageFromJson(Map<String, dynamic> json) =>

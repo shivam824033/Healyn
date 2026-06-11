@@ -179,8 +179,8 @@ void main() {
       expect(find.text('Cancel appointment'), findsNothing);
     });
 
-    testWidgets('rejecting a request needs a note and fires a CANCELLED '
-        'transition', (tester) async {
+    testWidgets('rejecting a request needs a note and fires a REJECTED '
+        'transition with no cancel reason', (tester) async {
       final repo = await _pump(tester, _appt(AppointmentStatus.requested));
 
       final reject = find.widgetWithText(OutlinedButton, 'Reject');
@@ -199,10 +199,11 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(repo.calls, hasLength(1));
-      expect(repo.calls.single.to, AppointmentStatus.cancelled);
-      expect(repo.calls.single.reason, AppointmentCancelReason.physioCancelled);
+      // A rejection is its own terminal state, not a cancellation: no reason.
+      expect(repo.calls.single.to, AppointmentStatus.rejected);
+      expect(repo.calls.single.reason, isNull);
       expect(repo.calls.single.note, 'No availability that week');
-      // Cancelled is terminal: the scheduling action is gone.
+      // Rejected is terminal: the scheduling action is gone.
       expect(find.text('Set time & confirm'), findsNothing);
 
       // Flush the success snackbar's auto-dismiss timer before teardown.

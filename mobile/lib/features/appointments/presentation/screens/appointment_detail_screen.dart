@@ -194,7 +194,11 @@ class _AppointmentDetailScreenState
             ],
             if (cancellation.isNotEmpty) ...[
               const SizedBox(height: HealynSpacing.s6),
-              const _SectionTitle('Cancellation'),
+              _SectionTitle(
+                _appt.status == AppointmentStatus.rejected
+                    ? 'Rejection'
+                    : 'Cancellation',
+              ),
               const SizedBox(height: HealynSpacing.s3),
               _DetailCard(rows: cancellation),
             ],

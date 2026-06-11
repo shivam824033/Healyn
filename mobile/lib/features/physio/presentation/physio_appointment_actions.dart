@@ -1,11 +1,13 @@
 import '../../appointments/data/models/appointment_models.dart';
 
 /// A transition a physiotherapist can drive from the appointment detail screen.
-/// Each action maps to a target [AppointmentStatus]; the [isCancellation]
-/// actions (Reject / Cancel) collect a mandatory note before they fire, per the
-/// cancellation policy in APPOINTMENT_FLOW §7. Confirming a request is *not* a
-/// plain transition (request-first: the physiotherapist assigns a time via
-/// `POST /{id}/schedule`), so it lives in the assign-time sheet, not here.
+/// Each action maps to a target [AppointmentStatus]; the [collectsNote] actions
+/// (Reject / Cancel) collect a mandatory note before they fire, per the
+/// cancellation policy in APPOINTMENT_FLOW §7. Rejecting declines a request
+/// (REQUESTED → REJECTED) and is *not* a cancellation, so it carries no
+/// [AppointmentCancelReason]. Confirming a request is *not* a plain transition
+/// (request-first: the physiotherapist assigns a time via `POST /{id}/schedule`),
+/// so it lives in the assign-time sheet, not here.
 enum PhysioAppointmentAction {
   reject,
   start,
@@ -23,18 +25,23 @@ enum PhysioAppointmentAction {
 
   /// The status this action transitions the appointment to.
   AppointmentStatus get target => switch (this) {
-    PhysioAppointmentAction.reject ||
+    PhysioAppointmentAction.reject => AppointmentStatus.rejected,
     PhysioAppointmentAction.cancel => AppointmentStatus.cancelled,
     PhysioAppointmentAction.start => AppointmentStatus.inProgress,
     PhysioAppointmentAction.complete => AppointmentStatus.completed,
     PhysioAppointmentAction.noShow => AppointmentStatus.noShow,
   };
 
-  /// Whether this action cancels the appointment, which requires a note (the
-  /// physio must always say why) and a cancel reason.
-  bool get isCancellation =>
-      this == PhysioAppointmentAction.reject ||
-      this == PhysioAppointmentAction.cancel;
+  /// Whether this action cancels the appointment, which sends a cancel reason.
+  /// A rejection is *not* a cancellation (no reason) — see [isRejection].
+  bool get isCancellation => this == PhysioAppointmentAction.cancel;
+
+  /// Whether this action declines a request (REQUESTED → REJECTED).
+  bool get isRejection => this == PhysioAppointmentAction.reject;
+
+  /// Whether this action collects a mandatory note before it fires (reject /
+  /// cancel) and is styled as destructive.
+  bool get collectsNote => isRejection || isCancellation;
 
   /// Start / Mark-completed are the forward, non-destructive actions shown as
   /// the filled primary button; the rest are outlined.
@@ -64,7 +71,8 @@ List<PhysioAppointmentAction> physioActionsFor(AppointmentStatus status) =>
       AppointmentStatus.completed ||
       AppointmentStatus.cancelled ||
       AppointmentStatus.noShow ||
-      AppointmentStatus.rescheduled => const [],
+      AppointmentStatus.rescheduled ||
+      AppointmentStatus.rejected => const [],
     };
 
 /// The cancel reason the physio app sends for a cancellation from [from]. An

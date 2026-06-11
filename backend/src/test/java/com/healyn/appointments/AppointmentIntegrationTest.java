@@ -543,6 +543,77 @@ class AppointmentIntegrationTest {
     }
 
     @Test
+    void physio_rejects_a_request_to_a_terminal_rejected_state() throws Exception {
+        Session physio = seedPhysio();
+        Session a = registerPatient("rio");
+        UUID patientA = primaryPatientId(a);
+        UUID reqId = seedRequest(patientA, physio.id, accountIdOf(a), 7);
+
+        mvc.perform(post("/appointments/" + reqId + "/transitions")
+                        .header("Authorization", "Bearer " + physio.access)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json.writeValueAsString(Map.of(
+                                "to", "REJECTED",
+                                "cancel_note", "Not accepting new patients this month"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("REJECTED"))
+                // A rejection is not a cancellation: no cancel_reason is recorded.
+                .andExpect(jsonPath("$.cancel_reason").doesNotExist());
+
+        // Terminal: a rejected request cannot be moved on.
+        mvc.perform(post("/appointments/" + reqId + "/transitions")
+                        .header("Authorization", "Bearer " + physio.access)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json.writeValueAsString(Map.of("to", "IN_PROGRESS"))))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.error.code").value("appointments.invalid_transition"));
+    }
+
+    @Test
+    void patient_cannot_reject_a_request() throws Exception {
+        Session physio = seedPhysio();
+        Session a = registerPatient("sky");
+        UUID patientA = primaryPatientId(a);
+        UUID reqId = seedRequest(patientA, physio.id, accountIdOf(a), 7);
+
+        mvc.perform(post("/appointments/" + reqId + "/transitions")
+                        .header("Authorization", "Bearer " + a.access)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json.writeValueAsString(Map.of("to", "REJECTED"))))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void timeline_records_a_rejection_without_leaking_the_note() throws Exception {
+        Session physio = seedPhysio();
+        Session a = registerPatient("teo");
+        UUID patientA = primaryPatientId(a);
+        // Book through the API so the request lands a CREATED event before the rejection.
+        UUID reqId = requestOk(a, patientA, requestDate(7), "idem-teo-1");
+
+        mvc.perform(post("/appointments/" + reqId + "/transitions")
+                        .header("Authorization", "Bearer " + physio.access)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json.writeValueAsString(Map.of(
+                                "to", "REJECTED",
+                                "cancel_note", "schedule is full"))))
+                .andExpect(status().isOk());
+
+        MvcResult res = mvc.perform(get("/appointments/" + reqId + "/timeline")
+                        .header("Authorization", "Bearer " + a.access))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items.length()").value(2))
+                .andExpect(jsonPath("$.items[0].event_type").value("CREATED"))
+                .andExpect(jsonPath("$.items[1].event_type").value("REJECTED"))
+                .andExpect(jsonPath("$.items[1].actor_role").value("ROLE_PHYSIO"))
+                // A rejection carries no cancel_reason on the timeline.
+                .andExpect(jsonPath("$.items[1].cancel_reason").doesNotExist())
+                .andReturn();
+        // PHI-free: the free-text rejection note must never appear on the timeline.
+        assertThat(res.getResponse().getContentAsString()).doesNotContain("schedule is full");
+    }
+
+    @Test
     void idempotency_replay_returns_same_appointment_id() throws Exception {
         seedPhysio();
         Session a = registerPatient("gus");
