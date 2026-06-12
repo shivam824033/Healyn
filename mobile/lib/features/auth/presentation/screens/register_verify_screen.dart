@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:healyn/features/shared/design/colors.dart';
 
 import '../../../shared/design/spacing.dart';
 import '../../../shared/design/typography.dart';
@@ -8,6 +9,7 @@ import '../../../shared/network/api_exception.dart';
 import '../../../shared/widgets/app_bar.dart';
 import '../../../shared/widgets/app_text_field.dart';
 import '../../../shared/widgets/error_banner.dart';
+import '../../../shared/widgets/field_label.dart';
 import '../../../shared/widgets/primary_button.dart';
 import '../../data/auth_repository.dart';
 import '../../data/models/auth_models.dart';
@@ -111,6 +113,7 @@ class _RegisterVerifyScreenState extends ConsumerState<RegisterVerifyScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: HealynColors.surfaceAlt,
       appBar: const HealynAppBar(title: 'Verify & finish'),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -186,22 +189,25 @@ class _RegisterVerifyScreenState extends ConsumerState<RegisterVerifyScreen> {
                   suffixIcon: const Icon(Icons.calendar_today_outlined),
                 ),
                 const SizedBox(height: HealynSpacing.s4),
-                DropdownButtonFormField<PatientSex>(
-                  initialValue: _sex,
-                  decoration: const InputDecoration(
-                    labelText: 'Sex (optional)',
-                  ),
-                  items: PatientSex.values
-                      .map(
-                        (s) => DropdownMenuItem(
-                          value: s,
-                          child: Text(s.label),
-                        ),
-                      )
-                      .toList(),
-                  onChanged: _submitting
-                      ? null
-                      : (v) => setState(() => _sex = v),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const FieldLabel('Sex (optional)'),
+                    DropdownButtonFormField<PatientSex>(
+                      initialValue: _sex,
+                      items: PatientSex.values
+                          .map(
+                            (s) => DropdownMenuItem(
+                              value: s,
+                              child: Text(s.label),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: _submitting
+                          ? null
+                          : (v) => setState(() => _sex = v),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: HealynSpacing.s7),
                 PrimaryButton(

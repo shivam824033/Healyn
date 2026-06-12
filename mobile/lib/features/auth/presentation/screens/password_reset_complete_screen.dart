@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:healyn/features/shared/design/colors.dart';
 
 import '../../../shared/design/spacing.dart';
 import '../../../shared/design/typography.dart';
@@ -88,6 +89,7 @@ class _PasswordResetCompleteScreenState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: HealynColors.surfaceAlt,
       appBar: const HealynAppBar(title: 'Reset password'),
       body: SafeArea(
         child: SingleChildScrollView(

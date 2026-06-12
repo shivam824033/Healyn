@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:healyn/features/shared/design/colors.dart';
 
 import '../../../shared/design/spacing.dart';
 import '../../../shared/design/typography.dart';
@@ -59,6 +60,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: HealynColors.surfaceAlt,
       appBar: const HealynAppBar(title: 'Sign in'),
       body: SafeArea(
         child: SingleChildScrollView(
