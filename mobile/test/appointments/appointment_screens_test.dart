@@ -340,7 +340,10 @@ void main() {
     });
   });
 
-  group('header search', () {
+  // Header search lives on the physiotherapist's Appointments screen, not the
+  // patient timeline; its widget tests are in test/physio/physio_upcoming_test.dart.
+  // This provider-level test stays here as it is screen-agnostic.
+  group('appointment search provider', () {
     test('the search provider skips the network below the minimum length', () async {
       final repo = _SearchRepo([_suggestion]);
       final container = ProviderContainer(
@@ -359,47 +362,6 @@ void main() {
       final hits = await container.read(appointmentSearchProvider('asha').future);
       expect(hits, hasLength(1));
       expect(repo.lastQuery, 'asha');
-    });
-
-    testWidgets('the search action opens autocomplete and lists matches', (
-      tester,
-    ) async {
-      final repo = _SearchRepo([_suggestion]);
-      await _pump(tester, const AppointmentsScreen(), repo: repo);
-      await tester.pumpAndSettle();
-
-      await tester.tap(find.byIcon(Icons.search));
-      await tester.pumpAndSettle();
-
-      await tester.enterText(find.byType(TextField), 'asha');
-      await tester.pump(); // rebuild the body, arming the debounce timer
-      await tester.pump(const Duration(milliseconds: 350)); // fire the debounce
-      await tester.pumpAndSettle(); // resolve the search future + render rows
-
-      expect(repo.lastQuery, 'asha');
-      expect(find.text('Asha Rao'), findsOneWidget);
-      // The row's subtitle carries the appointment's human-friendly number.
-      expect(find.textContaining('PHY-20260611-0001'), findsOneWidget);
-    });
-
-    testWidgets('a term below the minimum shows the hint and skips the network', (
-      tester,
-    ) async {
-      final repo = _SearchRepo([_suggestion]);
-      await _pump(tester, const AppointmentsScreen(), repo: repo);
-      await tester.pumpAndSettle();
-
-      await tester.tap(find.byIcon(Icons.search));
-      await tester.pumpAndSettle();
-
-      await tester.enterText(find.byType(TextField), 'a');
-      await tester.pumpAndSettle();
-
-      expect(
-        find.textContaining('Search by appointment number'),
-        findsOneWidget,
-      );
-      expect(repo.lastQuery, isNull);
     });
   });
 

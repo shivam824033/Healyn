@@ -169,8 +169,8 @@ class PhysioTodayScreen extends ConsumerWidget {
                   ),
                   const SizedBox(width: HealynSpacing.s2),
                   _HeroAction(
-                    icon: Icons.upcoming_outlined,
-                    tooltip: 'Upcoming',
+                    icon: Icons.event_note_outlined,
+                    tooltip: 'Appointments',
                     onTap: () => context.push('/physio/upcoming'),
                   ),
                 ],

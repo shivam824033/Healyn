@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -15,7 +13,7 @@ import '../../../shared/widgets/error_banner.dart';
 import '../../data/models/appointment_models.dart';
 import '../appointment_format.dart';
 import '../appointments_providers.dart';
-import '../widgets/appointment_search_delegate.dart';
+import '../widgets/appointment_filter_bar.dart';
 import '../widgets/appointment_status_chip.dart';
 
 /// Appointments tab — the patient's timeline of upcoming and past
@@ -35,11 +33,6 @@ class AppointmentsScreen extends ConsumerWidget {
         title: 'Appointments',
         actions: [
           IconButton(
-            tooltip: 'Search appointments',
-            icon: const Icon(Icons.search),
-            onPressed: () => _openSearch(context),
-          ),
-          IconButton(
             tooltip: 'Book appointment',
             icon: const Icon(Icons.add),
             onPressed: () => context.push('/appointments/book'),
@@ -49,7 +42,7 @@ class AppointmentsScreen extends ConsumerWidget {
       body: SafeArea(
         child: Column(
           children: [
-            const _AppointmentFilterBar(),
+            AppointmentFilterBar(filterProvider: appointmentFilterProvider),
             Expanded(
               child: RefreshIndicator(
                 onRefresh: () async {
@@ -126,18 +119,6 @@ class AppointmentsScreen extends ConsumerWidget {
       ),
     );
   }
-
-  /// Opens the header search overlay; on a chosen suggestion, navigates to that
-  /// appointment's detail (the patient detail route resolves it by id).
-  Future<void> _openSearch(BuildContext context) async {
-    final selected = await showSearch<AppointmentSuggestion?>(
-      context: context,
-      delegate: AppointmentSearchDelegate(),
-    );
-    if (selected != null && context.mounted) {
-      unawaited(context.push('/appointments/${selected.appointmentId}'));
-    }
-  }
 }
 
 class _AppointmentTile extends StatelessWidget {
@@ -202,47 +183,6 @@ class _AppointmentTile extends StatelessWidget {
             ),
           ),
         ),
-      ),
-    );
-  }
-}
-
-/// The filter row above the list: a single-select status group plus an
-/// orthogonal "Follow-ups" toggle. Selecting any chip updates
-/// [appointmentFilterProvider], which reloads the list's first page.
-class _AppointmentFilterBar extends ConsumerWidget {
-  const _AppointmentFilterBar();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final filter = ref.watch(appointmentFilterProvider);
-    final notifier = ref.read(appointmentFilterProvider.notifier);
-    return SizedBox(
-      height: 52,
-      child: ListView(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(
-          horizontal: HealynSpacing.screenEdge,
-          vertical: HealynSpacing.s2,
-        ),
-        children: [
-          for (final status in AppointmentStatusFilter.values) ...[
-            ChoiceChip(
-              label: Text(status.label),
-              selected: filter.status == status,
-              onSelected: (_) =>
-                  notifier.state = filter.copyWith(status: status),
-            ),
-            const SizedBox(width: HealynSpacing.s2),
-          ],
-          // Orthogonal to the status group: combines with it (AND).
-          const SizedBox(width: HealynSpacing.s2),
-          FilterChip(
-            label: const Text('Follow-ups'),
-            selected: filter.followUpOnly,
-            onSelected: (v) => notifier.state = filter.copyWith(followUpOnly: v),
-          ),
-        ],
       ),
     );
   }

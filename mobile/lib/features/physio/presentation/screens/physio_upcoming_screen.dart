@@ -1,9 +1,14 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../appointments/data/models/appointment_models.dart';
 import '../../../appointments/presentation/appointment_format.dart';
+import '../../../appointments/presentation/appointments_providers.dart';
+import '../../../appointments/presentation/widgets/appointment_filter_bar.dart';
+import '../../../appointments/presentation/widgets/appointment_search_delegate.dart';
 import '../../../appointments/presentation/widgets/appointment_status_chip.dart';
 import '../../../patients/data/models/patient_models.dart';
 import '../../../patients/presentation/patients_providers.dart';
@@ -17,74 +22,148 @@ import '../../../shared/widgets/error_banner.dart';
 import '../physio_upcoming_providers.dart';
 import '../widgets/patient_avatar_button.dart';
 
-/// The physiotherapist's Upcoming list (F1.12), pushed from Today: the next live
-/// scheduled appointments from now, ascending and grouped by day. Tapping a row
-/// opens the appointment detail. Read-only — scheduling happens in the detail.
+/// The physiotherapist's Appointments list (F1.12), pushed from Today. Defaults
+/// to the next live scheduled appointments, but the status filter widens it to
+/// completed / cancelled / rejected work, and the header search jumps to any
+/// appointment by number or patient. Tapping a row opens the appointment detail;
+/// scheduling happens there.
 class PhysioUpcomingScreen extends ConsumerWidget {
   const PhysioUpcomingScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final upcoming = ref.watch(physioUpcomingProvider);
+    final appointments = ref.watch(physioAppointmentsProvider);
+    final filter = ref.watch(physioAppointmentFilterProvider);
     final patients = ref.watch(patientsProvider).valueOrNull ?? const [];
     final byId = {for (final p in patients) p.id: p};
 
     return Scaffold(
-      appBar: const HealynAppBar(title: 'Upcoming'),
-      body: SafeArea(
-        child: RefreshIndicator(
-          onRefresh: () async {
-            ref.invalidate(physioUpcomingProvider);
-            await ref.read(physioUpcomingProvider.future);
-          },
-          child: upcoming.when(
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (_, _) => ListView(
-              padding: const EdgeInsets.all(HealynSpacing.screenEdge),
-              children: const [
-                ErrorBanner(
-                  message: 'Could not load upcoming appointments. '
-                      'Pull down to retry.',
-                ),
-              ],
-            ),
-            data: (items) {
-              if (items.isEmpty) return const _NothingUpcoming();
-              // Group by the scheduled local day, preserving ascending order.
-              final groups = <String, List<Appointment>>{};
-              for (final a in items) {
-                groups.putIfAbsent(formatDateLong(a.day), () => []).add(a);
-              }
-              return ListView(
-                padding: const EdgeInsets.all(HealynSpacing.screenEdge),
-                children: [
-                  for (final entry in groups.entries) ...[
-                    Text(
-                      entry.key.toUpperCase(),
-                      style: HealynTypography.overline,
-                    ),
-                    const SizedBox(height: HealynSpacing.s3),
-                    for (final a in entry.value) ...[
-                      _UpcomingTile(
-                        appointment: a,
-                        patient: byId[a.patientId],
-                      ),
-                      const SizedBox(height: HealynSpacing.s3),
-                    ],
-                    const SizedBox(height: HealynSpacing.s4),
-                  ],
-                ],
-              );
-            },
+      appBar: HealynAppBar(
+        title: 'Appointments',
+        actions: [
+          IconButton(
+            tooltip: 'Search appointments',
+            icon: const Icon(Icons.search),
+            onPressed: () => _openSearch(context),
           ),
+        ],
+      ),
+      body: SafeArea(
+        child: Column(
+          children: [
+            AppointmentFilterBar(
+              filterProvider: physioAppointmentFilterProvider,
+            ),
+            Expanded(
+              child: RefreshIndicator(
+                onRefresh: () async {
+                  ref.invalidate(physioAppointmentsProvider);
+                  await ref.read(physioAppointmentsProvider.future);
+                },
+                child: appointments.when(
+                  loading: () =>
+                      const Center(child: CircularProgressIndicator()),
+                  error: (_, _) => ListView(
+                    padding: const EdgeInsets.all(HealynSpacing.screenEdge),
+                    children: const [
+                      ErrorBanner(
+                        message: 'Could not load appointments. '
+                            'Pull down to retry.',
+                      ),
+                    ],
+                  ),
+                  data: (state) {
+                    final all = state.items;
+                    if (all.isEmpty) {
+                      return _isUpcomingDefault(filter)
+                          ? const _NothingUpcoming()
+                          : const _NoMatchingAppointments();
+                    }
+                    final upcoming = upcomingOf(all);
+                    final past = pastOf(all);
+                    // Auto-load the next cursor page as the list nears its bottom.
+                    return NotificationListener<ScrollNotification>(
+                      onNotification: (n) {
+                        if (state.hasMore &&
+                            !state.isLoadingMore &&
+                            n.metrics.pixels >=
+                                n.metrics.maxScrollExtent - 200) {
+                          ref
+                              .read(physioAppointmentsProvider.notifier)
+                              .loadMore();
+                        }
+                        return false;
+                      },
+                      child: ListView(
+                        padding: const EdgeInsets.all(HealynSpacing.screenEdge),
+                        children: [
+                          if (upcoming.isNotEmpty) ...[
+                            const _SectionTitle('Upcoming'),
+                            const SizedBox(height: HealynSpacing.s3),
+                            for (final a in upcoming) ...[
+                              _AppointmentTile(
+                                appointment: a,
+                                patient: byId[a.patientId],
+                              ),
+                              const SizedBox(height: HealynSpacing.s3),
+                            ],
+                          ],
+                          if (past.isNotEmpty) ...[
+                            if (upcoming.isNotEmpty)
+                              const SizedBox(height: HealynSpacing.s4),
+                            const _SectionTitle('Past'),
+                            const SizedBox(height: HealynSpacing.s3),
+                            for (final a in past) ...[
+                              _AppointmentTile(
+                                appointment: a,
+                                patient: byId[a.patientId],
+                              ),
+                              const SizedBox(height: HealynSpacing.s3),
+                            ],
+                          ],
+                          if (state.hasMore)
+                            _LoadMoreFooter(
+                              isLoading: state.isLoadingMore,
+                              onLoadMore: () => ref
+                                  .read(physioAppointmentsProvider.notifier)
+                                  .loadMore(),
+                            ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
+
+  /// Opens the header search overlay; on a chosen suggestion, navigates to that
+  /// appointment's physio detail (the detail route resolves it by id).
+  Future<void> _openSearch(BuildContext context) async {
+    final selected = await showSearch<AppointmentSuggestion?>(
+      context: context,
+      delegate: AppointmentSearchDelegate(),
+    );
+    if (selected != null && context.mounted) {
+      unawaited(
+        context.push('/physio/appointments/${selected.appointmentId}'),
+      );
+    }
+  }
+
+  /// The screen's at-rest view: the default Upcoming filter with no follow-up
+  /// narrowing. Used to pick the "Nothing upcoming" empty state over the
+  /// generic "no match" one.
+  static bool _isUpcomingDefault(AppointmentListFilter filter) =>
+      filter.status == AppointmentStatusFilter.upcoming && !filter.followUpOnly;
 }
 
-class _UpcomingTile extends StatelessWidget {
-  const _UpcomingTile({required this.appointment, this.patient});
+class _AppointmentTile extends StatelessWidget {
+  const _AppointmentTile({required this.appointment, this.patient});
 
   final Appointment appointment;
   final Patient? patient;
@@ -122,7 +201,7 @@ class _UpcomingTile extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        _time(appointment),
+                        formatAppointmentWhenShort(appointment),
                         style: HealynTypography.bodyStrong,
                       ),
                       const SizedBox(height: HealynSpacing.s1),
@@ -160,15 +239,6 @@ class _UpcomingTile extends StatelessWidget {
       ),
     );
   }
-
-  /// Upcoming rows are always scheduled, but stay null-safe.
-  static String _time(Appointment a) {
-    final startsAt = a.scheduledAt;
-    final endsAt = a.scheduledEndAt;
-    if (startsAt == null) return 'Time to be confirmed';
-    if (endsAt == null) return formatTimeOfDay(startsAt);
-    return '${formatTimeOfDay(startsAt)} – ${formatTimeOfDay(endsAt)}';
-  }
 }
 
 /// Marks a follow-up review so it reads distinctly from a first booking (F1.12).
@@ -193,6 +263,81 @@ class _FollowUpChip extends StatelessWidget {
           fontWeight: FontWeight.w600,
         ),
       ),
+    );
+  }
+}
+
+/// Footer shown when more appointments can be paged in. Auto-loading on scroll
+/// drives most paging; the button is the fallback when the list is too short
+/// to scroll.
+class _LoadMoreFooter extends StatelessWidget {
+  const _LoadMoreFooter({required this.isLoading, required this.onLoadMore});
+
+  final bool isLoading;
+  final VoidCallback onLoadMore;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: HealynSpacing.s3),
+      child: Center(
+        child: isLoading
+            ? const SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : TextButton(
+                onPressed: onLoadMore,
+                child: const Text('Load more'),
+              ),
+      ),
+    );
+  }
+}
+
+class _SectionTitle extends StatelessWidget {
+  const _SectionTitle(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) =>
+      Text(text.toUpperCase(), style: HealynTypography.overline);
+}
+
+/// Shown when a non-default filter matches nothing — distinct from the at-rest
+/// [_NothingUpcoming] state.
+class _NoMatchingAppointments extends StatelessWidget {
+  const _NoMatchingAppointments();
+
+  @override
+  Widget build(BuildContext context) {
+    // Inside a scrollable so pull-to-refresh still works with no matches.
+    return ListView(
+      padding: const EdgeInsets.all(HealynSpacing.s8),
+      children: [
+        const SizedBox(height: HealynSpacing.s8),
+        const Icon(
+          Icons.event_outlined,
+          size: 48,
+          color: HealynColors.textMuted,
+        ),
+        const SizedBox(height: HealynSpacing.s4),
+        const Text(
+          'No appointments match this filter',
+          style: HealynTypography.h3,
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: HealynSpacing.s2),
+        Text(
+          'Try a different filter above, or pull down to refresh.',
+          style: HealynTypography.body.copyWith(
+            color: HealynColors.textSecondary,
+          ),
+          textAlign: TextAlign.center,
+        ),
+      ],
     );
   }
 }
