@@ -448,7 +448,7 @@ class _UnreadBadge extends StatelessWidget {
         ),
         decoration: BoxDecoration(
           color: HealynColors.brandPrimary,
-          borderRadius: BorderRadius.circular(999),
+          borderRadius: BorderRadius.circular(HealynRadii.full),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -492,7 +492,7 @@ class _PendingFilesBadge extends StatelessWidget {
         ),
         decoration: BoxDecoration(
           color: HealynColors.brandPrimarySubtle,
-          borderRadius: BorderRadius.circular(999),
+          borderRadius: BorderRadius.circular(HealynRadii.full),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
