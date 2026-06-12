@@ -14,14 +14,20 @@ import '../../patients/presentation/widgets/patient_switcher.dart';
 import '../../shared/design/colors.dart';
 import '../../shared/design/spacing.dart';
 import '../../shared/design/typography.dart';
-import '../../shared/widgets/app_bar.dart';
-import '../../shared/widgets/card_header.dart';
-import '../../shared/widgets/section_card.dart';
+import '../../shared/widgets/healyn_hero.dart';
+import '../../shared/widgets/healyn_info_banner.dart';
+import '../../shared/widgets/healyn_list_row.dart';
+import '../../shared/widgets/healyn_section_header.dart';
 import '../../treatment_notes/presentation/treatment_notes_format.dart';
 import 'next_review_provider.dart';
 
-/// Home tab — the signed-in landing. Greets the primary patient by first name
-/// and surfaces the next upcoming appointment (or an invitation to book one).
+/// Horizontal inset for the content below the full-bleed hero.
+const _edge = EdgeInsets.symmetric(horizontal: HealynSpacing.screenEdge);
+
+/// Home tab — the signed-in landing, in the *Refined Indigo* direction: a
+/// gradient hero greeting over the active-patient switcher, a calm unread
+/// roll-up banner, and the next upcoming appointment (or an invitation to book
+/// one). Greets the primary patient by first name.
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
@@ -67,30 +73,34 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     );
 
     return Scaffold(
-      appBar: const HealynAppBar(title: 'Healyn'),
-      body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.all(HealynSpacing.screenEdge),
-          children: [
-            Text(
-              firstName == null ? 'Welcome back' : 'Hi, $firstName',
-              style: HealynTypography.h1,
-            ),
-            const SizedBox(height: HealynSpacing.s2),
-            const Text(
-              'Manage your appointments, family, and care in one place.',
-              style: HealynTypography.body,
-            ),
-            const SizedBox(height: HealynSpacing.s5),
-            const PatientSwitcher(),
-            const SizedBox(height: HealynSpacing.s5),
-            const _UnreadMessagesCard(),
-            const _UpcomingSummary(),
-            const _NextReviewCard(),
-          ],
-        ),
+      backgroundColor: HealynColors.surfaceAlt,
+      body: ListView(
+        padding: EdgeInsets.zero,
+        children: [
+          HealynHero(
+            eyebrow: _greeting(DateTime.now()),
+            title: firstName == null ? 'Welcome back' : 'Hi, $firstName',
+            subtitle: 'Manage your appointments, family, and care in one place.',
+            bottomOverlap: HealynSpacing.s6,
+          ),
+          const SizedBox(height: HealynSpacing.s5),
+          const Padding(padding: _edge, child: PatientSwitcher()),
+          const SizedBox(height: HealynSpacing.s5),
+          const _UnreadMessagesCard(),
+          const _UpcomingSummary(),
+          const _NextReviewCard(),
+          const SizedBox(height: HealynSpacing.s8),
+        ],
       ),
     );
+  }
+
+  /// A clock-derived greeting — no fabricated name (the title carries it).
+  static String _greeting(DateTime now) {
+    final h = now.hour;
+    if (h < 12) return 'Good morning';
+    if (h < 17) return 'Good afternoon';
+    return 'Good evening';
   }
 }
 
@@ -108,47 +118,27 @@ class _UnreadMessagesCard extends ConsumerWidget {
     final count = summary.total;
     final threads = summary.threads.length;
     return Padding(
-      padding: const EdgeInsets.only(bottom: HealynSpacing.s5),
-      child: SectionCard(
-        child: InkWell(
-          onTap: () => context.push('/discussions/unread'),
-          child: Row(
-            children: [
-              const Icon(
-                Icons.mark_email_unread_outlined,
-                size: 20,
-                color: HealynColors.brandPrimary,
-              ),
-              const SizedBox(width: HealynSpacing.s3),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      count == 1 ? '1 unread message' : '$count unread messages',
-                      style: HealynTypography.bodyStrong,
-                    ),
-                    const SizedBox(height: HealynSpacing.s1),
-                    Text(
-                      threads == 1
-                          ? 'In 1 appointment'
-                          : 'Across $threads appointments',
-                      style: HealynTypography.caption,
-                    ),
-                  ],
-                ),
-              ),
-              const Icon(Icons.chevron_right, color: HealynColors.textMuted),
-            ],
-          ),
-        ),
+      padding: const EdgeInsets.fromLTRB(
+        HealynSpacing.screenEdge,
+        0,
+        HealynSpacing.screenEdge,
+        HealynSpacing.s5,
+      ),
+      child: HealynInfoBanner(
+        tone: HealynBannerTone.info,
+        icon: Icons.mark_email_unread_outlined,
+        title: count == 1 ? '1 unread message' : '$count unread messages',
+        subtitle: threads == 1
+            ? 'In 1 appointment'
+            : 'Across $threads appointments',
+        onTap: () => context.push('/discussions/unread'),
       ),
     );
   }
 }
 
-/// The "Upcoming appointments" card: shows the soonest open appointment, or an
-/// invitation to book when there's nothing scheduled.
+/// The "Upcoming appointments" section: shows the soonest open appointment, or
+/// an invitation to book when there's nothing scheduled.
 class _UpcomingSummary extends ConsumerWidget {
   const _UpcomingSummary();
 
@@ -160,28 +150,17 @@ class _UpcomingSummary extends ConsumerWidget {
       data: (patients) => {for (final p in patients) p.id: p.fullName},
       orElse: () => const <String, String>{},
     );
-    return SectionCard(
+    return Padding(
+      padding: _edge,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const CardHeader(
-            icon: Icons.event_outlined,
-            title: 'Upcoming appointments',
-          ),
+          const HealynSectionHeader(title: 'Upcoming appointments'),
           const SizedBox(height: HealynSpacing.s3),
           appointments.when(
-            loading: () => Text(
-              'Checking your schedule…',
-              style: HealynTypography.body.copyWith(
-                color: HealynColors.textSecondary,
-              ),
-            ),
-            error: (_, _) => Text(
-              'Could not load your appointments.',
-              style: HealynTypography.body.copyWith(
-                color: HealynColors.textSecondary,
-              ),
-            ),
+            loading: () => const _MutedLine('Checking your schedule…'),
+            error: (_, _) =>
+                const _MutedLine('Could not load your appointments.'),
             // Account-wide (PATIENT_RELATIONSHIP_MODEL §7): the soonest open
             // appointment across every managed patient, so a booking for a
             // family member surfaces even when the primary is active. Active-
@@ -215,44 +194,20 @@ class _NextAppointment extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final name = forName;
-    return InkWell(
+    return HealynListRow(
+      title: formatAppointmentWhenShort(next),
+      subtitle: name != null ? 'for $name' : null,
+      footer: AppointmentStatusChip(status: next.status),
       onTap: () => context.push('/appointments/${next.id}', extra: next),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  formatAppointmentWhenShort(next),
-                  style: HealynTypography.bodyStrong,
-                ),
-                if (name != null) ...[
-                  const SizedBox(height: HealynSpacing.s1),
-                  Text(
-                    'for $name',
-                    style: HealynTypography.caption.copyWith(
-                      color: HealynColors.textSecondary,
-                    ),
-                  ),
-                ],
-                const SizedBox(height: HealynSpacing.s2),
-                AppointmentStatusChip(status: next.status),
-              ],
-            ),
-          ),
-          const Icon(Icons.chevron_right, color: HealynColors.textMuted),
-        ],
-      ),
     );
   }
 }
 
-/// "Suggested next review" card (D6): when a physiotherapist set a next-review
-/// date on a treatment note and the patient hasn't already booked, nudge a
-/// booking with the date prefilled. Advisory — it deep-links into the normal
-/// slot flow, never auto-books. Renders nothing while loading/failed or when
-/// there's nothing pending, so Home stays calm.
+/// "Suggested next review" section (D6): when a physiotherapist set a
+/// next-review date on a treatment note and the patient hasn't already booked,
+/// nudge a booking with the date prefilled. Advisory — it deep-links into the
+/// normal slot flow, never auto-books. Renders nothing while loading/failed or
+/// when there's nothing pending, so Home stays calm.
 class _NextReviewCard extends ConsumerWidget {
   const _NextReviewCard();
 
@@ -266,44 +221,41 @@ class _NextReviewCard extends ConsumerWidget {
         : suggestion.patient.fullName;
 
     return Padding(
-      padding: const EdgeInsets.only(top: HealynSpacing.s5),
-      child: SectionCard(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const CardHeader(
-              icon: Icons.event_repeat_outlined,
-              title: 'Suggested next review',
-            ),
-            const SizedBox(height: HealynSpacing.s3),
+      padding: const EdgeInsets.fromLTRB(
+        HealynSpacing.screenEdge,
+        HealynSpacing.s5,
+        HealynSpacing.screenEdge,
+        0,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const HealynSectionHeader(title: 'Suggested next review'),
+          const SizedBox(height: HealynSpacing.s3),
+          Text(formatReviewWhen(suggestion.reviewAt), style: HealynTypography.body),
+          if (forName != null) ...[
+            const SizedBox(height: HealynSpacing.s1),
             Text(
-              formatReviewWhen(suggestion.reviewAt),
-              style: HealynTypography.body,
-            ),
-            if (forName != null) ...[
-              const SizedBox(height: HealynSpacing.s1),
-              Text(
-                'for $forName',
-                style: HealynTypography.caption.copyWith(
-                  color: HealynColors.textSecondary,
-                ),
+              'for $forName',
+              style: HealynTypography.caption.copyWith(
+                color: HealynColors.textSecondary,
               ),
-            ],
-            const SizedBox(height: HealynSpacing.s2),
-            TextButton.icon(
-              onPressed: () => context.push(
-                '/appointments/book',
-                extra: BookAppointmentArgs(
-                  patientId: suggestion.patient.id,
-                  day: suggestion.reviewAt.toLocal(),
-                ),
-              ),
-              icon: const Icon(Icons.add),
-              label: const Text('Book appointment'),
-              style: TextButton.styleFrom(padding: EdgeInsets.zero),
             ),
           ],
-        ),
+          const SizedBox(height: HealynSpacing.s2),
+          TextButton.icon(
+            onPressed: () => context.push(
+              '/appointments/book',
+              extra: BookAppointmentArgs(
+                patientId: suggestion.patient.id,
+                day: suggestion.reviewAt.toLocal(),
+              ),
+            ),
+            icon: const Icon(Icons.add),
+            label: const Text('Book appointment'),
+            style: TextButton.styleFrom(padding: EdgeInsets.zero),
+          ),
+        ],
       ),
     );
   }
@@ -331,6 +283,21 @@ class _NothingScheduled extends StatelessWidget {
           style: TextButton.styleFrom(padding: EdgeInsets.zero),
         ),
       ],
+    );
+  }
+}
+
+/// A single muted line for the upcoming section's loading / error states.
+class _MutedLine extends StatelessWidget {
+  const _MutedLine(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text,
+      style: HealynTypography.body.copyWith(color: HealynColors.textSecondary),
     );
   }
 }
