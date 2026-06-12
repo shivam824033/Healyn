@@ -130,7 +130,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('2 new requests'), findsOneWidget);
+      expect(find.text('2 new booking requests'), findsOneWidget);
     });
 
     testWidgets('singularises a lone request', (tester) async {
@@ -142,7 +142,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('1 new request'), findsOneWidget);
+      expect(find.text('1 new booking request'), findsOneWidget);
     });
 
     testWidgets('hides the banner when nothing is pending', (tester) async {

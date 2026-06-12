@@ -90,7 +90,7 @@ void main() {
       await pumpPhysio(tester);
 
       // The Schedule screen, not a patient screen.
-      expect(find.text('Schedule'), findsOneWidget);
+      expect(find.text("Today's schedule"), findsOneWidget);
       expect(find.text('Nothing scheduled'), findsOneWidget);
       // Physio nav, not the patient nav.
       expect(find.text('Availability'), findsOneWidget);
@@ -104,7 +104,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // Redirected back into the physio app rather than the patient Home.
-      expect(find.text('Schedule'), findsOneWidget);
+      expect(find.text("Today's schedule"), findsOneWidget);
       expect(find.text('Availability'), findsOneWidget);
     });
   });

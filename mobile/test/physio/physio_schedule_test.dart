@@ -9,6 +9,7 @@ import 'package:healyn/features/physio/presentation/physio_calendar_providers.da
 import 'package:healyn/features/physio/presentation/physio_requests_providers.dart';
 import 'package:healyn/features/physio/presentation/physio_schedule_providers.dart';
 import 'package:healyn/features/physio/presentation/screens/physio_today_screen.dart';
+import 'package:healyn/features/physio/presentation/widgets/month_calendar.dart';
 
 final _asha = Patient(
   id: 'pt1',
@@ -118,10 +119,20 @@ void main() {
     final todayMidnight = DateTime(today.year, today.month, today.day);
     expect(find.text(formatDateLong(todayMidnight)), findsOneWidget);
 
-    // The 15th (or 16th, to avoid landing on today) is always present and unique
-    // in the visible month's grid.
+    // The month grid now lives in a sheet reached from the hero's calendar
+    // action; open it, then pick a day.
+    await tester.tap(find.byTooltip('Open calendar'));
+    await tester.pumpAndSettle();
+
+    // The 15th (or 16th, to avoid landing on today) is always present in the
+    // visible month; scope to the grid so the week strip's numbers don't collide.
     final targetDay = today.day == 15 ? 16 : 15;
-    await tester.tap(find.text('$targetDay'));
+    await tester.tap(
+      find.descendant(
+        of: find.byType(MonthCalendar),
+        matching: find.text('$targetDay'),
+      ),
+    );
     await tester.pumpAndSettle();
 
     final picked = DateTime(today.year, today.month, targetDay);
@@ -134,6 +145,10 @@ void main() {
     await _pump(tester, appointments: const []);
     await tester.pumpAndSettle();
 
+    // The month grid + its arrows live in a sheet reached from the hero.
+    await tester.tap(find.byTooltip('Open calendar'));
+    await tester.pumpAndSettle();
+
     final today = DateTime.now();
     final month = DateTime(today.year, today.month);
     expect(find.text(formatMonthYear(month)), findsOneWidget);
@@ -143,7 +158,7 @@ void main() {
 
     final next = DateTime(today.year, today.month + 1);
     expect(find.text(formatMonthYear(next)), findsOneWidget);
-    // The selected day (the roster header) stays on today.
+    // The selected day (the hero's date pill, behind the sheet) stays on today.
     final todayMidnight = DateTime(today.year, today.month, today.day);
     expect(find.text(formatDateLong(todayMidnight)), findsOneWidget);
   });

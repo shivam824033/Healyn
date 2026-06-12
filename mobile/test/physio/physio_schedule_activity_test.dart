@@ -13,6 +13,7 @@ import 'package:healyn/features/physio/presentation/physio_requests_providers.da
 import 'package:healyn/features/physio/presentation/physio_schedule_providers.dart';
 import 'package:healyn/features/physio/presentation/screens/physio_today_screen.dart';
 import 'package:healyn/features/shared/network/api_exception.dart';
+import 'package:healyn/features/shared/widgets/healyn_list_row.dart';
 
 Appointment _appt({
   required String id,
@@ -142,10 +143,16 @@ Future<void> _pumpScreen(
   );
 }
 
-/// The count [Text] of the badge built around [icon] — a finder scoped to that
-/// badge's Row, so it never matches the calendar's day-number Texts.
+/// The [icon] within an appointment tile (a [HealynListRow]), not the floating
+/// stat cards — the "Unread" stat reuses [Icons.mark_email_unread_outlined] and
+/// its value, so an unscoped finder would collide.
+Finder _rowIcon(IconData icon) =>
+    find.descendant(of: find.byType(HealynListRow), matching: find.byIcon(icon));
+
+/// The count [Text] of the badge built around [icon], scoped to that badge's Row
+/// inside the tile, so it never matches a stat card or a calendar day number.
 Finder _badgeCount(IconData icon, String count) => find.descendant(
-  of: find.ancestor(of: find.byIcon(icon), matching: find.byType(Row)),
+  of: find.ancestor(of: _rowIcon(icon), matching: find.byType(Row)),
   matching: find.text(count),
 );
 
@@ -244,11 +251,11 @@ void main() {
       await _pumpScreen(tester, appointments: [_appt(id: 'a1')], repo: repo);
       await tester.pumpAndSettle();
 
-      // The calendar renders day-number Texts ('1', '2', …); scope the count
-      // assertions to each badge by anchoring on its icon so they can't collide.
-      expect(find.byIcon(Icons.mark_email_unread_outlined), findsOneWidget);
+      // The calendar day numbers and the "Unread" stat card share text/icons
+      // with the badges; scope every assertion to the appointment tile.
+      expect(_rowIcon(Icons.mark_email_unread_outlined), findsOneWidget);
       expect(_badgeCount(Icons.mark_email_unread_outlined, '2'), findsOneWidget);
-      expect(find.byIcon(Icons.attach_file), findsOneWidget);
+      expect(_rowIcon(Icons.attach_file), findsOneWidget);
       expect(_badgeCount(Icons.attach_file, '1'), findsOneWidget);
     });
 
@@ -259,8 +266,8 @@ void main() {
       await _pumpScreen(tester, appointments: [_appt(id: 'a1')], repo: repo);
       await tester.pumpAndSettle();
 
-      expect(find.byIcon(Icons.mark_email_unread_outlined), findsNothing);
-      expect(find.byIcon(Icons.attach_file), findsNothing);
+      expect(_rowIcon(Icons.mark_email_unread_outlined), findsNothing);
+      expect(_rowIcon(Icons.attach_file), findsNothing);
     });
   });
 }
