@@ -9,6 +9,7 @@ import '../../../shared/design/typography.dart';
 import '../../../shared/network/api_exception.dart';
 import '../../../shared/widgets/app_bar.dart';
 import '../../../shared/widgets/error_banner.dart';
+import '../../../shared/widgets/healyn_section_header.dart';
 import '../../../shared/widgets/section_card.dart';
 import '../../../treatment_notes/presentation/widgets/treatment_note_section.dart';
 import '../../data/appointments_repository.dart';
@@ -173,7 +174,7 @@ class _AppointmentDetailScreenState
               ),
             ),
             const SizedBox(height: HealynSpacing.s6),
-            const _SectionTitle('Details'),
+            const HealynSectionHeader(title: 'Details'),
             const SizedBox(height: HealynSpacing.s3),
             _DetailCard(rows: rows),
             const SizedBox(height: HealynSpacing.s6),
@@ -194,8 +195,8 @@ class _AppointmentDetailScreenState
             ],
             if (cancellation.isNotEmpty) ...[
               const SizedBox(height: HealynSpacing.s6),
-              _SectionTitle(
-                _appt.status == AppointmentStatus.rejected
+              HealynSectionHeader(
+                title: _appt.status == AppointmentStatus.rejected
                     ? 'Rejection'
                     : 'Cancellation',
               ),
@@ -237,16 +238,6 @@ class _AppointmentDetailScreenState
   }
 
   static bool _has(String? s) => s != null && s.trim().isNotEmpty;
-}
-
-class _SectionTitle extends StatelessWidget {
-  const _SectionTitle(this.text);
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) =>
-      Text(text.toUpperCase(), style: HealynTypography.overline);
 }
 
 class _DetailCard extends StatelessWidget {

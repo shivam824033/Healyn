@@ -405,9 +405,20 @@ void main() {
   });
 
   group('appointment detail', () {
+    // The detail screen is a long scroll (status card → details → discussion →
+    // treatment note → actions → history); give it a tall surface so the lazy
+    // ListView builds the action buttons at the bottom without scrolling.
+    void tallSurface(WidgetTester tester) {
+      tester.view.physicalSize = const Size(1000, 2400);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+    }
+
     testWidgets('offers Reschedule and Cancel for a requested appointment', (
       tester,
     ) async {
+      tallSurface(tester);
       await _pump(
         tester,
         AppointmentDetailScreen(
@@ -428,6 +439,7 @@ void main() {
     testWidgets('hides Reschedule and Cancel for a completed appointment', (
       tester,
     ) async {
+      tallSurface(tester);
       await _pump(
         tester,
         AppointmentDetailScreen(

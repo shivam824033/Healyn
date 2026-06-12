@@ -13,14 +13,14 @@ import '../../../patients/presentation/patient_format.dart';
 import '../../../patients/presentation/patients_providers.dart';
 import '../../../patients/presentation/widgets/patient_avatar.dart';
 import '../../../shared/design/colors.dart';
-import '../../../shared/design/elevation.dart';
-import '../../../shared/design/radii.dart';
 import '../../../shared/design/spacing.dart';
 import '../../../shared/design/typography.dart';
 import '../../../shared/domain/patient_sex.dart';
 import '../../../shared/network/api_exception.dart';
 import '../../../shared/widgets/app_bar.dart';
 import '../../../shared/widgets/error_banner.dart';
+import '../../../shared/widgets/healyn_list_row.dart';
+import '../../../shared/widgets/healyn_section_header.dart';
 import '../../../shared/widgets/section_card.dart';
 import '../physio_appointment_actions.dart';
 import '../physio_requests_providers.dart';
@@ -456,7 +456,7 @@ class _PhysioAppointmentDetailScreenState
               _PatientCard(patient: patient),
             ],
             const SizedBox(height: HealynSpacing.s6),
-            const _SectionTitle('Details'),
+            const HealynSectionHeader(title: 'Details'),
             const SizedBox(height: HealynSpacing.s3),
             _DetailCard(rows: rows),
             const SizedBox(height: HealynSpacing.s6),
@@ -486,8 +486,8 @@ class _PhysioAppointmentDetailScreenState
             ],
             if (cancellation.isNotEmpty) ...[
               const SizedBox(height: HealynSpacing.s6),
-              _SectionTitle(
-                _appt.status == AppointmentStatus.rejected
+              HealynSectionHeader(
+                title: _appt.status == AppointmentStatus.rejected
                     ? 'Rejection'
                     : 'Cancellation',
               ),
@@ -590,58 +590,14 @@ class _PatientCard extends StatelessWidget {
       if (patient.sex != null) patient.sex!.label,
     ].join(' · ');
 
-    return Container(
-      decoration: BoxDecoration(
-        color: HealynColors.surfaceBase,
-        borderRadius: HealynRadii.brLg,
-        border: Border.all(color: HealynColors.borderSubtle),
-        boxShadow: HealynElevation.e1,
-      ),
-      child: Material(
-        type: MaterialType.transparency,
-        child: InkWell(
-          borderRadius: HealynRadii.brLg,
-          onTap: () =>
-              context.push('/physio/patients/${patient.id}', extra: patient),
-          child: Padding(
-            padding: const EdgeInsets.all(HealynSpacing.s4),
-            child: Row(
-              children: [
-                PatientAvatar(name: patient.fullName),
-                const SizedBox(width: HealynSpacing.s4),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(patient.fullName, style: HealynTypography.bodyStrong),
-                      const SizedBox(height: HealynSpacing.s1),
-                      Text(
-                        meta,
-                        style: HealynTypography.caption.copyWith(
-                          color: HealynColors.textSecondary,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const Icon(Icons.chevron_right, color: HealynColors.textMuted),
-              ],
-            ),
-          ),
-        ),
-      ),
+    return HealynListRow(
+      leading: PatientAvatar(name: patient.fullName),
+      title: patient.fullName,
+      subtitle: meta,
+      onTap: () =>
+          context.push('/physio/patients/${patient.id}', extra: patient),
     );
   }
-}
-
-class _SectionTitle extends StatelessWidget {
-  const _SectionTitle(this.text);
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) =>
-      Text(text.toUpperCase(), style: HealynTypography.overline);
 }
 
 class _DetailCard extends StatelessWidget {
