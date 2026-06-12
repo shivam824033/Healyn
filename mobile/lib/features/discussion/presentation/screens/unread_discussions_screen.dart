@@ -5,12 +5,12 @@ import 'package:go_router/go_router.dart';
 import '../../../appointments/presentation/appointment_format.dart';
 import '../../../patients/presentation/patients_providers.dart';
 import '../../../shared/design/colors.dart';
-import '../../../shared/design/elevation.dart';
 import '../../../shared/design/radii.dart';
 import '../../../shared/design/spacing.dart';
 import '../../../shared/design/typography.dart';
 import '../../../shared/widgets/app_bar.dart';
 import '../../../shared/widgets/error_banner.dart';
+import '../../../shared/widgets/healyn_list_row.dart';
 import '../unread_providers.dart';
 
 /// An index of the account's appointments that carry unread discussion messages
@@ -75,47 +75,21 @@ class _UnreadTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final appointment = thread.appointment;
-    return Container(
-      decoration: BoxDecoration(
-        color: HealynColors.surfaceBase,
-        borderRadius: HealynRadii.brLg,
-        border: Border.all(color: HealynColors.borderSubtle),
-        boxShadow: HealynElevation.e1,
+    final when = formatAppointmentWhenShort(appointment);
+    return HealynListRow(
+      title: patientName ?? when,
+      subtitle: patientName != null ? when : null,
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _UnreadBadge(count: thread.count),
+          const SizedBox(width: HealynSpacing.s2),
+          const Icon(Icons.chevron_right, color: HealynColors.textMuted),
+        ],
       ),
-      child: Material(
-        type: MaterialType.transparency,
-        child: InkWell(
-          borderRadius: HealynRadii.brLg,
-          onTap: () => context.push(
-            '/appointments/${appointment.id}/discussion',
-            extra: appointment,
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(HealynSpacing.s4),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      if (patientName != null) ...[
-                        Text(patientName!, style: HealynTypography.bodyStrong),
-                        const SizedBox(height: HealynSpacing.s1),
-                      ],
-                      Text(
-                        formatAppointmentWhenShort(appointment),
-                        style: HealynTypography.caption,
-                      ),
-                    ],
-                  ),
-                ),
-                _UnreadBadge(count: thread.count),
-                const SizedBox(width: HealynSpacing.s2),
-                const Icon(Icons.chevron_right, color: HealynColors.textMuted),
-              ],
-            ),
-          ),
-        ),
+      onTap: () => context.push(
+        '/appointments/${appointment.id}/discussion',
+        extra: appointment,
       ),
     );
   }

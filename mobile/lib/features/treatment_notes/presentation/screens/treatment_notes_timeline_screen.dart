@@ -3,13 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../shared/design/colors.dart';
-import '../../../shared/design/elevation.dart';
-import '../../../shared/design/radii.dart';
 import '../../../shared/design/spacing.dart';
 import '../../../shared/design/typography.dart';
 import '../../../shared/network/api_exception.dart';
 import '../../../shared/widgets/app_bar.dart';
 import '../../../shared/widgets/error_banner.dart';
+import '../../../shared/widgets/healyn_list_row.dart';
 import '../../data/models/treatment_note_models.dart';
 import '../../data/treatment_notes_repository.dart';
 import '../treatment_notes_format.dart';
@@ -212,83 +211,59 @@ class _NoteTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final primary = _primaryText(note);
     final secondary = _secondaryText(note);
-    return Container(
-      decoration: BoxDecoration(
-        color: HealynColors.surfaceBase,
-        borderRadius: HealynRadii.brLg,
-        border: Border.all(color: HealynColors.borderSubtle),
-        boxShadow: HealynElevation.e1,
-      ),
-      child: Material(
-        type: MaterialType.transparency,
-        child: InkWell(
-          borderRadius: HealynRadii.brLg,
-          onTap: () => context.push('$routePrefix/${note.appointmentId}'),
-          child: Padding(
-            padding: const EdgeInsets.all(HealynSpacing.s4),
-            child: Column(
+    final reviewAt = note.nextReviewAt;
+    // The note's headline (diagnosis/notes) reads on the title; the date anchors
+    // the timeline as the strong leading line; details and the next-review
+    // accent fall to the footer.
+    final footerItems = <Widget>[
+      if (secondary != null)
+        Text(
+          secondary,
+          style: HealynTypography.body.copyWith(
+            color: HealynColors.textSecondary,
+          ),
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+        ),
+      if (reviewAt != null)
+        Row(
+          children: [
+            const Icon(
+              Icons.event_outlined,
+              size: 16,
+              color: HealynColors.brandPrimaryHover,
+            ),
+            const SizedBox(width: HealynSpacing.s2),
+            Expanded(
+              child: Text(
+                'Next review · ${formatReviewWhen(reviewAt)}',
+                style: HealynTypography.caption.copyWith(
+                  color: HealynColors.brandPrimaryHover,
+                ),
+              ),
+            ),
+          ],
+        ),
+    ];
+
+    return HealynListRow(
+      title: formatNoteDate(note.createdAt),
+      subtitle: _primaryText(note),
+      footer: footerItems.isEmpty
+          ? null
+          : Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        formatNoteDate(note.createdAt),
-                        style: HealynTypography.overline,
-                      ),
-                    ),
-                    const Icon(
-                      Icons.chevron_right,
-                      color: HealynColors.textMuted,
-                    ),
-                  ],
-                ),
-                const SizedBox(height: HealynSpacing.s2),
-                Text(
-                  primary,
-                  style: HealynTypography.bodyStrong,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                if (secondary != null) ...[
-                  const SizedBox(height: HealynSpacing.s1),
-                  Text(
-                    secondary,
-                    style: HealynTypography.body.copyWith(
-                      color: HealynColors.textSecondary,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-                if (note.nextReviewAt != null) ...[
-                  const SizedBox(height: HealynSpacing.s3),
-                  Row(
-                    children: [
-                      const Icon(
-                        Icons.event_outlined,
-                        size: 16,
-                        color: HealynColors.brandPrimaryHover,
-                      ),
-                      const SizedBox(width: HealynSpacing.s2),
-                      Expanded(
-                        child: Text(
-                          'Next review · ${formatReviewWhen(note.nextReviewAt!)}',
-                          style: HealynTypography.caption.copyWith(
-                            color: HealynColors.brandPrimaryHover,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+                footerItems.first,
+                for (final w in footerItems.skip(1)) ...[
+                  const SizedBox(height: HealynSpacing.s2),
+                  w,
                 ],
               ],
             ),
-          ),
-        ),
-      ),
+      onTap: () => context.push('$routePrefix/${note.appointmentId}'),
     );
   }
 

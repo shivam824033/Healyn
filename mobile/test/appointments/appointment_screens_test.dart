@@ -14,6 +14,7 @@ import 'package:healyn/features/appointments/presentation/screens/appointments_s
 import 'package:healyn/features/appointments/presentation/screens/book_appointment_screen.dart';
 import 'package:healyn/features/appointments/presentation/screens/reschedule_appointment_screen.dart';
 import 'package:healyn/features/appointments/presentation/widgets/appointment_status_chip.dart';
+import 'package:healyn/features/shared/widgets/healyn_section_header.dart';
 import 'package:healyn/features/patients/data/models/patient_models.dart';
 import 'package:healyn/features/patients/presentation/patients_providers.dart';
 import 'package:healyn/features/treatment_notes/data/models/treatment_note_models.dart';
@@ -217,9 +218,13 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // Section titles render as uppercased overlines.
-      expect(find.text('UPCOMING'), findsOneWidget);
-      expect(find.text('PAST'), findsOneWidget);
+      // Section titles render via HealynSectionHeader (title as-is). Scope to
+      // the header — the filter bar also carries an 'Upcoming' chip.
+      expect(
+        find.widgetWithText(HealynSectionHeader, 'Upcoming'),
+        findsOneWidget,
+      );
+      expect(find.widgetWithText(HealynSectionHeader, 'Past'), findsOneWidget);
       // Scope status to the tile chips — the filter bar also has a 'Completed' chip.
       expect(
         find.widgetWithText(AppointmentStatusChip, 'Confirmed'),

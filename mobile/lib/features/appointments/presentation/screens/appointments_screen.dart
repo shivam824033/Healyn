@@ -4,12 +4,12 @@ import 'package:go_router/go_router.dart';
 
 import '../../../patients/presentation/patients_providers.dart';
 import '../../../shared/design/colors.dart';
-import '../../../shared/design/elevation.dart';
-import '../../../shared/design/radii.dart';
 import '../../../shared/design/spacing.dart';
 import '../../../shared/design/typography.dart';
 import '../../../shared/widgets/app_bar.dart';
 import '../../../shared/widgets/error_banner.dart';
+import '../../../shared/widgets/healyn_list_row.dart';
+import '../../../shared/widgets/healyn_section_header.dart';
 import '../../data/models/appointment_models.dart';
 import '../appointment_format.dart';
 import '../appointments_providers.dart';
@@ -84,7 +84,7 @@ class AppointmentsScreen extends ConsumerWidget {
                   padding: const EdgeInsets.all(HealynSpacing.screenEdge),
                   children: [
                     if (upcoming.isNotEmpty) ...[
-                      const _SectionTitle('Upcoming'),
+                      const HealynSectionHeader(title: 'Upcoming'),
                       const SizedBox(height: HealynSpacing.s3),
                       for (final a in upcoming) ...[
                         _AppointmentTile(appointment: a, patientName: names[a.patientId]),
@@ -94,7 +94,7 @@ class AppointmentsScreen extends ConsumerWidget {
                     if (past.isNotEmpty) ...[
                       if (upcoming.isNotEmpty)
                         const SizedBox(height: HealynSpacing.s4),
-                      const _SectionTitle('Past'),
+                      const HealynSectionHeader(title: 'Past'),
                       const SizedBox(height: HealynSpacing.s3),
                       for (final a in past) ...[
                         _AppointmentTile(appointment: a, patientName: names[a.patientId]),
@@ -129,60 +129,19 @@ class _AppointmentTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final meta = [
+    final number = appointment.appointmentNumber;
+    final subtitle = [
       ?patientName,
       if (appointment.isScheduled) formatDuration(appointment.durationMinutes),
+      ?number,
     ].join(' · ');
-    return Container(
-      decoration: BoxDecoration(
-        color: HealynColors.surfaceBase,
-        borderRadius: HealynRadii.brLg,
-        border: Border.all(color: HealynColors.borderSubtle),
-        boxShadow: HealynElevation.e1,
-      ),
-      child: Material(
-        type: MaterialType.transparency,
-        child: InkWell(
-          borderRadius: HealynRadii.brLg,
-          onTap: () => context.push(
-            '/appointments/${appointment.id}',
-            extra: appointment,
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(HealynSpacing.s4),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        formatAppointmentWhenShort(appointment),
-                        style: HealynTypography.bodyStrong,
-                      ),
-                      if (meta.isNotEmpty) ...[
-                        const SizedBox(height: HealynSpacing.s1),
-                        Text(meta, style: HealynTypography.caption),
-                      ],
-                      if (appointment.appointmentNumber != null) ...[
-                        const SizedBox(height: HealynSpacing.s1),
-                        Text(
-                          appointment.appointmentNumber!,
-                          style: HealynTypography.caption.copyWith(
-                            color: HealynColors.textMuted,
-                          ),
-                        ),
-                      ],
-                      const SizedBox(height: HealynSpacing.s2),
-                      AppointmentStatusChip(status: appointment.status),
-                    ],
-                  ),
-                ),
-                const Icon(Icons.chevron_right, color: HealynColors.textMuted),
-              ],
-            ),
-          ),
-        ),
+    return HealynListRow(
+      title: formatAppointmentWhenShort(appointment),
+      subtitle: subtitle.isEmpty ? null : subtitle,
+      footer: AppointmentStatusChip(status: appointment.status),
+      onTap: () => context.push(
+        '/appointments/${appointment.id}',
+        extra: appointment,
       ),
     );
   }
@@ -247,16 +206,6 @@ class _LoadMoreFooter extends StatelessWidget {
       ),
     );
   }
-}
-
-class _SectionTitle extends StatelessWidget {
-  const _SectionTitle(this.text);
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) =>
-      Text(text.toUpperCase(), style: HealynTypography.overline);
 }
 
 class _EmptyAppointments extends StatelessWidget {

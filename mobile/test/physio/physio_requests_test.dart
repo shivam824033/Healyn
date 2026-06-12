@@ -9,6 +9,7 @@ import 'package:healyn/features/physio/presentation/physio_requests_providers.da
 import 'package:healyn/features/physio/presentation/physio_schedule_providers.dart';
 import 'package:healyn/features/physio/presentation/screens/physio_requests_screen.dart';
 import 'package:healyn/features/physio/presentation/screens/physio_today_screen.dart';
+import 'package:healyn/features/shared/widgets/healyn_section_header.dart';
 
 final _asha = Patient(
   id: 'pt1',
@@ -79,8 +80,12 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // One day header for both same-day requests.
-      expect(find.text(formatDateLong(day).toUpperCase()), findsOneWidget);
+      // One day header (HealynSectionHeader, title as-is) for both same-day
+      // requests.
+      expect(
+        find.widgetWithText(HealynSectionHeader, formatDateLong(day)),
+        findsOneWidget,
+      );
       // Each tile leads with the patient name.
       expect(find.text('Asha Rao'), findsOneWidget);
       expect(find.text('Vikram Singh'), findsOneWidget);
