@@ -10,6 +10,7 @@ import '../../../shared/network/api_exception.dart';
 import '../../../shared/widgets/app_bar.dart';
 import '../../../shared/widgets/app_text_field.dart';
 import '../../../shared/widgets/error_banner.dart';
+import '../../../shared/widgets/field_label.dart';
 import '../../../shared/widgets/primary_button.dart';
 import '../../data/models/patient_models.dart';
 import '../../data/patients_repository.dart';
@@ -364,15 +365,20 @@ class _RelationshipField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return DropdownButtonFormField<PatientRelationship>(
-      initialValue: value,
-      decoration: const InputDecoration(labelText: 'Relationship'),
-      items: PatientRelationship.values
-          .where((r) => r != PatientRelationship.self)
-          .map((r) => DropdownMenuItem(value: r, child: Text(r.label)))
-          .toList(),
-      onChanged: enabled ? onChanged : null,
-      validator: (v) => v == null ? 'Choose a relationship' : null,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const FieldLabel('Relationship'),
+        DropdownButtonFormField<PatientRelationship>(
+          initialValue: value,
+          items: PatientRelationship.values
+              .where((r) => r != PatientRelationship.self)
+              .map((r) => DropdownMenuItem(value: r, child: Text(r.label)))
+              .toList(),
+          onChanged: enabled ? onChanged : null,
+          validator: (v) => v == null ? 'Choose a relationship' : null,
+        ),
+      ],
     );
   }
 }
@@ -390,13 +396,18 @@ class _SexField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return DropdownButtonFormField<PatientSex>(
-      initialValue: value,
-      decoration: const InputDecoration(labelText: 'Sex (optional)'),
-      items: PatientSex.values
-          .map((s) => DropdownMenuItem(value: s, child: Text(s.label)))
-          .toList(),
-      onChanged: enabled ? onChanged : null,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const FieldLabel('Sex (optional)'),
+        DropdownButtonFormField<PatientSex>(
+          initialValue: value,
+          items: PatientSex.values
+              .map((s) => DropdownMenuItem(value: s, child: Text(s.label)))
+              .toList(),
+          onChanged: enabled ? onChanged : null,
+        ),
+      ],
     );
   }
 }

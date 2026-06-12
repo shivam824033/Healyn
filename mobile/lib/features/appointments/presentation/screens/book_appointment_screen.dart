@@ -12,8 +12,10 @@ import '../../../shared/design/colors.dart';
 import '../../../shared/design/spacing.dart';
 import '../../../shared/design/typography.dart';
 import '../../../shared/network/api_exception.dart';
+import '../../../shared/widgets/app_bar.dart';
 import '../../../shared/widgets/app_text_field.dart';
 import '../../../shared/widgets/error_banner.dart';
+import '../../../shared/widgets/field_label.dart';
 import '../../../shared/widgets/primary_button.dart';
 import '../../data/appointments_repository.dart';
 import '../../data/models/appointment_models.dart';
@@ -162,7 +164,7 @@ class _BookAppointmentScreenState extends ConsumerState<BookAppointmentScreen> {
   Widget build(BuildContext context) {
     final patients = ref.watch(patientsProvider);
     return Scaffold(
-      appBar: AppBar(title: const Text('Request appointment')),
+      appBar: const HealynAppBar(title: 'Request appointment'),
       body: SafeArea(
         child: patients.when(
           loading: () => const Center(child: CircularProgressIndicator()),
@@ -299,23 +301,28 @@ class _PatientField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return DropdownButtonFormField<String>(
-      initialValue: value.id,
-      decoration: const InputDecoration(labelText: 'Patient'),
-      items: patients
-          .map(
-            (p) => DropdownMenuItem(
-              value: p.id,
-              child: Text(_label(p)),
-            ),
-          )
-          .toList(),
-      onChanged: enabled
-          ? (id) {
-              if (id == null) return;
-              onChanged(patients.firstWhere((p) => p.id == id));
-            }
-          : null,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const FieldLabel('Patient'),
+        DropdownButtonFormField<String>(
+          initialValue: value.id,
+          items: patients
+              .map(
+                (p) => DropdownMenuItem(
+                  value: p.id,
+                  child: Text(_label(p)),
+                ),
+              )
+              .toList(),
+          onChanged: enabled
+              ? (id) {
+                  if (id == null) return;
+                  onChanged(patients.firstWhere((p) => p.id == id));
+                }
+              : null,
+        ),
+      ],
     );
   }
 

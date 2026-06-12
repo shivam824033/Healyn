@@ -11,6 +11,7 @@ import '../../../shared/network/api_exception.dart';
 import '../../../shared/widgets/app_bar.dart';
 import '../../../shared/widgets/app_text_field.dart';
 import '../../../shared/widgets/error_banner.dart';
+import '../../../shared/widgets/healyn_section_header.dart';
 import '../../../shared/widgets/primary_button.dart';
 import '../../../shared/widgets/section_card.dart';
 import '../../data/appointments_repository.dart';
@@ -169,7 +170,7 @@ class _RescheduleAppointmentScreenState
               ],
               _CurrentAppointmentCard(appt: _appt, patientName: patientName),
               const SizedBox(height: HealynSpacing.s6),
-              const Text('Request a new date', style: HealynTypography.overline),
+              const HealynSectionHeader(title: 'Request a new date'),
               const SizedBox(height: HealynSpacing.s3),
               AppTextField(
                 label: 'Date',
