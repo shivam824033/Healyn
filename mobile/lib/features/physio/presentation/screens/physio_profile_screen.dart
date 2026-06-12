@@ -8,6 +8,7 @@ import '../../../shared/design/colors.dart';
 import '../../../shared/design/spacing.dart';
 import '../../../shared/design/typography.dart';
 import '../../../shared/widgets/app_bar.dart';
+import '../../../shared/widgets/healyn_section_header.dart';
 import '../../../shared/widgets/nav_card.dart';
 import '../../../shared/widgets/section_card.dart';
 
@@ -50,7 +51,7 @@ class PhysioProfileScreen extends ConsumerWidget {
                 ),
               ),
               const SizedBox(height: HealynSpacing.s6),
-              const Text('SETTINGS', style: HealynTypography.overline),
+              const HealynSectionHeader(title: 'Settings'),
               const SizedBox(height: HealynSpacing.s3),
               NavCard(
                 icon: Icons.notifications_outlined,

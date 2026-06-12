@@ -10,6 +10,7 @@ import '../../../shared/design/typography.dart';
 import '../../../shared/domain/patient_sex.dart';
 import '../../../shared/widgets/app_bar.dart';
 import '../../../shared/widgets/error_banner.dart';
+import '../../../shared/widgets/healyn_section_header.dart';
 import '../../../shared/widgets/nav_card.dart';
 import '../../../shared/widgets/section_card.dart';
 import '../../data/models/patient_models.dart';
@@ -102,17 +103,17 @@ class _ProfileBody extends ConsumerWidget {
       children: [
         _Header(patient: patient),
         const SizedBox(height: HealynSpacing.s6),
-        const _SectionTitle('Personal details'),
+        const HealynSectionHeader(title: 'Personal details'),
         const SizedBox(height: HealynSpacing.s3),
         _DetailCard(rows: details),
         if (medical.isNotEmpty) ...[
           const SizedBox(height: HealynSpacing.s6),
-          const _SectionTitle('Medical'),
+          const HealynSectionHeader(title: 'Medical'),
           const SizedBox(height: HealynSpacing.s3),
           _DetailCard(rows: medical),
         ],
         const SizedBox(height: HealynSpacing.s6),
-        const _SectionTitle('Care'),
+        const HealynSectionHeader(title: 'Care'),
         const SizedBox(height: HealynSpacing.s3),
         NavCard(
           icon: Icons.assignment_outlined,
@@ -123,7 +124,7 @@ class _ProfileBody extends ConsumerWidget {
           ),
         ),
         const SizedBox(height: HealynSpacing.s6),
-        const _SectionTitle('Settings'),
+        const HealynSectionHeader(title: 'Settings'),
         const SizedBox(height: HealynSpacing.s3),
         NavCard(
           icon: Icons.notifications_outlined,
@@ -200,16 +201,6 @@ class _Header extends StatelessWidget {
       ),
     );
   }
-}
-
-class _SectionTitle extends StatelessWidget {
-  const _SectionTitle(this.text);
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) =>
-      Text(text.toUpperCase(), style: HealynTypography.overline);
 }
 
 class _DetailCard extends StatelessWidget {
