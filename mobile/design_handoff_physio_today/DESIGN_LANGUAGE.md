@@ -64,7 +64,8 @@ existing `app_bar.dart`, `section_card.dart`, `card_header.dart`,
 | `HealynTimeBlock` | `healyn_time_block.dart` | 54px leading time column (start time + AM/PM + duration) for appointment rows. | `start`, `end?` |
 | `HealynAvatar` | `healyn_avatar.dart` | Initials on a deterministic tonal fill (hash id → small brand-adjacent palette). | `name`/`seed`, `size` |
 | `HealynInfoBanner` | `healyn_info_banner.dart` | The `brandPrimarySubtle` tappable banner (tonal icon + title + subtitle + chevron). Generalizes the requests banner. | `icon`, `title`, `subtitle?`, `onTap`, `tone` (brand/warning/…) |
-| `HealynSectionHeader` | `healyn_section_header.dart` | `h2` title + optional count chip. | `title`, `countLabel?` |
+| `HealynSectionHeader` | `healyn_section_header.dart` | `h2` title + optional count chip. | `title`, `countLabel?`, `trailing?` |
+| `FieldLabel` | `field_label.dart` | The label above a form control — `caption`/600, matching `app_text_field`'s internal label. Use it for the controls `AppTextField` can't host (dropdowns, picker-backed fields) so every field on a form reads the same. | `text` |
 
 Once these exist, "make a screen Refined Indigo" becomes "compose it from these
 widgets," which is fast and automatically consistent.
