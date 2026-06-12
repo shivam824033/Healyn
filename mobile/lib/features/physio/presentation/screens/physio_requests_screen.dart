@@ -8,12 +8,12 @@ import '../../../appointments/presentation/widgets/appointment_status_chip.dart'
 import '../../../patients/data/models/patient_models.dart';
 import '../../../patients/presentation/patients_providers.dart';
 import '../../../shared/design/colors.dart';
-import '../../../shared/design/elevation.dart';
-import '../../../shared/design/radii.dart';
 import '../../../shared/design/spacing.dart';
 import '../../../shared/design/typography.dart';
 import '../../../shared/widgets/app_bar.dart';
 import '../../../shared/widgets/error_banner.dart';
+import '../../../shared/widgets/healyn_list_row.dart';
+import '../../../shared/widgets/healyn_section_header.dart';
 import '../physio_requests_providers.dart';
 import '../widgets/patient_avatar_button.dart';
 
@@ -61,7 +61,12 @@ class PhysioRequestsScreen extends ConsumerWidget {
                 padding: const EdgeInsets.all(HealynSpacing.screenEdge),
                 children: [
                   for (final entry in groups.entries) ...[
-                    _DayHeader(label: entry.key),
+                    HealynSectionHeader(
+                      title: entry.key,
+                      countLabel: entry.value.length == 1
+                          ? '1 request'
+                          : '${entry.value.length} requests',
+                    ),
                     const SizedBox(height: HealynSpacing.s3),
                     for (final a in entry.value) ...[
                       _RequestTile(
@@ -82,16 +87,6 @@ class PhysioRequestsScreen extends ConsumerWidget {
   }
 }
 
-class _DayHeader extends StatelessWidget {
-  const _DayHeader({required this.label});
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) =>
-      Text(label.toUpperCase(), style: HealynTypography.overline);
-}
-
 class _RequestTile extends StatelessWidget {
   const _RequestTile({required this.appointment, this.patient});
 
@@ -102,56 +97,18 @@ class _RequestTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final patientName = patient?.fullName;
     final preferred = formatClockTime(appointment.preferredTime);
-    return Container(
-      decoration: BoxDecoration(
-        color: HealynColors.surfaceBase,
-        borderRadius: HealynRadii.brLg,
-        border: Border.all(color: HealynColors.borderSubtle),
-        boxShadow: HealynElevation.e1,
+    return HealynListRow(
+      leading: PatientAvatarButton(
+        patientId: appointment.patientId,
+        name: patientName,
+        patient: patient,
       ),
-      child: Material(
-        type: MaterialType.transparency,
-        child: InkWell(
-          borderRadius: HealynRadii.brLg,
-          onTap: () => context.push(
-            '/physio/appointments/${appointment.id}',
-            extra: appointment,
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(HealynSpacing.s4),
-            child: Row(
-              children: [
-                PatientAvatarButton(
-                  patientId: appointment.patientId,
-                  name: patientName,
-                  patient: patient,
-                ),
-                const SizedBox(width: HealynSpacing.s4),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        patientName ?? 'Patient',
-                        style: HealynTypography.bodyStrong,
-                      ),
-                      const SizedBox(height: HealynSpacing.s1),
-                      Text(
-                        preferred != null
-                            ? 'Prefers $preferred'
-                            : 'No time preference',
-                        style: HealynTypography.caption,
-                      ),
-                      const SizedBox(height: HealynSpacing.s2),
-                      AppointmentStatusChip(status: appointment.status),
-                    ],
-                  ),
-                ),
-                const Icon(Icons.chevron_right, color: HealynColors.textMuted),
-              ],
-            ),
-          ),
-        ),
+      title: patientName ?? 'Patient',
+      subtitle: preferred != null ? 'Prefers $preferred' : 'No time preference',
+      footer: AppointmentStatusChip(status: appointment.status),
+      onTap: () => context.push(
+        '/physio/appointments/${appointment.id}',
+        extra: appointment,
       ),
     );
   }

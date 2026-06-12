@@ -7,12 +7,12 @@ import '../../../patients/presentation/patient_format.dart';
 import '../../../patients/presentation/patients_providers.dart';
 import '../../../shared/domain/patient_sex.dart';
 import '../../../shared/design/colors.dart';
-import '../../../shared/design/elevation.dart';
-import '../../../shared/design/radii.dart';
 import '../../../shared/design/spacing.dart';
 import '../../../shared/design/typography.dart';
 import '../../../shared/widgets/app_bar.dart';
 import '../../../shared/widgets/error_banner.dart';
+import '../../../shared/widgets/healyn_avatar.dart';
+import '../../../shared/widgets/healyn_list_row.dart';
 
 /// The physiotherapist's patient roster (C6, F1.16) — every patient in the
 /// practice (`GET /patients` returns the full roster for a physio), name-sorted
@@ -134,55 +134,12 @@ class _PatientTile extends StatelessWidget {
     final age = patientAgeInYears(patient.dateOfBirth);
     final sex = patient.sex?.label;
     final subtitle = sex == null ? 'Age $age' : 'Age $age · $sex';
-    return Container(
-      decoration: BoxDecoration(
-        color: HealynColors.surfaceBase,
-        borderRadius: HealynRadii.brLg,
-        border: Border.all(color: HealynColors.borderSubtle),
-        boxShadow: HealynElevation.e1,
-      ),
-      child: Material(
-        type: MaterialType.transparency,
-        child: InkWell(
-          borderRadius: HealynRadii.brLg,
-          onTap: () =>
-              context.push('/physio/patients/${patient.id}', extra: patient),
-          child: Padding(
-            padding: const EdgeInsets.all(HealynSpacing.s4),
-            child: Row(
-              children: [
-                CircleAvatar(
-                  radius: 22,
-                  backgroundColor: HealynColors.brandPrimarySubtle,
-                  child: Text(
-                    patientInitials(patient.fullName),
-                    style: HealynTypography.bodyStrong.copyWith(
-                      color: HealynColors.brandPrimaryHover,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: HealynSpacing.s4),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(patient.fullName, style: HealynTypography.bodyStrong),
-                      const SizedBox(height: HealynSpacing.s1),
-                      Text(
-                        subtitle,
-                        style: HealynTypography.caption.copyWith(
-                          color: HealynColors.textSecondary,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const Icon(Icons.chevron_right, color: HealynColors.textMuted),
-              ],
-            ),
-          ),
-        ),
-      ),
+    return HealynListRow(
+      leading: HealynAvatar(name: patient.fullName, seed: patient.id, size: 44),
+      title: patient.fullName,
+      subtitle: subtitle,
+      onTap: () =>
+          context.push('/physio/patients/${patient.id}', extra: patient),
     );
   }
 }

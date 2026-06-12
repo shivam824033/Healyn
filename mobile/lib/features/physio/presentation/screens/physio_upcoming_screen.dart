@@ -13,12 +13,12 @@ import '../../../appointments/presentation/widgets/appointment_status_chip.dart'
 import '../../../patients/data/models/patient_models.dart';
 import '../../../patients/presentation/patients_providers.dart';
 import '../../../shared/design/colors.dart';
-import '../../../shared/design/elevation.dart';
 import '../../../shared/design/radii.dart';
 import '../../../shared/design/spacing.dart';
 import '../../../shared/design/typography.dart';
 import '../../../shared/widgets/app_bar.dart';
 import '../../../shared/widgets/error_banner.dart';
+import '../../../shared/widgets/healyn_list_row.dart';
 import '../physio_upcoming_providers.dart';
 import '../widgets/patient_avatar_button.dart';
 
@@ -171,71 +171,33 @@ class _AppointmentTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final patientName = patient?.fullName;
-    return Container(
-      decoration: BoxDecoration(
-        color: HealynColors.surfaceBase,
-        borderRadius: HealynRadii.brLg,
-        border: Border.all(color: HealynColors.borderSubtle),
-        boxShadow: HealynElevation.e1,
+    final number = appointment.appointmentNumber;
+    // Lead with the appointment's when; the patient (and its human-friendly
+    // number when present) reads on the subtitle line.
+    final subtitle = [
+      patientName ?? 'Patient',
+      ?number,
+    ].join(' · ');
+    return HealynListRow(
+      leading: PatientAvatarButton(
+        patientId: appointment.patientId,
+        name: patientName,
+        patient: patient,
       ),
-      child: Material(
-        type: MaterialType.transparency,
-        child: InkWell(
-          borderRadius: HealynRadii.brLg,
-          onTap: () => context.push(
-            '/physio/appointments/${appointment.id}',
-            extra: appointment,
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(HealynSpacing.s4),
-            child: Row(
-              children: [
-                PatientAvatarButton(
-                  patientId: appointment.patientId,
-                  name: patientName,
-                  patient: patient,
-                ),
-                const SizedBox(width: HealynSpacing.s4),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        formatAppointmentWhenShort(appointment),
-                        style: HealynTypography.bodyStrong,
-                      ),
-                      const SizedBox(height: HealynSpacing.s1),
-                      Text(
-                        patientName ?? 'Patient',
-                        style: HealynTypography.body,
-                      ),
-                      if (appointment.appointmentNumber != null) ...[
-                        const SizedBox(height: HealynSpacing.s1),
-                        Text(
-                          appointment.appointmentNumber!,
-                          style: HealynTypography.caption.copyWith(
-                            color: HealynColors.textMuted,
-                          ),
-                        ),
-                      ],
-                      const SizedBox(height: HealynSpacing.s2),
-                      Wrap(
-                        spacing: HealynSpacing.s2,
-                        runSpacing: HealynSpacing.s2,
-                        crossAxisAlignment: WrapCrossAlignment.center,
-                        children: [
-                          AppointmentStatusChip(status: appointment.status),
-                          if (appointment.isFollowUp) const _FollowUpChip(),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                const Icon(Icons.chevron_right, color: HealynColors.textMuted),
-              ],
-            ),
-          ),
-        ),
+      title: formatAppointmentWhenShort(appointment),
+      subtitle: subtitle,
+      footer: Wrap(
+        spacing: HealynSpacing.s2,
+        runSpacing: HealynSpacing.s2,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        children: [
+          AppointmentStatusChip(status: appointment.status),
+          if (appointment.isFollowUp) const _FollowUpChip(),
+        ],
+      ),
+      onTap: () => context.push(
+        '/physio/appointments/${appointment.id}',
+        extra: appointment,
       ),
     );
   }
