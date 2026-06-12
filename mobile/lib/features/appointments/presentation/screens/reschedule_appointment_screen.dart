@@ -157,6 +157,7 @@ class _RescheduleAppointmentScreenState
     }[_appt.patientId];
 
     return Scaffold(
+      backgroundColor: HealynColors.surfaceAlt,
       appBar: const HealynAppBar(title: 'Reschedule'),
       body: SafeArea(
         child: SingleChildScrollView(

@@ -93,6 +93,7 @@ class PhysioAvailabilityScreen extends ConsumerWidget {
     }
 
     return Scaffold(
+      backgroundColor: HealynColors.surfaceAlt,
       appBar: const HealynAppBar(title: 'Availability'),
       body: SafeArea(
         child: RefreshIndicator(

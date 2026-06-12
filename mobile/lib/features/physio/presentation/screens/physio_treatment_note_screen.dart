@@ -144,6 +144,7 @@ class _PhysioTreatmentNoteScreenState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: HealynColors.surfaceAlt,
       appBar: HealynAppBar(
         title: _isEdit ? 'Edit treatment note' : 'Treatment note',
       ),

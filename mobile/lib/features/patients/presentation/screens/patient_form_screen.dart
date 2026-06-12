@@ -239,6 +239,7 @@ class _PatientFormScreenState extends ConsumerState<PatientFormScreen> {
         : 'Edit family member';
 
     return Scaffold(
+      backgroundColor: HealynColors.surfaceAlt,
       appBar: HealynAppBar(title: title),
       body: SafeArea(
         child: SingleChildScrollView(

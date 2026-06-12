@@ -29,6 +29,7 @@ class AppointmentsScreen extends ConsumerWidget {
     final filter = ref.watch(appointmentFilterProvider);
 
     return Scaffold(
+      backgroundColor: HealynColors.surfaceAlt,
       appBar: HealynAppBar(
         title: 'Appointments',
         actions: [

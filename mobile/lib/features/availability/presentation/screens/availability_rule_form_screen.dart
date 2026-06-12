@@ -126,6 +126,7 @@ class _AvailabilityRuleFormScreenState
     final validation = _validationError;
     final canSave = validation == null && !_submitting;
     return Scaffold(
+      backgroundColor: HealynColors.surfaceAlt,
       appBar: const HealynAppBar(title: 'Add working hours'),
       body: SafeArea(
         child: ListView(

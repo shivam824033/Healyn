@@ -39,6 +39,7 @@ class _PhysioPatientsScreenState extends ConsumerState<PhysioPatientsScreen> {
   Widget build(BuildContext context) {
     final patients = ref.watch(patientsProvider);
     return Scaffold(
+      backgroundColor: HealynColors.surfaceAlt,
       appBar: const HealynAppBar(title: 'Patients'),
       body: SafeArea(
         child: Column(

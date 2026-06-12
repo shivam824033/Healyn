@@ -164,6 +164,7 @@ class _BookAppointmentScreenState extends ConsumerState<BookAppointmentScreen> {
   Widget build(BuildContext context) {
     final patients = ref.watch(patientsProvider);
     return Scaffold(
+      backgroundColor: HealynColors.surfaceAlt,
       appBar: const HealynAppBar(title: 'Request appointment'),
       body: SafeArea(
         child: patients.when(

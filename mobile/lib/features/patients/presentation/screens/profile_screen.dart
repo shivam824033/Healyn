@@ -28,6 +28,7 @@ class ProfileScreen extends ConsumerWidget {
     final list = patients.valueOrNull;
     final me = (list == null || list.isEmpty) ? null : primaryPatientOf(list);
     return Scaffold(
+      backgroundColor: HealynColors.surfaceAlt,
       appBar: HealynAppBar(
         title: 'Profile',
         actions: [

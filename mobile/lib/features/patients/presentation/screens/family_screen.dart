@@ -22,6 +22,7 @@ class FamilyScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final patients = ref.watch(patientsProvider);
     return Scaffold(
+      backgroundColor: HealynColors.surfaceAlt,
       appBar: HealynAppBar(
         title: 'Family',
         actions: [

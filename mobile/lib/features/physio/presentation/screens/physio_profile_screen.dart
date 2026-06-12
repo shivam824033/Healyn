@@ -21,6 +21,7 @@ class PhysioProfileScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
+      backgroundColor: HealynColors.surfaceAlt,
       appBar: const HealynAppBar(title: 'Profile'),
       body: SafeArea(
         child: RefreshIndicator(

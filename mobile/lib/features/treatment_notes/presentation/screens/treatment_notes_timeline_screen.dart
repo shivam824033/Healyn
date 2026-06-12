@@ -130,6 +130,7 @@ class _TreatmentNotesTimelineScreenState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: HealynColors.surfaceAlt,
       appBar: HealynAppBar(
         titleWidget: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

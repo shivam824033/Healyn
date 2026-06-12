@@ -411,6 +411,7 @@ class _PhysioAppointmentDetailScreenState
     final actionButtons = _actionButtons();
 
     return Scaffold(
+      backgroundColor: HealynColors.surfaceAlt,
       appBar: const HealynAppBar(title: 'Appointment'),
       body: SafeArea(
         child: ListView(

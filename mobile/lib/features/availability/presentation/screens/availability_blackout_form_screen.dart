@@ -108,6 +108,7 @@ class _AvailabilityBlackoutFormScreenState
   Widget build(BuildContext context) {
     final canSave = _endAfterStart && !_submitting;
     return Scaffold(
+      backgroundColor: HealynColors.surfaceAlt,
       appBar: const HealynAppBar(title: 'Add time off'),
       body: SafeArea(
         child: ListView(

@@ -26,6 +26,7 @@ class UnreadDiscussionsScreen extends ConsumerWidget {
     final names = {for (final p in patients) p.id: p.fullName};
 
     return Scaffold(
+      backgroundColor: HealynColors.surfaceAlt,
       appBar: const HealynAppBar(title: 'Unread messages'),
       body: SafeArea(
         child: RefreshIndicator(

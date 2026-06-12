@@ -38,6 +38,7 @@ class PhysioUpcomingScreen extends ConsumerWidget {
     final byId = {for (final p in patients) p.id: p};
 
     return Scaffold(
+      backgroundColor: HealynColors.surfaceAlt,
       appBar: HealynAppBar(
         title: 'Appointments',
         actions: [

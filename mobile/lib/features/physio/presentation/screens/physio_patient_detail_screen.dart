@@ -43,6 +43,7 @@ class PhysioPatientDetailScreen extends ConsumerWidget {
     ];
 
     return Scaffold(
+      backgroundColor: HealynColors.surfaceAlt,
       appBar: const HealynAppBar(title: 'Patient'),
       body: SafeArea(
         child: ListView(
