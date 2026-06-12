@@ -8,6 +8,8 @@ import '../../../shared/design/typography.dart';
 import '../../../shared/network/api_exception.dart';
 import '../../../shared/widgets/app_bar.dart';
 import '../../../shared/widgets/error_banner.dart';
+import '../../../shared/widgets/field_label.dart';
+import '../../../shared/widgets/primary_button.dart';
 import '../../data/availability_repository.dart';
 
 /// Adds a one-off time-off window (C7): a start and end instant and an optional
@@ -127,7 +129,7 @@ class _AvailabilityBlackoutFormScreenState
               onTap: _submitting ? null : _pickEnd,
             ),
             const SizedBox(height: HealynSpacing.s5),
-            const _Label('Reason (optional)'),
+            const FieldLabel('Reason (optional)'),
             TextField(
               controller: _reason,
               maxLength: 200,
@@ -135,7 +137,6 @@ class _AvailabilityBlackoutFormScreenState
               decoration: const InputDecoration(
                 hintText: 'e.g. Public holiday, leave',
                 counterText: '',
-                border: OutlineInputBorder(),
               ),
             ),
             const SizedBox(height: HealynSpacing.s3),
@@ -147,37 +148,16 @@ class _AvailabilityBlackoutFormScreenState
                 ),
               ),
             const SizedBox(height: HealynSpacing.s6),
-            ElevatedButton.icon(
+            PrimaryButton(
+              label: 'Add time off',
+              loading: _submitting,
               onPressed: canSave ? _save : null,
-              icon: _submitting
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.check),
-              label: const Text('Add time off'),
-              style: ElevatedButton.styleFrom(
-                minimumSize: const Size.fromHeight(48),
-              ),
             ),
           ],
         ),
       ),
     );
   }
-}
-
-class _Label extends StatelessWidget {
-  const _Label(this.text);
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.only(bottom: HealynSpacing.s2),
-    child: Text(text.toUpperCase(), style: HealynTypography.overline),
-  );
 }
 
 class _DateTimeField extends StatelessWidget {
@@ -196,14 +176,11 @@ class _DateTimeField extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _Label(label),
+        FieldLabel(label),
         InkWell(
           onTap: onTap,
           child: InputDecorator(
-            decoration: const InputDecoration(
-              border: OutlineInputBorder(),
-              suffixIcon: Icon(Icons.event),
-            ),
+            decoration: const InputDecoration(suffixIcon: Icon(Icons.event)),
             child: Text(formatWhen(value), style: HealynTypography.body),
           ),
         ),

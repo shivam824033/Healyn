@@ -7,6 +7,8 @@ import '../../../shared/design/typography.dart';
 import '../../../shared/network/api_exception.dart';
 import '../../../shared/widgets/app_bar.dart';
 import '../../../shared/widgets/error_banner.dart';
+import '../../../shared/widgets/field_label.dart';
+import '../../../shared/widgets/primary_button.dart';
 import '../../data/availability_repository.dart';
 import '../availability_format.dart';
 
@@ -133,10 +135,9 @@ class _AvailabilityRuleFormScreenState
               ErrorBanner(message: _error!),
               const SizedBox(height: HealynSpacing.s4),
             ],
-            const _Label('Day'),
+            const FieldLabel('Day'),
             DropdownButtonFormField<int>(
               initialValue: _dayOfWeek,
-              decoration: const InputDecoration(border: OutlineInputBorder()),
               items: [
                 for (final d in _dayChoices)
                   DropdownMenuItem(value: d, child: Text(dayOfWeekLabel(d))),
@@ -166,10 +167,9 @@ class _AvailabilityRuleFormScreenState
               ],
             ),
             const SizedBox(height: HealynSpacing.s5),
-            const _Label('Slot length'),
+            const FieldLabel('Slot length'),
             DropdownButtonFormField<int>(
               initialValue: _slotMinutes,
-              decoration: const InputDecoration(border: OutlineInputBorder()),
               items: [
                 for (final m in _slotChoices)
                   DropdownMenuItem(value: m, child: Text('$m minutes')),
@@ -179,10 +179,9 @@ class _AvailabilityRuleFormScreenState
                   : (v) => setState(() => _slotMinutes = v ?? _slotMinutes),
             ),
             const SizedBox(height: HealynSpacing.s5),
-            const _Label('Timezone'),
+            const FieldLabel('Timezone'),
             DropdownButtonFormField<String>(
               initialValue: _timezone,
-              decoration: const InputDecoration(border: OutlineInputBorder()),
               items: [
                 for (final tz in _timezoneChoices)
                   DropdownMenuItem(value: tz, child: Text(tz)),
@@ -200,37 +199,16 @@ class _AvailabilityRuleFormScreenState
                 ),
               ),
             const SizedBox(height: HealynSpacing.s6),
-            ElevatedButton.icon(
+            PrimaryButton(
+              label: 'Add working hours',
+              loading: _submitting,
               onPressed: canSave ? _save : null,
-              icon: _submitting
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.check),
-              label: const Text('Add working hours'),
-              style: ElevatedButton.styleFrom(
-                minimumSize: const Size.fromHeight(48),
-              ),
             ),
           ],
         ),
       ),
     );
   }
-}
-
-class _Label extends StatelessWidget {
-  const _Label(this.text);
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.only(bottom: HealynSpacing.s2),
-    child: Text(text.toUpperCase(), style: HealynTypography.overline),
-  );
 }
 
 class _TimeField extends StatelessWidget {
@@ -249,14 +227,11 @@ class _TimeField extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _Label(label),
+        FieldLabel(label),
         InkWell(
           onTap: onTap,
           child: InputDecorator(
-            decoration: const InputDecoration(
-              border: OutlineInputBorder(),
-              suffixIcon: Icon(Icons.schedule),
-            ),
+            decoration: const InputDecoration(suffixIcon: Icon(Icons.schedule)),
             child: Text(
               formatClockTime('${value.hour}:${value.minute}'),
               style: HealynTypography.body,

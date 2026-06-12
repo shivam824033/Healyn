@@ -7,13 +7,14 @@ import '../../../availability/data/models/availability_models.dart';
 import '../../../availability/presentation/availability_format.dart';
 import '../../../availability/presentation/availability_providers.dart';
 import '../../../shared/design/colors.dart';
-import '../../../shared/design/elevation.dart';
 import '../../../shared/design/radii.dart';
 import '../../../shared/design/spacing.dart';
 import '../../../shared/design/typography.dart';
 import '../../../shared/network/api_exception.dart';
 import '../../../shared/widgets/app_bar.dart';
 import '../../../shared/widgets/error_banner.dart';
+import '../../../shared/widgets/healyn_section_header.dart';
+import '../../../shared/widgets/section_card.dart';
 
 /// The physiotherapist's availability management (C7, F1.8 enabler): the two
 /// stored inputs that compute bookable slots — recurring weekly working hours
@@ -147,17 +148,13 @@ class _SectionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: Text(title.toUpperCase(), style: HealynTypography.overline),
-        ),
-        TextButton.icon(
-          onPressed: onAdd,
-          icon: const Icon(Icons.add, size: 18),
-          label: const Text('Add'),
-        ),
-      ],
+    return HealynSectionHeader(
+      title: title,
+      trailing: TextButton.icon(
+        onPressed: onAdd,
+        icon: const Icon(Icons.add, size: 18),
+        label: const Text('Add'),
+      ),
     );
   }
 }
@@ -316,13 +313,7 @@ class _Card extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: HealynColors.surfaceBase,
-        borderRadius: HealynRadii.brLg,
-        border: Border.all(color: HealynColors.borderSubtle),
-        boxShadow: HealynElevation.e1,
-      ),
+    return SectionCard(
       padding: const EdgeInsets.fromLTRB(
         HealynSpacing.s4,
         HealynSpacing.s4,
