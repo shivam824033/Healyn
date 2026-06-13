@@ -12,6 +12,9 @@ import com.healyn.auth.domain.OtpChannel;
 import com.healyn.auth.repository.AccountRepository;
 import com.healyn.auth.service.AccessTokenIssuer;
 import com.healyn.common.id.UuidV7;
+import com.healyn.notifications.domain.NotificationKind;
+import com.healyn.notifications.domain.NotificationOutbox;
+import com.healyn.notifications.repository.NotificationOutboxRepository;
 import com.redis.testcontainers.RedisContainer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -93,6 +96,7 @@ class AppointmentIntegrationTest {
     @Autowired AppointmentRepository appointments;
     @Autowired AccessTokenIssuer tokenIssuer;
     @Autowired AppointmentNumberGenerator numbers;
+    @Autowired NotificationOutboxRepository outbox;
 
     @BeforeEach
     void reset() {
@@ -113,6 +117,29 @@ class AppointmentIntegrationTest {
 
         requestOk(a, patientA, date, "idem-a-1");
         requestOk(b, patientB, date, "idem-b-1");
+    }
+
+    @Test
+    void booking_request_notification_payload_carries_appointment_number_and_only_ids() throws Exception {
+        // A new request notifies the physiotherapist. The payload must carry IDs only
+        // (CLAUDE.md Hard Rule #4) — the human-friendly appointmentNumber (a business id, not PHI)
+        // rides along so the client can name the notification without a fetch; nothing else.
+        seedPhysio();
+        Session a = registerPatient("nora");
+        UUID patientA = primaryPatientId(a);
+        UUID appointmentId = requestOk(a, patientA, requestDate(7), "idem-notify-1");
+        String number = appointments.findById(appointmentId).orElseThrow().getAppointmentNumber();
+
+        NotificationOutbox row = outbox.findByCorrelationIdOrderByCreatedAtAsc(appointmentId).stream()
+                .filter(o -> o.getKind() == NotificationKind.BOOKING_REQUESTED)
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("no BOOKING_REQUESTED row enqueued"));
+
+        assertThat(row.getPayload())
+                .containsEntry("appointmentId", appointmentId.toString())
+                .containsEntry("appointmentNumber", number);
+        // IDs only: no patient name, message body, or other PHI leaked into the payload.
+        assertThat(row.getPayload().keySet()).containsExactlyInAnyOrder("appointmentId", "appointmentNumber");
     }
 
     @Test

@@ -11,15 +11,20 @@ import 'fcm_token_models.dart';
 import 'local_notifications.dart';
 
 /// Maps a push data payload to an in-app route. The backend sends IDs only
-/// (Hard Rule #4); appointment-centric notifications carry `appointmentId`,
-/// which deep-links to that appointment's detail. Returns null when there is
-/// nothing actionable to open.
-String? routeForPush(Map<String, String> data) {
+/// (Hard Rule #4); every actionable notification carries `appointmentId`.
+///
+/// A `DISCUSSION_NEW_MESSAGE` opens the appointment's discussion thread; every
+/// other (appointment-lifecycle) kind opens its detail. The route is
+/// role-scoped: a physiotherapist's screens live under `/physio/*` (the router
+/// redirect bounces a physio out of the patient routes, so the prefix matters).
+/// Returns null when there is nothing actionable to open.
+String? routeForPush(Map<String, String> data, {required bool isPhysio}) {
   final appointmentId = data['appointmentId'];
-  if (appointmentId != null && appointmentId.isNotEmpty) {
-    return '/appointments/$appointmentId';
-  }
-  return null;
+  if (appointmentId == null || appointmentId.isEmpty) return null;
+  final base = isPhysio
+      ? '/physio/appointments/$appointmentId'
+      : '/appointments/$appointmentId';
+  return data['kind'] == 'DISCUSSION_NEW_MESSAGE' ? '$base/discussion' : base;
 }
 
 /// Registers this device's FCM token with the backend and routes notification
@@ -63,20 +68,22 @@ class PushService {
     }
   }
 
-  /// Wires notification taps to [onRoute]: the tap that cold-started the app
-  /// (if any) plus every tap while it is running. Inert when push is
-  /// unconfigured. Idempotent.
-  Future<void> wireTaps(void Function(String route) onRoute) async {
+  /// Wires FCM notification taps to [onData], delivering the raw payload so the
+  /// caller can resolve the route with the live account role: the tap that
+  /// cold-started the app (if any) plus every tap while it is running. Inert when
+  /// push is unconfigured. Idempotent.
+  ///
+  /// Note: the backend sends data-only messages, whose taps are delivered by the
+  /// local-notifications plugin, not these FCM streams. This path is kept for
+  /// robustness (and any future notification-type messages); the local plugin's
+  /// tap callback is the primary route for this app.
+  Future<void> wireTaps(void Function(Map<String, String> data) onData) async {
     if (!await _messaging.ensureInitialized()) return;
 
     final initial = await _messaging.getInitialMessage();
-    final initialRoute = initial == null ? null : routeForPush(initial);
-    if (initialRoute != null) onRoute(initialRoute);
+    if (initial != null) onData(initial);
 
-    _tapSub ??= _messaging.onMessageOpenedApp.listen((data) {
-      final route = routeForPush(data);
-      if (route != null) onRoute(route);
-    });
+    _tapSub ??= _messaging.onMessageOpenedApp.listen(onData);
   }
 
   /// Cancels the token-refresh and tap subscriptions (wired to provider dispose).

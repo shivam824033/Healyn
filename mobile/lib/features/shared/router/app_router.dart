@@ -32,6 +32,7 @@ import '../../physio/presentation/screens/physio_patients_screen.dart';
 import '../../physio/presentation/screens/physio_requests_screen.dart';
 import '../../physio/presentation/screens/physio_profile_screen.dart';
 import '../../physio/presentation/screens/physio_today_screen.dart';
+import '../../physio/presentation/screens/physio_unread_discussions_screen.dart';
 import '../../physio/presentation/screens/physio_upcoming_screen.dart';
 import '../../physio/presentation/screens/physio_treatment_note_screen.dart';
 import '../../treatment_notes/data/models/treatment_note_models.dart';
@@ -223,6 +224,12 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/physio/upcoming',
         builder: (_, _) => const PhysioUpcomingScreen(),
+      ),
+      // The physiotherapist's account-wide unread discussions, reached from the
+      // Today "Unread" stat. Under /physio/* so the redirect keeps non-physios out.
+      GoRoute(
+        path: '/physio/discussions/unread',
+        builder: (_, _) => const PhysioUnreadDiscussionsScreen(),
       ),
       // The physiotherapist's appointment detail, pushed over the physio shell.
       // Under /physio/* so the redirect keeps non-physios out. `discussion` and

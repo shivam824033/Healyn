@@ -10,6 +10,7 @@ import '../../../shared/network/api_exception.dart';
 import '../../../shared/widgets/app_bar.dart';
 import '../../../shared/widgets/error_banner.dart';
 import '../../../shared/widgets/healyn_section_header.dart';
+import '../../../shared/widgets/copyable_id.dart';
 import '../../../shared/widgets/section_card.dart';
 import '../../../treatment_notes/presentation/widgets/treatment_note_section.dart';
 import '../../data/appointments_repository.dart';
@@ -150,12 +151,7 @@ class _AppointmentDetailScreenState
                   AppointmentStatusChip(status: _appt.status),
                   if (_appt.appointmentNumber != null) ...[
                     const SizedBox(height: HealynSpacing.s2),
-                    Text(
-                      _appt.appointmentNumber!,
-                      style: HealynTypography.caption.copyWith(
-                        color: HealynColors.textMuted,
-                      ),
-                    ),
+                    CopyableId(value: _appt.appointmentNumber!),
                   ],
                   const SizedBox(height: HealynSpacing.s3),
                   Text(

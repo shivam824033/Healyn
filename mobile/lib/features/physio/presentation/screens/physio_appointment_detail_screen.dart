@@ -21,6 +21,7 @@ import '../../../shared/widgets/app_bar.dart';
 import '../../../shared/widgets/error_banner.dart';
 import '../../../shared/widgets/healyn_list_row.dart';
 import '../../../shared/widgets/healyn_section_header.dart';
+import '../../../shared/widgets/copyable_id.dart';
 import '../../../shared/widgets/section_card.dart';
 import '../physio_appointment_actions.dart';
 import '../physio_requests_providers.dart';
@@ -428,12 +429,7 @@ class _PhysioAppointmentDetailScreenState
                   AppointmentStatusChip(status: _appt.status),
                   if (_appt.appointmentNumber != null) ...[
                     const SizedBox(height: HealynSpacing.s2),
-                    Text(
-                      _appt.appointmentNumber!,
-                      style: HealynTypography.caption.copyWith(
-                        color: HealynColors.textMuted,
-                      ),
-                    ),
+                    CopyableId(value: _appt.appointmentNumber!),
                   ],
                   const SizedBox(height: HealynSpacing.s3),
                   Text(

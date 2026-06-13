@@ -12,6 +12,7 @@ import '../../../shared/widgets/app_bar.dart';
 import '../../../shared/widgets/error_banner.dart';
 import '../../../shared/widgets/healyn_section_header.dart';
 import '../../../shared/widgets/nav_card.dart';
+import '../../../shared/widgets/copyable_id.dart';
 import '../../../shared/widgets/section_card.dart';
 import '../../data/models/patient_models.dart';
 import '../patient_format.dart';
@@ -232,12 +233,7 @@ class _Header extends StatelessWidget {
                 Text(patient.fullName, style: HealynTypography.h2),
                 if (patient.patientNumber != null) ...[
                   const SizedBox(height: HealynSpacing.s1),
-                  Text(
-                    patient.patientNumber!,
-                    style: HealynTypography.caption.copyWith(
-                      color: HealynColors.textMuted,
-                    ),
-                  ),
+                  CopyableId(value: patient.patientNumber!),
                 ],
                 const SizedBox(height: HealynSpacing.s1),
                 Text(

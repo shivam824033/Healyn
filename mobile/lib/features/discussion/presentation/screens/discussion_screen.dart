@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../appointments/data/models/appointment_models.dart';
 import '../../../files/data/file_picker_service.dart';
@@ -9,6 +10,7 @@ import '../../../files/data/file_types.dart';
 import '../../../files/data/files_repository.dart';
 import '../../../files/data/models/file_models.dart';
 import '../../../files/data/url_opener.dart';
+import '../../../patients/presentation/patients_providers.dart';
 import '../../../shared/auth/current_account.dart';
 import '../../../shared/design/colors.dart';
 import '../../../shared/design/radii.dart';
@@ -16,6 +18,7 @@ import '../../../shared/design/spacing.dart';
 import '../../../shared/design/typography.dart';
 import '../../../shared/network/api_exception.dart';
 import '../../../shared/widgets/app_bar.dart';
+import '../../../shared/widgets/copyable_id.dart';
 import '../../../shared/widgets/error_banner.dart';
 import '../../data/discussion_repository.dart';
 import '../../data/models/discussion_models.dart';
@@ -443,11 +446,37 @@ class _DiscussionScreenState extends ConsumerState<DiscussionScreen> {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
   }
 
+  /// Opens this thread's appointment detail, scoped to the viewer's app.
+  void _openDetail() {
+    final route = _isPhysio
+        ? '/physio/appointments/$_appointmentId'
+        : '/appointments/$_appointmentId';
+    context.push(route, extra: _appt);
+  }
+
+  /// The patient's name for the physio viewer's header (the physio has the
+  /// roster loaded). Null for the patient viewer, or until the roster resolves.
+  String? _headerPatientName() {
+    if (!_isPhysio) return null;
+    final patients = ref.watch(patientsProvider).valueOrNull;
+    if (patients == null) return null;
+    for (final p in patients) {
+      if (p.id == _appt.patientId) return p.fullName;
+    }
+    return null;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: HealynColors.surfaceAlt,
-      appBar: const HealynAppBar(title: 'Discussion'),
+      appBar: HealynAppBar(
+        titleWidget: _DiscussionHeader(
+          appointmentNumber: _appt.appointmentNumber,
+          patientName: _headerPatientName(),
+          onOpenDetail: _openDetail,
+        ),
+      ),
       body: SafeArea(
         child: Column(
           children: [
@@ -660,6 +689,77 @@ class _DiscussionScreenState extends ConsumerState<DiscussionScreen> {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// The discussion app-bar title: "Discussion" (tappable → appointment detail)
+/// over the human-friendly appointment number (copyable) and, for the physio
+/// viewer, the patient's name. Renders on the gradient app bar, so its text is
+/// inverse-coloured. Carries no PHI for the patient viewer (just the number).
+class _DiscussionHeader extends StatelessWidget {
+  const _DiscussionHeader({
+    this.appointmentNumber,
+    this.patientName,
+    required this.onOpenDetail,
+  });
+
+  final String? appointmentNumber;
+  final String? patientName;
+  final VoidCallback onOpenDetail;
+
+  @override
+  Widget build(BuildContext context) {
+    const inverse = HealynColors.textInverse;
+    final hasName = patientName != null && patientName!.isNotEmpty;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        InkWell(
+          onTap: onOpenDetail,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Discussion',
+                style: HealynTypography.h3.copyWith(color: inverse),
+              ),
+              const SizedBox(width: 2),
+              Icon(
+                Icons.chevron_right,
+                size: 20,
+                color: inverse.withValues(alpha: 0.85),
+              ),
+            ],
+          ),
+        ),
+        if (appointmentNumber != null || hasName)
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (appointmentNumber != null)
+                CopyableId(
+                  value: appointmentNumber!,
+                  color: inverse,
+                  style: HealynTypography.caption,
+                ),
+              if (appointmentNumber != null && hasName)
+                Text(
+                  '  ·  ',
+                  style: HealynTypography.caption.copyWith(color: inverse),
+                ),
+              if (hasName)
+                Flexible(
+                  child: Text(
+                    patientName!,
+                    style: HealynTypography.caption.copyWith(color: inverse),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+            ],
+          ),
+      ],
     );
   }
 }

@@ -470,6 +470,21 @@ Rules:
   who has opted out of that kind's category, so an opt-out is honoured before dispatch and never
   produces a suppressed row.
 
+**Push payload (FCM, data-only).** Notifications are delivered as *data-only* FCM messages — never a
+notification title/body — so no PHI leaves the system and the lock-screen banner is rendered
+client-side (SECURITY_GUIDELINES §1, CLAUDE.md Hard Rule #4). The data map carries IDs only:
+
+| Key | When | Notes |
+|---|---|---|
+| `kind` | always | the `notification_kind` (e.g. `BOOKING_REQUESTED`, `DISCUSSION_NEW_MESSAGE`) |
+| `appointmentId` | always | internal UUID — the deep-link target |
+| `appointmentNumber` | when assigned | human-friendly business id (e.g. `PHY-20260615-0001`); a display identifier, **not** PHI. Lets the client name the banner without a fetch |
+| `messageId` | `DISCUSSION_NEW_MESSAGE` | the new message's id |
+
+The client builds the banner text from `kind` + `appointmentNumber` only (never a patient name or
+message body) and the tap deep-links to the appointment detail — or its discussion thread for a new
+message — scoped to the signed-in role.
+
 ### 9.9 Health
 
 | Method | Path | Purpose |

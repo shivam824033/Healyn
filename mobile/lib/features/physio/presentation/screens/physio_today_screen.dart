@@ -24,6 +24,7 @@ import '../month_grid.dart';
 import '../physio_calendar_providers.dart';
 import '../physio_requests_providers.dart';
 import '../physio_schedule_providers.dart';
+import '../physio_unread_providers.dart';
 import '../widgets/month_calendar.dart';
 import '../widgets/patient_avatar_button.dart';
 
@@ -32,11 +33,45 @@ import '../widgets/patient_avatar_button.dart';
 /// the selected day's roster, a requests banner, and rich appointment rows. The
 /// full month grid stays reachable from the hero's calendar action. Picking a
 /// day moves the roster; tapping a row opens the appointment detail.
-class PhysioTodayScreen extends ConsumerWidget {
+class PhysioTodayScreen extends ConsumerStatefulWidget {
   const PhysioTodayScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<PhysioTodayScreen> createState() => _PhysioTodayScreenState();
+}
+
+class _PhysioTodayScreenState extends ConsumerState<PhysioTodayScreen>
+    with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Returning to the foreground can reveal new bookings, status changes, or
+    // patient messages that arrived while away — refetch so the schedule, its
+    // activity badges, the calendar marks, and the requests banner aren't stale
+    // (mirrors the pull-to-refresh below).
+    if (state == AppLifecycleState.resumed) {
+      ref
+        ..invalidate(physioScheduleProvider)
+        ..invalidate(physioScheduleActivityProvider)
+        ..invalidate(calendarMarkedDaysProvider)
+        ..invalidate(physioRequestsProvider)
+        ..invalidate(physioUnreadSummaryProvider);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final day = ref.watch(scheduleDayProvider);
     final month = ref.watch(calendarMonthProvider);
     final markedDays =
@@ -52,10 +87,9 @@ class PhysioTodayScreen extends ConsumerWidget {
         ref.watch(physioRequestsProvider).valueOrNull?.length ?? 0;
 
     final todayCount = schedule.valueOrNull?.length;
-    final unreadTotal = activityAsync.valueOrNull?.values.fold<int>(
-      0,
-      (sum, a) => sum + a.unreadCount,
-    );
+    // Account-wide unread total across every live thread (not just the selected
+    // day), tappable through to the Unread Discussions screen.
+    final unreadTotal = ref.watch(physioUnreadSummaryProvider).valueOrNull?.total;
 
     void selectDay(DateTime picked) {
       final d = DateTime(picked.year, picked.month, picked.day);
@@ -149,7 +183,8 @@ class PhysioTodayScreen extends ConsumerWidget {
             ..invalidate(physioScheduleProvider)
             ..invalidate(physioScheduleActivityProvider)
             ..invalidate(calendarMarkedDaysProvider)
-            ..invalidate(physioRequestsProvider);
+            ..invalidate(physioRequestsProvider)
+            ..invalidate(physioUnreadSummaryProvider);
           await ref.read(physioScheduleProvider.future);
         },
         child: ListView(
@@ -200,6 +235,7 @@ class PhysioTodayScreen extends ConsumerWidget {
                   tint: HealynColors.statusInfo,
                   value: _stat(unreadTotal),
                   label: 'Unread',
+                  onTap: () => context.push('/physio/discussions/unread'),
                 ),
               ],
             ),
