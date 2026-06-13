@@ -197,11 +197,11 @@ class _PhysioTodayScreenState extends ConsumerState<PhysioTodayScreen>
               trailing: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  _HeroAction(
-                    icon: Icons.calendar_month_outlined,
-                    tooltip: 'Open calendar',
-                    onTap: openMonth,
-                  ),
+                  // _HeroAction(
+                  //   icon: Icons.calendar_month_outlined,
+                  //   tooltip: 'Open calendar',
+                  //   onTap: openMonth,
+                  // ),
                   const SizedBox(width: HealynSpacing.s2),
                   _HeroAction(
                     icon: Icons.event_note_outlined,
@@ -218,10 +218,11 @@ class _PhysioTodayScreenState extends ConsumerState<PhysioTodayScreen>
             HealynStatRow(
               cards: [
                 HealynStatCard(
-                  icon: Icons.event_available,
+                  icon: Icons.calendar_month_outlined,
                   tint: HealynColors.brandPrimary,
                   value: _stat(todayCount),
-                  label: 'Today',
+                  label: 'Appointments',
+                  onTap: openMonth,
                 ),
                 HealynStatCard(
                   icon: Icons.inbox_outlined,

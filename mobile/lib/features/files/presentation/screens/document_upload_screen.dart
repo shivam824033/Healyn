@@ -59,8 +59,97 @@ class _DocumentUploadScreenState extends ConsumerState<DocumentUploadScreen> {
   bool _uploading = false;
   String? _error;
 
+  /// Mutable copy of the picked images so the user can drop ones they don't want.
+  late final List<PickedFile> _images = [...?widget.images];
+  late final TextEditingController _nameController;
+
   bool get _isPdf => widget.pdf != null;
-  bool get _willConvert => widget.images != null && widget.images!.length > 1;
+  bool get _willConvert => !_isPdf && _images.length > 1;
+
+  @override
+  void initState() {
+    super.initState();
+    _nameController = TextEditingController(text: _defaultNameStem());
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    super.dispose();
+  }
+
+  /// The fixed extension for the upload, derived from the source. The user edits
+  /// only the stem; the extension is enforced so server-side validation holds.
+  String _extension() {
+    if (_isPdf || _willConvert) return '.pdf';
+    return _imageExtension(_images.first.filename);
+  }
+
+  String _imageExtension(String filename) {
+    final lower = filename.toLowerCase();
+    if (lower.endsWith('.png')) return '.png';
+    return '.jpg';
+  }
+
+  String _defaultNameStem() {
+    if (_isPdf) return _stripExtension(widget.pdf!.filename);
+    if (widget.images!.length == 1) {
+      return _stripExtension(widget.images!.first.filename);
+    }
+    return _stripExtension(_generatedPdfName());
+  }
+
+  String _stripExtension(String filename) {
+    final dot = filename.lastIndexOf('.');
+    return dot > 0 ? filename.substring(0, dot) : filename;
+  }
+
+  /// The trimmed user-entered name plus the enforced extension, falling back to
+  /// the generated default when the field is left empty.
+  String _resolvedFilename() {
+    final stem = _nameController.text.trim();
+    final base = stem.isEmpty ? _defaultNameStem() : stem;
+    return '$base${_extension()}';
+  }
+
+  void _removeImage(int index) {
+    setState(() => _images.removeAt(index));
+    if (_images.isEmpty && mounted) Navigator.pop(context, false);
+  }
+
+  Future<void> _addMore() async {
+    final source = await showModalBottomSheet<PickSource>(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.photo_camera_outlined),
+              title: const Text('Take a photo'),
+              onTap: () => Navigator.pop(ctx, PickSource.camera),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library_outlined),
+              title: const Text('Choose from gallery'),
+              onTap: () => Navigator.pop(ctx, PickSource.gallery),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (source == null) return;
+    final service = ref.read(filePickerServiceProvider);
+    try {
+      final added = source == PickSource.camera
+          ? [?await service.pick(PickSource.camera)]
+          : await service.pickImages();
+      if (added.isEmpty || !mounted) return;
+      setState(() => _images.addAll(added));
+    } catch (_) {
+      if (mounted) setState(() => _error = "Couldn't open the picker.");
+    }
+  }
 
   Future<void> _upload() async {
     setState(() {
@@ -71,8 +160,8 @@ class _DocumentUploadScreenState extends ConsumerState<DocumentUploadScreen> {
       final repo = ref.read(filesRepositoryProvider);
       if (_isPdf) {
         await _uploadPdf(repo);
-      } else if (widget.images!.length == 1) {
-        await _uploadSingleImage(repo, widget.images!.first);
+      } else if (_images.length == 1) {
+        await _uploadSingleImage(repo, _images.first);
       } else {
         await _uploadImagesAsPdf(repo);
       }
@@ -102,7 +191,7 @@ class _DocumentUploadScreenState extends ConsumerState<DocumentUploadScreen> {
       patientId: widget.patientId,
       kind: _kind,
       mimeType: type.mimeType,
-      originalFilename: file.filename,
+      originalFilename: _resolvedFilename(),
       bytes: file.bytes,
       uploadSource: widget.source,
     );
@@ -122,14 +211,14 @@ class _DocumentUploadScreenState extends ConsumerState<DocumentUploadScreen> {
       patientId: widget.patientId,
       kind: _kind,
       mimeType: mime,
-      originalFilename: image.filename,
+      originalFilename: _resolvedFilename(),
       bytes: image.bytes,
       uploadSource: widget.source,
     );
   }
 
   Future<void> _uploadImagesAsPdf(FilesRepository repo) async {
-    final bytes = await imagesToPdf(widget.images!);
+    final bytes = await imagesToPdf(_images);
     if (bytes.length > _maxPdfBytes) {
       _fail('The combined PDF is too large. Try selecting fewer images.');
       return;
@@ -138,7 +227,7 @@ class _DocumentUploadScreenState extends ConsumerState<DocumentUploadScreen> {
       patientId: widget.patientId,
       kind: _kind,
       mimeType: 'application/pdf',
-      originalFilename: _generatedPdfName(),
+      originalFilename: _resolvedFilename(),
       bytes: bytes,
       uploadSource: FileUploadSource.convertedPdf,
     );
@@ -171,6 +260,10 @@ class _DocumentUploadScreenState extends ConsumerState<DocumentUploadScreen> {
           children: [
             _preview(),
             const SizedBox(height: HealynSpacing.s6),
+            const Text('File name', style: HealynTypography.caption),
+            const SizedBox(height: HealynSpacing.s2),
+            _nameField(),
+            const SizedBox(height: HealynSpacing.s6),
             const Text('Category', style: HealynTypography.caption),
             const SizedBox(height: HealynSpacing.s2),
             _kindDropdown(),
@@ -198,6 +291,19 @@ class _DocumentUploadScreenState extends ConsumerState<DocumentUploadScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _nameField() {
+    return TextField(
+      controller: _nameController,
+      enabled: !_uploading,
+      textInputAction: TextInputAction.done,
+      decoration: InputDecoration(
+        hintText: 'e.g. Blood test results',
+        suffixText: _extension(),
+        border: const OutlineInputBorder(),
       ),
     );
   }
@@ -242,12 +348,11 @@ class _DocumentUploadScreenState extends ConsumerState<DocumentUploadScreen> {
         ),
       );
     }
-    final images = widget.images!;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Selected images (${images.length})',
+          'Selected images (${_images.length})',
           style: HealynTypography.bodyStrong,
         ),
         const SizedBox(height: HealynSpacing.s1),
@@ -264,8 +369,13 @@ class _DocumentUploadScreenState extends ConsumerState<DocumentUploadScreen> {
           spacing: HealynSpacing.s3,
           runSpacing: HealynSpacing.s3,
           children: [
-            for (var i = 0; i < images.length; i++)
-              _Thumb(index: i + 1, bytes: images[i].bytes),
+            for (var i = 0; i < _images.length; i++)
+              _Thumb(
+                index: i + 1,
+                bytes: _images[i].bytes,
+                onRemove: _uploading ? null : () => _removeImage(i),
+              ),
+            _AddTile(onTap: _uploading ? null : _addMore),
           ],
         ),
       ],
@@ -273,43 +383,109 @@ class _DocumentUploadScreenState extends ConsumerState<DocumentUploadScreen> {
   }
 }
 
-class _Thumb extends StatelessWidget {
-  const _Thumb({required this.index, required this.bytes});
+class _AddTile extends StatelessWidget {
+  const _AddTile({this.onTap});
 
-  final int index;
-  final List<int> bytes;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
+    return InkWell(
+      onTap: onTap,
       borderRadius: HealynRadii.brMd,
-      child: Stack(
-        children: [
-          Image.memory(
-            Uint8List.fromList(bytes),
-            width: 96,
-            height: 96,
-            fit: BoxFit.cover,
-          ),
-          Positioned(
-            left: 4,
-            top: 4,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: 0.55),
-                borderRadius: BorderRadius.circular(HealynRadii.full),
+      child: Container(
+        width: 96,
+        height: 96,
+        decoration: BoxDecoration(
+          borderRadius: HealynRadii.brMd,
+          border: Border.all(color: HealynColors.borderSubtle),
+          color: HealynColors.surfaceBase,
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.add_a_photo_outlined, color: HealynColors.textMuted),
+            const SizedBox(height: HealynSpacing.s1),
+            Text(
+              'Add',
+              style: HealynTypography.caption.copyWith(
+                color: HealynColors.textMuted,
               ),
-              child: Text(
-                '$index',
-                style: HealynTypography.caption.copyWith(
-                  color: HealynColors.textInverse,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _Thumb extends StatelessWidget {
+  const _Thumb({required this.index, required this.bytes, this.onRemove});
+
+  final int index;
+  final List<int> bytes;
+  final VoidCallback? onRemove;
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        ClipRRect(
+          borderRadius: HealynRadii.brMd,
+          child: Stack(
+            children: [
+              Image.memory(
+                Uint8List.fromList(bytes),
+                width: 96,
+                height: 96,
+                fit: BoxFit.cover,
+              ),
+              Positioned(
+                left: 4,
+                top: 4,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.55),
+                    borderRadius: BorderRadius.circular(HealynRadii.full),
+                  ),
+                  child: Text(
+                    '$index',
+                    style: HealynTypography.caption.copyWith(
+                      color: HealynColors.textInverse,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        if (onRemove != null)
+          Positioned(
+            right: -8,
+            top: -8,
+            child: Material(
+              color: Colors.black.withValues(alpha: 0.65),
+              shape: const CircleBorder(),
+              child: InkWell(
+                customBorder: const CircleBorder(),
+                onTap: onRemove,
+                child: const Padding(
+                  padding: EdgeInsets.all(4),
+                  child: Icon(
+                    Icons.close,
+                    size: 16,
+                    color: HealynColors.textInverse,
+                  ),
                 ),
               ),
             ),
           ),
-        ],
-      ),
+      ],
     );
   }
 }
