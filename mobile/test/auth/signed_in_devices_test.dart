@@ -7,6 +7,7 @@ import 'package:healyn/features/auth/data/auth_api.dart';
 import 'package:healyn/features/auth/data/auth_repository.dart';
 import 'package:healyn/features/auth/data/models/auth_models.dart';
 import 'package:healyn/features/auth/presentation/widgets/signed_in_devices.dart';
+import 'package:healyn/features/shared/device/device_info.dart';
 import 'package:healyn/features/shared/storage/device_identity.dart';
 import 'package:healyn/features/shared/storage/token_store.dart';
 
@@ -18,6 +19,7 @@ class _FakeAuthRepo extends AuthRepository {
         AuthApi(Dio()),
         TokenStore(const FlutterSecureStorage()),
         DeviceIdentity(const FlutterSecureStorage()),
+        const DeviceInfo(),
       );
 
   List<SessionView> sessions;

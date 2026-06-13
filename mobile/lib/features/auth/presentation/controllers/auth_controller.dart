@@ -48,6 +48,14 @@ class AuthController extends Notifier<AuthState> {
     state = const AuthState.unauthenticated();
   }
 
+  /// The session ended out from under us — this device was signed out elsewhere,
+  /// or the refresh token is dead (the auth interceptor detects this). Tokens are
+  /// already cleared; flipping to unauthenticated makes the router go to /login.
+  void onSessionExpired() {
+    if (state.status == AuthStatus.unauthenticated) return;
+    state = const AuthState.unauthenticated();
+  }
+
   Future<AccountRole?> _role(TokenStore store) async {
     final token = await store.readAccessToken();
     return token == null ? null : accountRoleFromToken(token);

@@ -9,10 +9,16 @@ import '../storage/token_store.dart';
 /// so the rotating refresh token isn't spent twice. The retry and the refresh
 /// both go through a bare Dio (no interceptor) to avoid re-entering this logic.
 class AuthInterceptor extends Interceptor {
-  AuthInterceptor(this._tokenStore, this._refreshClient);
+  AuthInterceptor(this._tokenStore, this._refreshClient, {this.onSessionExpired});
 
   final TokenStore _tokenStore;
   final Dio _refreshClient;
+
+  /// Called once when an authenticated request fails with 401 and even a refresh
+  /// can't recover it — i.e. the session is gone (this device was signed out, or
+  /// the refresh token is dead). Local tokens are already cleared by then; the
+  /// callback lets the app flip to logged-out and bounce to the login screen.
+  final void Function()? onSessionExpired;
 
   Future<bool>? _refreshing;
 
@@ -59,7 +65,10 @@ class AuthInterceptor extends Interceptor {
 
     final refreshed = await _refreshOnce();
     if (!refreshed) {
+      // The session is irrecoverable (revoked / signed out elsewhere). Clear the
+      // stranded tokens and let the app react by sending the user to login.
       await _tokenStore.clear();
+      onSessionExpired?.call();
       handler.next(err);
       return;
     }

@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../shared/device/device_info.dart';
 import '../../shared/network/api_exception.dart';
 import '../../shared/storage/device_identity.dart';
 import '../../shared/storage/token_store.dart';
@@ -11,11 +12,12 @@ import 'models/auth_models.dart';
 /// [ApiException], and persists the issued tokens in the [TokenStore]. The UI
 /// talks only to this class, never to Dio directly.
 class AuthRepository {
-  AuthRepository(this._api, this._tokenStore, this._deviceIdentity);
+  AuthRepository(this._api, this._tokenStore, this._deviceIdentity, this._deviceInfo);
 
   final AuthApi _api;
   final TokenStore _tokenStore;
   final DeviceIdentity _deviceIdentity;
+  final DeviceInfo _deviceInfo;
 
   /// Step 1 of registration — sends an OTP to the target. Returns the
   /// challenge id that ties the OTP to step 2.
@@ -124,7 +126,9 @@ class AuthRepository {
 
   Future<DeviceRequest> _device() async => DeviceRequest(
     deviceId: await _deviceIdentity.getOrCreate(),
-    deviceLabel: 'Healyn mobile',
+    // The real device name (e.g. "Samsung SM-S921B"), so each session in the
+    // "Signed-in devices" list is identifiable instead of a constant app name.
+    deviceLabel: await _deviceInfo.deviceLabel(),
     // fcmToken stays null here: the push token is registered out-of-band via
     // POST /auth/fcm_tokens (see shared/push/PushService), not inline at login —
     // the token may not exist yet until the user grants notification permission.
@@ -150,5 +154,6 @@ final authRepositoryProvider = Provider<AuthRepository>(
     ref.watch(authApiProvider),
     ref.watch(tokenStoreProvider),
     ref.watch(deviceIdentityProvider),
+    ref.watch(deviceInfoProvider),
   ),
 );

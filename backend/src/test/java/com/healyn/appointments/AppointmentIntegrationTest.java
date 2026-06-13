@@ -1023,7 +1023,7 @@ class AppointmentIntegrationTest {
                 "$argon2id$placeholder$noop", new byte[]{0},
                 AccountRole.ROLE_PHYSIO);
         accounts.save(physio);
-        String token = tokenIssuer.issue(physio).token();
+        String token = tokenIssuer.issue(physio, java.util.UUID.randomUUID()).token();
         return new Session(physio.getId(), token);
     }
 
