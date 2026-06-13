@@ -35,37 +35,47 @@ enum AppointmentStatusFilter {
   };
 }
 
-/// The current appointment-list filter: a status group plus an orthogonal
-/// follow-ups-only toggle. Drives [appointmentsProvider] — changing it reloads
-/// the first page (the cursor resets).
+/// The current appointment-list filter: a status group plus orthogonal toggles
+/// (follow-ups-only, and — physio side only — needs-treatment-note-only). Drives
+/// [appointmentsProvider] — changing it reloads the first page (the cursor
+/// resets). [needsNoteOnly] is applied client-side (the backend list can't filter
+/// on note existence), so it never reaches the wire.
 class AppointmentListFilter {
   const AppointmentListFilter({
     this.status = AppointmentStatusFilter.all,
     this.followUpOnly = false,
+    this.needsNoteOnly = false,
   });
 
   final AppointmentStatusFilter status;
   final bool followUpOnly;
 
+  /// Physio-only: narrow completed appointments to those still missing a
+  /// treatment note. Filtered in the UI, not the query.
+  final bool needsNoteOnly;
+
   bool get isDefault =>
-      status == AppointmentStatusFilter.all && !followUpOnly;
+      status == AppointmentStatusFilter.all && !followUpOnly && !needsNoteOnly;
 
   AppointmentListFilter copyWith({
     AppointmentStatusFilter? status,
     bool? followUpOnly,
+    bool? needsNoteOnly,
   }) => AppointmentListFilter(
     status: status ?? this.status,
     followUpOnly: followUpOnly ?? this.followUpOnly,
+    needsNoteOnly: needsNoteOnly ?? this.needsNoteOnly,
   );
 
   @override
   bool operator ==(Object other) =>
       other is AppointmentListFilter &&
       other.status == status &&
-      other.followUpOnly == followUpOnly;
+      other.followUpOnly == followUpOnly &&
+      other.needsNoteOnly == needsNoteOnly;
 
   @override
-  int get hashCode => Object.hash(status, followUpOnly);
+  int get hashCode => Object.hash(status, followUpOnly, needsNoteOnly);
 }
 
 /// The selected filter for the appointments list. Persists across navigation so

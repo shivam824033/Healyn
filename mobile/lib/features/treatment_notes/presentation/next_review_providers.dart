@@ -15,14 +15,20 @@ const _reviewScanLimit = 20;
 ///
 /// Pure (inject [now] in tests). The returned instant is the stored UTC value —
 /// format it with `formatReviewWhen`, which converts to local.
-DateTime? pendingReviewFrom(List<TreatmentNote> notes, {DateTime? now}) {
+DateTime? pendingReviewFrom(List<TreatmentNote> notes, {DateTime? now}) =>
+    pendingReviewNoteFrom(notes, now: now)?.nextReviewAt;
+
+/// Like [pendingReviewFrom] but returns the whole operative note, so callers can
+/// also reference the appointment it belongs to (e.g. show its number on the Home
+/// suggestion). Same rule: the newest note carrying a not-yet-lapsed review wins.
+TreatmentNote? pendingReviewNoteFrom(List<TreatmentNote> notes, {DateTime? now}) {
   final ref = (now ?? DateTime.now()).toLocal();
   final today = DateTime(ref.year, ref.month, ref.day);
   for (final n in notes) {
     final at = n.nextReviewAt;
     if (at != null) {
       // The first (newest) note that carries a review wins.
-      return at.toLocal().isBefore(today) ? null : at;
+      return at.toLocal().isBefore(today) ? null : n;
     }
   }
   return null;
@@ -38,4 +44,15 @@ final patientNextReviewProvider = FutureProvider.autoDispose
           .watch(treatmentNotesRepositoryProvider)
           .forPatient(patientId, limit: _reviewScanLimit);
       return pendingReviewFrom(page.items);
+    });
+
+/// The operative pending-review *note* for [patientId] (date plus the appointment
+/// it was set on), or null when none is due. Backs the Home suggestion, which
+/// shows the source appointment's number alongside the date.
+final patientNextReviewNoteProvider = FutureProvider.autoDispose
+    .family<TreatmentNote?, String>((ref, patientId) async {
+      final page = await ref
+          .watch(treatmentNotesRepositoryProvider)
+          .forPatient(patientId, limit: _reviewScanLimit);
+      return pendingReviewNoteFrom(page.items);
     });

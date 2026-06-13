@@ -66,6 +66,18 @@ class TreatmentNotesRepository {
     }
   }
 
+  /// Which of [appointmentIds] already have a treatment note (physio only) — used
+  /// to flag completed appointments that still need one. Returns a set for O(1)
+  /// membership at the call site.
+  Future<Set<String>> appointmentsWithNotes(List<String> appointmentIds) async {
+    if (appointmentIds.isEmpty) return const <String>{};
+    try {
+      return (await _api.appointmentsWithNotes(appointmentIds)).toSet();
+    } on DioException catch (e) {
+      throw ApiException.fromDio(e);
+    }
+  }
+
   /// Trims [s] and collapses blank to null so optional note fields drop off the
   /// wire (`include_if_null: false`) rather than persisting an empty string.
   static String? _clean(String? s) {

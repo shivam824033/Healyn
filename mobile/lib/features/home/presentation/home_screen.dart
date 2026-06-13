@@ -216,6 +216,9 @@ class _NextReviewCard extends ConsumerWidget {
     final suggestion = ref.watch(nextReviewSuggestionProvider).valueOrNull;
     if (suggestion == null) return const SizedBox.shrink();
     final active = ref.watch(activePatientProvider);
+    // How many patients have a follow-up due across the family — when more than
+    // one, offer the grouped "Follow-ups due" screen.
+    final totalDue = ref.watch(pendingReviewsProvider).valueOrNull?.length ?? 0;
     final forName = suggestion.patient.id == active?.id
         ? null
         : suggestion.patient.fullName;
@@ -232,6 +235,15 @@ class _NextReviewCard extends ConsumerWidget {
         children: [
           const HealynSectionHeader(title: 'Suggested next review'),
           const SizedBox(height: HealynSpacing.s3),
+          if (suggestion.appointmentNumber != null) ...[
+            Text(
+              'Appointment ${suggestion.appointmentNumber}',
+              style: HealynTypography.caption.copyWith(
+                color: HealynColors.textSecondary,
+              ),
+            ),
+            const SizedBox(height: HealynSpacing.s1),
+          ],
           Text(formatReviewWhen(suggestion.reviewAt), style: HealynTypography.body),
           if (forName != null) ...[
             const SizedBox(height: HealynSpacing.s1),
@@ -255,6 +267,12 @@ class _NextReviewCard extends ConsumerWidget {
             label: const Text('Book appointment'),
             style: TextButton.styleFrom(padding: EdgeInsets.zero),
           ),
+          if (totalDue > 1)
+            TextButton(
+              onPressed: () => context.push('/follow-ups'),
+              style: TextButton.styleFrom(padding: EdgeInsets.zero),
+              child: Text('See all $totalDue follow-ups'),
+            ),
         ],
       ),
     );

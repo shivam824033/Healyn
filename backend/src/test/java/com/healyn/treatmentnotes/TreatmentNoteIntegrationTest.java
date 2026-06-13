@@ -183,6 +183,39 @@ class TreatmentNoteIntegrationTest {
                 .andExpect(jsonPath("$.items[0].diagnosis").value("visit one"));
     }
 
+    @Test
+    void note_status_lists_only_appointments_with_a_note() throws Exception {
+        Fixture f = bootstrapCompleted("gus");
+        upsert(f.physio, f.apptId, Map.of("diagnosis", "noted"));
+
+        // A second completed appointment for the same physio/patient, left without a note.
+        UUID apptNoNote = seedScheduledAppointment(f.physio, f.account, f.patientId);
+        transition(f.physio, apptNoNote, "IN_PROGRESS");
+        transition(f.physio, apptNoNote, "COMPLETED");
+
+        mvc.perform(post("/treatment_notes/status")
+                        .header("Authorization", "Bearer " + f.physio.access)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json.writeValueAsString(Map.of(
+                                "appointment_ids",
+                                java.util.List.of(f.apptId.toString(), apptNoNote.toString())))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.with_notes.length()").value(1))
+                .andExpect(jsonPath("$.with_notes[0]").value(f.apptId.toString()));
+    }
+
+    @Test
+    void note_status_is_physio_only() throws Exception {
+        Fixture f = bootstrapCompleted("hana");
+
+        mvc.perform(post("/treatment_notes/status")
+                        .header("Authorization", "Bearer " + f.account.access)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json.writeValueAsString(Map.of(
+                                "appointment_ids", java.util.List.of(f.apptId.toString())))))
+                .andExpect(status().isForbidden());
+    }
+
     // ---- fixtures + helpers ----
 
     private record Fixture(Session physio, Session account, UUID patientId, UUID apptId) {}

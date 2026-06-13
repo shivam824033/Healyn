@@ -1,7 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../appointments/data/appointments_repository.dart';
+import '../../appointments/data/models/appointment_models.dart';
 import '../../appointments/presentation/appointments_providers.dart';
+import '../../treatment_notes/data/treatment_notes_repository.dart';
 
 /// Page size for the physiotherapist's appointments list. Matches the patient
 /// timeline; older appointments page in via [PhysioAppointmentsNotifier.loadMore].
@@ -78,3 +80,22 @@ final physioAppointmentsProvider =
       PhysioAppointmentsNotifier,
       AppointmentsState
     >(PhysioAppointmentsNotifier.new);
+
+/// The ids of the loaded physio appointments that already have a treatment note.
+/// Only completed appointments can have one, so only those are asked about. Drives
+/// the "note added / pending" chip and the "Needs note" filter, and refetches
+/// whenever the appointments list changes (filter, paging). An error surfaces as
+/// loading/null at the call site, so the UI omits the chip rather than mislabel.
+final physioNoteStatusProvider = FutureProvider.autoDispose<Set<String>>((
+  ref,
+) async {
+  final state = await ref.watch(physioAppointmentsProvider.future);
+  final completedIds = [
+    for (final a in state.items)
+      if (a.status == AppointmentStatus.completed) a.id,
+  ];
+  if (completedIds.isEmpty) return const <String>{};
+  return ref
+      .watch(treatmentNotesRepositoryProvider)
+      .appointmentsWithNotes(completedIds);
+});

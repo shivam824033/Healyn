@@ -36,6 +36,9 @@ class PhysioUpcomingScreen extends ConsumerWidget {
     final filter = ref.watch(physioAppointmentFilterProvider);
     final patients = ref.watch(patientsProvider).valueOrNull ?? const [];
     final byId = {for (final p in patients) p.id: p};
+    // Which completed appointments already have a treatment note. Null while it
+    // loads (or on error) — the tile then omits the chip rather than mislabel.
+    final noteStatus = ref.watch(physioNoteStatusProvider).valueOrNull;
 
     return Scaffold(
       backgroundColor: HealynColors.surfaceAlt,
@@ -54,6 +57,7 @@ class PhysioUpcomingScreen extends ConsumerWidget {
           children: [
             AppointmentFilterBar(
               filterProvider: physioAppointmentFilterProvider,
+              showNeedsNote: true,
             ),
             Expanded(
               child: RefreshIndicator(
@@ -81,7 +85,22 @@ class PhysioUpcomingScreen extends ConsumerWidget {
                           : const _NoMatchingAppointments();
                     }
                     final upcoming = upcomingOf(all);
-                    final past = pastOf(all);
+                    var past = pastOf(all);
+                    // "Needs note": keep only completed appointments still missing
+                    // a note. While the status is loading (noteStatus == null) show
+                    // all completed so the list doesn't flash empty.
+                    if (filter.needsNoteOnly && noteStatus != null) {
+                      past = past
+                          .where(
+                            (a) =>
+                                a.status == AppointmentStatus.completed &&
+                                !noteStatus.contains(a.id),
+                          )
+                          .toList();
+                    }
+                    if (past.isEmpty && upcoming.isEmpty) {
+                      return const _NoMatchingAppointments();
+                    }
                     // Auto-load the next cursor page as the list nears its bottom.
                     return NotificationListener<ScrollNotification>(
                       onNotification: (n) {
@@ -118,6 +137,11 @@ class PhysioUpcomingScreen extends ConsumerWidget {
                               _AppointmentTile(
                                 appointment: a,
                                 patient: byId[a.patientId],
+                                hasNote:
+                                    a.status == AppointmentStatus.completed &&
+                                        noteStatus != null
+                                    ? noteStatus.contains(a.id)
+                                    : null,
                               ),
                               const SizedBox(height: HealynSpacing.s3),
                             ],
@@ -164,10 +188,18 @@ class PhysioUpcomingScreen extends ConsumerWidget {
 }
 
 class _AppointmentTile extends StatelessWidget {
-  const _AppointmentTile({required this.appointment, this.patient});
+  const _AppointmentTile({
+    required this.appointment,
+    this.patient,
+    this.hasNote,
+  });
 
   final Appointment appointment;
   final Patient? patient;
+
+  /// Treatment-note state for a completed appointment: true = note written,
+  /// false = still pending, null = not applicable or not yet known (no chip).
+  final bool? hasNote;
 
   @override
   Widget build(BuildContext context) {
@@ -194,11 +226,56 @@ class _AppointmentTile extends StatelessWidget {
         children: [
           AppointmentStatusChip(status: appointment.status),
           if (appointment.isFollowUp) const _FollowUpChip(),
+          if (hasNote != null) _NoteStatusChip(hasNote: hasNote!),
         ],
       ),
       onTap: () => context.push(
         '/physio/appointments/${appointment.id}',
         extra: appointment,
+      ),
+    );
+  }
+}
+
+/// Whether a completed appointment has a treatment note yet (F1.12 / issue 5):
+/// a calm "Note added" once written, an amber "Note pending" to prompt the
+/// physiotherapist while it's still missing.
+class _NoteStatusChip extends StatelessWidget {
+  const _NoteStatusChip({required this.hasNote});
+
+  final bool hasNote;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = hasNote
+        ? HealynColors.statusSuccess
+        : HealynColors.statusWarning;
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: HealynSpacing.s2,
+        vertical: 2,
+      ),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: HealynRadii.brSm,
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            hasNote ? Icons.event_note : Icons.note_alt_outlined,
+            size: 13,
+            color: color,
+          ),
+          const SizedBox(width: HealynSpacing.s1),
+          Text(
+            hasNote ? 'Note added' : 'Note pending',
+            style: HealynTypography.caption.copyWith(
+              color: color,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
       ),
     );
   }

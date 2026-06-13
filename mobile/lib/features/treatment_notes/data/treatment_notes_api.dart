@@ -50,6 +50,17 @@ class TreatmentNotesApi {
     );
     return TreatmentNotePage.fromJson(res.data!);
   }
+
+  /// Which of [appointmentIds] already have a treatment note (physio only). POST
+  /// so the ids travel in the body. Returns the subset that have one.
+  Future<List<String>> appointmentsWithNotes(List<String> appointmentIds) async {
+    final res = await _dio.post<Map<String, dynamic>>(
+      '/treatment_notes/status',
+      data: {'appointment_ids': appointmentIds},
+    );
+    final withNotes = res.data?['with_notes'] as List<dynamic>? ?? const [];
+    return withNotes.cast<String>();
+  }
 }
 
 final treatmentNotesApiProvider = Provider<TreatmentNotesApi>(

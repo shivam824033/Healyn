@@ -21,6 +21,7 @@ import '../../auth/presentation/screens/register_start_screen.dart';
 import '../../auth/presentation/screens/register_verify_screen.dart';
 import '../../auth/presentation/screens/splash_screen.dart';
 import '../../home/presentation/home_screen.dart';
+import '../../home/presentation/screens/follow_ups_screen.dart';
 import '../../notifications/presentation/screens/notification_preferences_screen.dart';
 import '../../patient_shell/presentation/patient_shell.dart';
 import '../../physio/presentation/physio_shell.dart';
@@ -331,6 +332,12 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/discussions/unread',
         builder: (_, _) => const UnreadDiscussionsScreen(),
+      ),
+      // Every managed patient's pending next-review, grouped per patient. Reached
+      // from the Home "Suggested next review" card when more than one is due.
+      GoRoute(
+        path: '/follow-ups',
+        builder: (_, _) => const FollowUpsScreen(),
       ),
       // Appointment booking + detail also live outside the shell. `book` is
       // matched before `:id` so it isn't captured as an appointment id.

@@ -73,6 +73,11 @@ Future<void> _pump(
         // The next-review suggestion fans out over treatment notes; stub it so
         // the card is hidden unless a test opts in.
         nextReviewSuggestionProvider.overrideWith((ref) async => suggestion),
+        // The card also reads the full pending-review list (for its "See all"
+        // link); stub it too so Home never touches the notes repo here.
+        pendingReviewsProvider.overrideWith(
+          (ref) async => suggestion == null ? const [] : [suggestion],
+        ),
       ],
       child: const MaterialApp(home: HomeScreen()),
     ),
