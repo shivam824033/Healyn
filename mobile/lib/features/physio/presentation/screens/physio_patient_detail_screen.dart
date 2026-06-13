@@ -6,9 +6,12 @@ import '../../../patients/data/models/patient_models.dart';
 import '../../../patients/presentation/patient_format.dart';
 import '../../../shared/domain/patient_sex.dart';
 import '../../../shared/design/colors.dart';
-import '../../../shared/design/radii.dart';
 import '../../../shared/design/spacing.dart';
 import '../../../shared/design/typography.dart';
+import '../../../shared/widgets/app_bar.dart';
+import '../../../shared/widgets/healyn_section_header.dart';
+import '../../../shared/widgets/nav_card.dart';
+import '../../../shared/widgets/copyable_id.dart';
 import '../../../shared/widgets/section_card.dart';
 import '../../../treatment_notes/presentation/next_review_providers.dart';
 import '../../../treatment_notes/presentation/treatment_notes_format.dart';
@@ -41,25 +44,45 @@ class PhysioPatientDetailScreen extends ConsumerWidget {
     ];
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Patient')),
+      backgroundColor: HealynColors.surfaceAlt,
+      appBar: const HealynAppBar(title: 'Patient'),
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.all(HealynSpacing.screenEdge),
           children: [
             _Header(patient: patient),
             const SizedBox(height: HealynSpacing.s6),
-            const _SectionTitle('Personal details'),
+            const HealynSectionHeader(title: 'Personal details'),
             const SizedBox(height: HealynSpacing.s3),
             _DetailCard(rows: details),
             if (medical.isNotEmpty) ...[
               const SizedBox(height: HealynSpacing.s6),
-              const _SectionTitle('Medical'),
+              const HealynSectionHeader(title: 'Medical'),
               const SizedBox(height: HealynSpacing.s3),
               _DetailCard(rows: medical),
             ],
+            if (patient.address != null) ...[
+              const SizedBox(height: HealynSpacing.s6),
+              const HealynSectionHeader(title: 'Address'),
+              const SizedBox(height: HealynSpacing.s3),
+              SectionCard(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    for (final line in patient.address!.displayLines)
+                      Padding(
+                        padding: const EdgeInsets.only(
+                          bottom: HealynSpacing.s1,
+                        ),
+                        child: Text(line, style: HealynTypography.body),
+                      ),
+                  ],
+                ),
+              ),
+            ],
             if (_has(patient.notes)) ...[
               const SizedBox(height: HealynSpacing.s6),
-              const _SectionTitle('Notes'),
+              const HealynSectionHeader(title: 'Notes'),
               const SizedBox(height: HealynSpacing.s3),
               SectionCard(
                 child: Text(patient.notes!, style: HealynTypography.body),
@@ -67,7 +90,7 @@ class PhysioPatientDetailScreen extends ConsumerWidget {
             ],
             if (reviewDue != null) ...[
               const SizedBox(height: HealynSpacing.s6),
-              const _SectionTitle('Follow-up due'),
+              const HealynSectionHeader(title: 'Follow-up due'),
               const SizedBox(height: HealynSpacing.s3),
               SectionCard(
                 child: Row(
@@ -89,9 +112,9 @@ class PhysioPatientDetailScreen extends ConsumerWidget {
               ),
             ],
             const SizedBox(height: HealynSpacing.s6),
-            const _SectionTitle('History'),
+            const HealynSectionHeader(title: 'History'),
             const SizedBox(height: HealynSpacing.s3),
-            _NavCard(
+            NavCard(
               icon: Icons.assignment_outlined,
               label: 'Treatment history',
               onTap: () => context.push(
@@ -130,60 +153,18 @@ class _Header extends StatelessWidget {
           ),
           const SizedBox(width: HealynSpacing.s4),
           Expanded(
-            child: Text(patient.fullName, style: HealynTypography.h2),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _SectionTitle extends StatelessWidget {
-  const _SectionTitle(this.text);
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) =>
-      Text(text.toUpperCase(), style: HealynTypography.overline);
-}
-
-class _NavCard extends StatelessWidget {
-  const _NavCard({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: HealynColors.surfaceBase,
-        borderRadius: HealynRadii.brLg,
-        border: Border.all(color: HealynColors.borderSubtle),
-      ),
-      child: Material(
-        type: MaterialType.transparency,
-        child: InkWell(
-          borderRadius: HealynRadii.brLg,
-          onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.all(HealynSpacing.s4),
-            child: Row(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(icon, size: 20, color: HealynColors.textSecondary),
-                const SizedBox(width: HealynSpacing.s3),
-                Expanded(child: Text(label, style: HealynTypography.bodyStrong)),
-                const Icon(Icons.chevron_right, color: HealynColors.textMuted),
+                Text(patient.fullName, style: HealynTypography.h2),
+                if (patient.patientNumber != null) ...[
+                  const SizedBox(height: HealynSpacing.s1),
+                  CopyableId(value: patient.patientNumber!),
+                ],
               ],
             ),
           ),
-        ),
+        ],
       ),
     );
   }

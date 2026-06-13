@@ -1,5 +1,8 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
+import '../../../shared/auth/account_role.dart';
+import '../../../shared/network/json_converters.dart';
+
 part 'appointment_models.freezed.dart';
 part 'appointment_models.g.dart';
 
@@ -21,6 +24,8 @@ enum AppointmentStatus {
   noShow,
   @JsonValue('RESCHEDULED')
   rescheduled,
+  @JsonValue('REJECTED')
+  rejected,
 }
 
 extension AppointmentStatusX on AppointmentStatus {
@@ -32,6 +37,7 @@ extension AppointmentStatusX on AppointmentStatus {
     AppointmentStatus.cancelled => 'Cancelled',
     AppointmentStatus.noShow => 'No-show',
     AppointmentStatus.rescheduled => 'Rescheduled',
+    AppointmentStatus.rejected => 'Rejected',
   };
 
   /// Still open on the calendar — shown under "Upcoming".
@@ -74,24 +80,116 @@ extension AppointmentCancelReasonLabel on AppointmentCancelReason {
   };
 }
 
-/// A single appointment. Mirrors the backend `AppointmentView`. Timestamps are
-/// instants (UTC on the wire); call `.toLocal()` before formatting for display.
-/// [reason] is free text the patient gave — not clinical, but don't log it.
+/// How an appointment derived from its lineage root (null on a root booking). Only actions
+/// that spawn a new bookable row are children: a reschedule replacement or a follow-up tied
+/// to a prior appointment. Mirrors the backend `AppointmentChildKind`.
+enum AppointmentChildKind {
+  @JsonValue('RESCHEDULE')
+  reschedule,
+  @JsonValue('FOLLOW_UP')
+  followUp,
+  @JsonValue('REVIEW')
+  review,
+  @JsonValue('REOPEN')
+  reopen,
+}
+
+extension AppointmentChildKindLabel on AppointmentChildKind {
+  String get label => switch (this) {
+    AppointmentChildKind.reschedule => 'Rescheduled',
+    AppointmentChildKind.followUp => 'Follow-up',
+    AppointmentChildKind.review => 'Review',
+    AppointmentChildKind.reopen => 'Reopened',
+  };
+}
+
+/// One recorded lifecycle moment of an appointment. Wire values are the backend
+/// `AppointmentEventType` names. Child-spawning actions appear twice on a
+/// timeline: [rescheduled] on the replaced appointment plus a [created] (with a
+/// `childKind`) on its replacement.
+enum AppointmentEventType {
+  @JsonValue('CREATED')
+  created,
+  @JsonValue('SCHEDULED')
+  scheduled,
+  @JsonValue('STARTED')
+  started,
+  @JsonValue('COMPLETED')
+  completed,
+  @JsonValue('CANCELLED')
+  cancelled,
+  @JsonValue('NO_SHOW')
+  noShow,
+  @JsonValue('RESCHEDULED')
+  rescheduled,
+  @JsonValue('REJECTED')
+  rejected,
+}
+
+/// One entry of `GET /appointments/{id}/timeline` — the unified, lineage-wide
+/// history (every appointment sharing the same root contributes its events).
+/// Mirrors the backend `TimelineEventView`: identifiers, enums and a timestamp
+/// only, never free text. [actorAccountId] is null for system/backfilled
+/// events; compare it with the signed-in account's id to render "You".
+/// [relatedAppointmentId]/[childKind] carry the parent-child link of a
+/// reschedule or follow-up; [cancelReason] only accompanies [AppointmentEventType.cancelled].
+@freezed
+abstract class TimelineEvent with _$TimelineEvent {
+  const factory TimelineEvent({
+    required String appointmentId,
+    String? appointmentNumber,
+    required AppointmentEventType eventType,
+    String? actorAccountId,
+    AccountRole? actorRole,
+    String? relatedAppointmentId,
+    AppointmentChildKind? childKind,
+    AppointmentCancelReason? cancelReason,
+    required DateTime occurredAt,
+  }) = _TimelineEvent;
+
+  factory TimelineEvent.fromJson(Map<String, dynamic> json) =>
+      _$TimelineEventFromJson(json);
+}
+
+/// A single appointment. Mirrors the backend `AppointmentView`.
+///
+/// [appointmentNumber] is the human-friendly business id (e.g. `PHY-20260610-0001`)
+/// shown on cards, detail and search; [id] is the internal UUID and is never displayed.
+/// Optional only for resilience to older cached payloads — the backend always sends it.
+///
+/// Request-first: the patient submits a [requestedDate] (mandatory) and an
+/// optional [preferredTime] hint; the physiotherapist later assigns the final
+/// time. Until they do, [scheduledAt]/[scheduledEndAt] are null and the status
+/// is `requested` — use [isScheduled] / [day] rather than reading [scheduledAt]
+/// blindly. Instants are UTC on the wire; call `.toLocal()` before formatting.
+/// [requestedDate] is a bare local calendar day; [preferredTime] is a wire
+/// `HH:mm[:ss]` clock string. [reason] is free text the patient gave — not
+/// clinical, but don't log it.
 @freezed
 abstract class Appointment with _$Appointment {
   const factory Appointment({
     required String id,
+    String? appointmentNumber,
     required String patientId,
     required String bookedByAccountId,
     required String physiotherapistId,
-    required DateTime scheduledAt,
-    required DateTime scheduledEndAt,
+    @LocalDateConverter() required DateTime requestedDate,
+    String? preferredTime,
+    DateTime? scheduledAt,
+    DateTime? scheduledEndAt,
     required int durationMinutes,
     required AppointmentStatus status,
+    @Default(false) bool isFollowUp,
     String? reason,
     AppointmentCancelReason? cancelReason,
     String? cancelNote,
     String? rescheduledFromId,
+    // Lineage: [rootAppointmentId] is the origin of the chain (equals [id] on a root);
+    // [sourceAppointmentId] is the immediate appointment this one derived from; [childKind]
+    // is how (null on a root). The richer timeline view is built on these in a later chunk.
+    String? rootAppointmentId,
+    String? sourceAppointmentId,
+    AppointmentChildKind? childKind,
     DateTime? confirmedAt,
     DateTime? startedAt,
     DateTime? completedAt,
@@ -102,6 +200,49 @@ abstract class Appointment with _$Appointment {
 
   factory Appointment.fromJson(Map<String, dynamic> json) =>
       _$AppointmentFromJson(json);
+}
+
+extension AppointmentX on Appointment {
+  /// True once the physiotherapist has assigned a final time. Until then the
+  /// appointment is a bare request: only [Appointment.requestedDate] (and an
+  /// optional [Appointment.preferredTime]) is set and [Appointment.scheduledAt]
+  /// is null.
+  bool get isScheduled => scheduledAt != null;
+
+  /// The day to show for the appointment whatever its status: the confirmed
+  /// instant once scheduled, otherwise the requested calendar day. Never null,
+  /// so list/sort code can rely on it. (A scheduled instant is UTC; a requested
+  /// date is already local midnight — both render correctly via `.toLocal()`.)
+  DateTime get day => scheduledAt ?? requestedDate;
+}
+
+/// One global-search hit for the header autocomplete. Mirrors the backend
+/// `AppointmentSuggestion`: a thin row carrying the appointment's human-friendly
+/// [appointmentNumber], its patient's [patientName]/[patientNumber], [status] and
+/// date, plus [appointmentId] to navigate by. Patient name is PHI — it's only
+/// returned for the caller's own patients, so don't log it. Optional fields are
+/// null-tolerant for resilience; the backend populates them for live rows.
+@freezed
+abstract class AppointmentSuggestion with _$AppointmentSuggestion {
+  const factory AppointmentSuggestion({
+    required String appointmentId,
+    String? appointmentNumber,
+    required String patientId,
+    String? patientName,
+    String? patientNumber,
+    required AppointmentStatus status,
+    DateTime? scheduledAt,
+    @LocalDateConverter() required DateTime requestedDate,
+  }) = _AppointmentSuggestion;
+
+  factory AppointmentSuggestion.fromJson(Map<String, dynamic> json) =>
+      _$AppointmentSuggestionFromJson(json);
+}
+
+extension AppointmentSuggestionX on AppointmentSuggestion {
+  /// The day to show whatever the status: the confirmed instant once scheduled,
+  /// otherwise the requested calendar day (mirrors [AppointmentX.day]).
+  DateTime get day => scheduledAt ?? requestedDate;
 }
 
 /// One cursor page of appointments. [nextCursor] is null on the last page.
@@ -116,15 +257,16 @@ abstract class AppointmentPage with _$AppointmentPage {
       _$AppointmentPageFromJson(json);
 }
 
-/// Body for `POST /appointments`. [scheduledAt] must be the exact `startsAt` of
-/// an available [Slot] and [durationMinutes] its duration — the backend rejects
-/// anything that isn't a live slot. [reason] is optional (omitted when null).
+/// Body for `POST /appointments` — a patient request. [requestedDate] (a bare
+/// calendar day) is mandatory; [preferredTime] is an optional `HH:mm:ss` hint.
+/// The patient never sends a final time — the physiotherapist assigns it later.
+/// [preferredTime] / [reason] are omitted when null (`include_if_null:false`).
 @freezed
 abstract class BookAppointmentRequest with _$BookAppointmentRequest {
   const factory BookAppointmentRequest({
     required String patientId,
-    required DateTime scheduledAt,
-    required int durationMinutes,
+    @LocalDateConverter() required DateTime requestedDate,
+    String? preferredTime,
     String? reason,
   }) = _BookAppointmentRequest;
 
@@ -132,22 +274,71 @@ abstract class BookAppointmentRequest with _$BookAppointmentRequest {
       _$BookAppointmentRequestFromJson(json);
 }
 
-/// Body for `POST /appointments/{id}/reschedule`. Like a booking, [scheduledAt]
-/// must be the exact `startsAt` of an available [Slot] and [durationMinutes] its
-/// duration — for the *same* physiotherapist as the original appointment, which
-/// the backend keeps (the patient can't be changed here). The backend marks the
-/// old appointment RESCHEDULED and returns a fresh one. A null [reason] keeps the
-/// original appointment's reason. No Idempotency-Key (unlike booking).
+/// Body for `POST /appointments/{id}/reschedule` from the patient side — a
+/// re-request, not a self-assigned time. The patient picks a new [requestedDate]
+/// (mandatory) and an optional [preferredTime] hint; the backend keeps the same
+/// patient and physiotherapist, marks the old appointment RESCHEDULED, and
+/// returns a fresh unscheduled REQUESTED one for the physiotherapist to schedule.
+/// A null [reason] keeps the original appointment's reason. No Idempotency-Key
+/// (the source appointment id makes it idempotent).
 @freezed
 abstract class RescheduleAppointmentRequest with _$RescheduleAppointmentRequest {
   const factory RescheduleAppointmentRequest({
-    required DateTime scheduledAt,
-    required int durationMinutes,
+    @LocalDateConverter() required DateTime requestedDate,
+    String? preferredTime,
     String? reason,
   }) = _RescheduleAppointmentRequest;
 
   factory RescheduleAppointmentRequest.fromJson(Map<String, dynamic> json) =>
       _$RescheduleAppointmentRequestFromJson(json);
+}
+
+/// Body for `POST /appointments/{id}/schedule` — the physiotherapist assigns the
+/// final time to a REQUESTED appointment, moving it to CONFIRMED. [scheduledAt]
+/// is a UTC instant (built from the picked local date + time); [durationMinutes]
+/// is 5–240.
+@freezed
+abstract class ScheduleAppointmentRequest with _$ScheduleAppointmentRequest {
+  const factory ScheduleAppointmentRequest({
+    @UtcInstantConverter() required DateTime scheduledAt,
+    required int durationMinutes,
+  }) = _ScheduleAppointmentRequest;
+
+  factory ScheduleAppointmentRequest.fromJson(Map<String, dynamic> json) =>
+      _$ScheduleAppointmentRequestFromJson(json);
+}
+
+/// Body for `POST /appointments/follow-ups` — the physiotherapist books a
+/// follow-up review for [patientId] at a time they set (a new CONFIRMED row,
+/// `is_follow_up=true`). [reason] is optional and omitted when null.
+@freezed
+abstract class FollowUpRequest with _$FollowUpRequest {
+  const factory FollowUpRequest({
+    required String patientId,
+    @UtcInstantConverter() required DateTime scheduledAt,
+    required int durationMinutes,
+    String? reason,
+  }) = _FollowUpRequest;
+
+  factory FollowUpRequest.fromJson(Map<String, dynamic> json) =>
+      _$FollowUpRequestFromJson(json);
+}
+
+/// Body for `POST /appointments/{id}/reschedule` from the physiotherapist side —
+/// they assign the new final time directly (a new CONFIRMED row; the original is
+/// marked RESCHEDULED). Distinct from the patient's [RescheduleAppointmentRequest],
+/// which is a re-request with no self-assigned time. A null [reason] keeps the
+/// original appointment's reason.
+@freezed
+abstract class PhysioRescheduleRequest with _$PhysioRescheduleRequest {
+  const factory PhysioRescheduleRequest({
+    @UtcInstantConverter() required DateTime scheduledAt,
+    required int durationMinutes,
+    String? reason,
+  }) = _PhysioRescheduleRequest;
+
+  factory PhysioRescheduleRequest.fromJson(Map<String, dynamic> json) =>
+      _$PhysioRescheduleRequestFromJson(json);
 }
 
 /// Body for `POST /appointments/{id}/transitions`. The patient app uses this

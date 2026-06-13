@@ -66,7 +66,7 @@ final unreadSummaryProvider = FutureProvider.autoDispose<UnreadSummary>((
     }
   }
   threads.sort(
-    (a, b) => a.appointment.scheduledAt.compareTo(b.appointment.scheduledAt),
+    (a, b) => a.appointment.day.compareTo(b.appointment.day),
   );
   return UnreadSummary(total: total, threads: threads);
 });

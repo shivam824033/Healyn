@@ -2,6 +2,9 @@ package com.healyn.treatmentnotes;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.healyn.appointments.domain.Appointment;
+import com.healyn.appointments.repository.AppointmentRepository;
+import com.healyn.appointments.service.AppointmentNumberGenerator;
 import com.healyn.auth.adapter.OtpSender;
 import com.healyn.auth.domain.Account;
 import com.healyn.auth.domain.AccountRole;
@@ -31,6 +34,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 
 import java.time.DayOfWeek;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneId;
@@ -88,6 +92,8 @@ class TreatmentNoteIntegrationTest {
     @Autowired ObjectMapper json;
     @Autowired CapturingOtpSender otpSender;
     @Autowired AccountRepository accounts;
+    @Autowired AppointmentRepository appointments;
+    @Autowired AppointmentNumberGenerator numbers;
     @Autowired AccessTokenIssuer tokenIssuer;
 
     @BeforeEach
@@ -118,7 +124,7 @@ class TreatmentNoteIntegrationTest {
 
     @Test
     void write_rejected_when_appointment_not_completed() throws Exception {
-        Fixture f = bootstrapBooked("ben"); // REQUESTED, not completed
+        Fixture f = bootstrapBooked("ben"); // CONFIRMED, not yet completed
 
         mvc.perform(put("/appointments/" + f.apptId + "/treatment_note")
                         .header("Authorization", "Bearer " + f.physio.access)
@@ -177,22 +183,55 @@ class TreatmentNoteIntegrationTest {
                 .andExpect(jsonPath("$.items[0].diagnosis").value("visit one"));
     }
 
+    @Test
+    void note_status_lists_only_appointments_with_a_note() throws Exception {
+        Fixture f = bootstrapCompleted("gus");
+        upsert(f.physio, f.apptId, Map.of("diagnosis", "noted"));
+
+        // A second completed appointment for the same physio/patient, left without a note.
+        UUID apptNoNote = seedScheduledAppointment(f.physio, f.account, f.patientId);
+        transition(f.physio, apptNoNote, "IN_PROGRESS");
+        transition(f.physio, apptNoNote, "COMPLETED");
+
+        mvc.perform(post("/treatment_notes/status")
+                        .header("Authorization", "Bearer " + f.physio.access)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json.writeValueAsString(Map.of(
+                                "appointment_ids",
+                                java.util.List.of(f.apptId.toString(), apptNoNote.toString())))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.with_notes.length()").value(1))
+                .andExpect(jsonPath("$.with_notes[0]").value(f.apptId.toString()));
+    }
+
+    @Test
+    void note_status_is_physio_only() throws Exception {
+        Fixture f = bootstrapCompleted("hana");
+
+        mvc.perform(post("/treatment_notes/status")
+                        .header("Authorization", "Bearer " + f.account.access)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json.writeValueAsString(Map.of(
+                                "appointment_ids", java.util.List.of(f.apptId.toString())))))
+                .andExpect(status().isForbidden());
+    }
+
     // ---- fixtures + helpers ----
 
     private record Fixture(Session physio, Session account, UUID patientId, UUID apptId) {}
 
     private Fixture bootstrapBooked(String tag) throws Exception {
         Session physio = seedPhysio();
-        createMondayRule(physio);
         Session account = registerPatient(tag);
         UUID patientId = primaryPatientId(account);
-        UUID apptId = bookAppointment(account, patientId);
+        UUID apptId = seedScheduledAppointment(physio, account, patientId);
         return new Fixture(physio, account, patientId, apptId);
     }
 
     private Fixture bootstrapCompleted(String tag) throws Exception {
         Fixture f = bootstrapBooked(tag);
-        transition(f.physio, f.apptId, "CONFIRMED");
+        // The fixture is seeded already CONFIRMED (the physiotherapist's /schedule is exercised
+        // in the appointments suite), so the lifecycle resumes at IN_PROGRESS.
         transition(f.physio, f.apptId, "IN_PROGRESS");
         transition(f.physio, f.apptId, "COMPLETED");
         return f;
@@ -226,33 +265,19 @@ class TreatmentNoteIntegrationTest {
         return nextMondayAt(9 + minutes / 60, minutes % 60);
     }
 
-    private UUID bookAppointment(Session actor, UUID patientId) throws Exception {
-        MvcResult res = mvc.perform(post("/appointments")
-                        .header("Authorization", "Bearer " + actor.access)
-                        .header("Idempotency-Key", "tnote-" + UUID.randomUUID())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(json.writeValueAsString(Map.of(
-                                "patient_id", patientId.toString(),
-                                "scheduled_at", nextSlot(),
-                                "duration_minutes", 30))))
-                .andExpect(status().isCreated())
-                .andReturn();
-        return UUID.fromString(json.readTree(res.getResponse().getContentAsByteArray()).get("id").asText());
-    }
-
-    private void createMondayRule(Session physio) throws Exception {
-        String effectiveFrom = LocalDate.now().minusDays(30).toString();
-        mvc.perform(post("/availability/rules")
-                        .header("Authorization", "Bearer " + physio.access)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(json.writeValueAsString(Map.of(
-                                "day_of_week", 1,
-                                "start_time", "09:00:00",
-                                "end_time", "17:00:00",
-                                "slot_minutes", 30,
-                                "timezone", "Asia/Kolkata",
-                                "effective_from", effectiveFrom))))
-                .andExpect(status().isCreated());
+    /// Seeds a CONFIRMED appointment for the fixture's own physiotherapist directly, so the
+    /// treatment-note lifecycle (resuming at IN_PROGRESS -> COMPLETED) has a concrete time —
+    /// a request carries none and the physiotherapist's /schedule is covered by the appointments
+    /// suite. nextSlot() gives each one a distinct time so they never collide on the
+    /// physio-overlap guard.
+    private UUID seedScheduledAppointment(Session physio, Session actor, UUID patientId) {
+        Instant at = Instant.parse(nextSlot());
+        Appointment appt = new Appointment(
+                UuidV7.generate(), patientId, actor.id, physio.id, at, (short) 30, "treatment-note seed", null);
+        appt.schedule(at, (short) 30, Instant.now());
+        appt.assignNumber(numbers.generate());
+        appointments.save(appt);
+        return appt.getId();
     }
 
     private static String nextMondayAt(int hour, int minute) {
@@ -272,7 +297,7 @@ class TreatmentNoteIntegrationTest {
                 "$argon2id$placeholder$noop", new byte[]{0},
                 AccountRole.ROLE_PHYSIO);
         accounts.save(physio);
-        String token = tokenIssuer.issue(physio).token();
+        String token = tokenIssuer.issue(physio, java.util.UUID.randomUUID()).token();
         return new Session(physio.getId(), token);
     }
 
@@ -297,6 +322,12 @@ class TreatmentNoteIntegrationTest {
                 "full_name", tag + " Person",
                 "date_of_birth", "1991-05-20",
                 "sex", "UNDISCLOSED"));
+        body.put("address", Map.of(
+                "line1", "1 Test Street",
+                "city", "Pune",
+                "state", "Maharashtra",
+                "postal_code", "411001",
+                "country", "India"));
 
         MvcResult tokensRes = mvc.perform(post("/auth/register/complete")
                         .contentType(MediaType.APPLICATION_JSON)

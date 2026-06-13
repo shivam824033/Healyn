@@ -142,7 +142,7 @@ void main() {
       expect(find.text('Prefers morning sessions'), findsOneWidget);
       expect(find.text('Treatment history'), findsOneWidget);
       // No review set → no follow-up section.
-      expect(find.text('FOLLOW-UP DUE'), findsNothing);
+      expect(find.text('Follow-up due'), findsNothing);
     });
 
     testWidgets('surfaces a follow-up when the latest note set a future review',
@@ -167,7 +167,7 @@ void main() {
         ),
       );
 
-      expect(find.text('FOLLOW-UP DUE'), findsOneWidget);
+      expect(find.text('Follow-up due'), findsOneWidget);
     });
   });
 

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../shared/design/colors.dart';
+import '../../../shared/design/elevation.dart';
 import '../../../shared/design/radii.dart';
 import '../../../shared/design/spacing.dart';
 import '../../../shared/design/typography.dart';
@@ -31,6 +32,7 @@ class PatientSwitcher extends ConsumerWidget {
         color: HealynColors.surfaceBase,
         borderRadius: HealynRadii.brLg,
         border: Border.all(color: HealynColors.borderSubtle),
+        boxShadow: HealynElevation.e1,
       ),
       child: Material(
         type: MaterialType.transparency,
@@ -89,46 +91,66 @@ class PatientSwitcher extends ConsumerWidget {
     return showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
+      // Let the sheet grow past the default half-screen cap and bound it
+      // ourselves, so a long family list scrolls instead of overflowing (the
+      // patient rows are the only scrolling part; the title and "Add family
+      // member" action stay pinned).
+      isScrollControlled: true,
       builder: (sheetContext) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const Padding(
-              padding: EdgeInsets.fromLTRB(
-                HealynSpacing.screenEdge,
-                0,
-                HealynSpacing.screenEdge,
-                HealynSpacing.s2,
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(sheetContext).size.height * 0.7,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Padding(
+                padding: EdgeInsets.fromLTRB(
+                  HealynSpacing.screenEdge,
+                  0,
+                  HealynSpacing.screenEdge,
+                  HealynSpacing.s2,
+                ),
+                child: Text('Switch patient', style: HealynTypography.h3),
               ),
-              child: Text('Switch patient', style: HealynTypography.h3),
-            ),
-            for (final p in ordered)
-              _PatientRow(
-                patient: p,
-                selected: p.id == active.id,
+              Flexible(
+                child: ListView(
+                  shrinkWrap: true,
+                  padding: EdgeInsets.zero,
+                  children: [
+                    for (final p in ordered)
+                      _PatientRow(
+                        patient: p,
+                        selected: p.id == active.id,
+                        onTap: () {
+                          ref
+                              .read(selectedPatientIdProvider.notifier)
+                              .select(p.id);
+                          Navigator.of(sheetContext).pop();
+                        },
+                      ),
+                  ],
+                ),
+              ),
+              const Divider(height: HealynSpacing.s5),
+              ListTile(
+                leading: const Icon(
+                  Icons.person_add_alt_1,
+                  color: HealynColors.brandPrimary,
+                ),
+                title: const Text(
+                  'Add family member',
+                  style: HealynTypography.bodyStrong,
+                ),
                 onTap: () {
-                  ref.read(selectedPatientIdProvider.notifier).select(p.id);
                   Navigator.of(sheetContext).pop();
+                  context.push('/patients/new');
                 },
               ),
-            const Divider(height: HealynSpacing.s5),
-            ListTile(
-              leading: const Icon(
-                Icons.person_add_alt_1,
-                color: HealynColors.brandPrimary,
-              ),
-              title: const Text(
-                'Add family member',
-                style: HealynTypography.bodyStrong,
-              ),
-              onTap: () {
-                Navigator.of(sheetContext).pop();
-                context.push('/patients/new');
-              },
-            ),
-            const SizedBox(height: HealynSpacing.s2),
-          ],
+              const SizedBox(height: HealynSpacing.s2),
+            ],
+          ),
         ),
       ),
     );

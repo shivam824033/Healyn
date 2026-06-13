@@ -8,6 +8,8 @@ import 'package:healyn/features/discussion/data/discussion_repository.dart';
 import 'package:healyn/features/discussion/data/models/discussion_models.dart';
 import 'package:healyn/features/discussion/presentation/screens/discussion_screen.dart';
 import 'package:healyn/features/discussion/presentation/widgets/message_bubble.dart';
+import 'package:healyn/features/patients/data/models/patient_models.dart';
+import 'package:healyn/features/patients/presentation/patients_providers.dart';
 import 'package:healyn/features/shared/auth/current_account.dart';
 
 /// Serves a fixed page and records physio-side posts without the network.
@@ -73,13 +75,22 @@ DiscussionMessage _msg({
 
 Appointment _appt(AppointmentStatus status) => Appointment(
   id: 'ap1',
+  appointmentNumber: 'PHY-20260610-0001',
   patientId: 'pt1',
   bookedByAccountId: 'ac1',
   physiotherapistId: 'ph1',
+  requestedDate: DateTime(2026, 6, 10),
   scheduledAt: DateTime.utc(2026, 6, 10, 9),
   scheduledEndAt: DateTime.utc(2026, 6, 10, 9, 45),
   durationMinutes: 45,
   status: status,
+);
+
+Patient _patient() => Patient(
+  id: 'pt1',
+  patientNumber: 'PAT-100001',
+  fullName: 'John Doe',
+  dateOfBirth: DateTime(1990, 1, 1),
 );
 
 Future<void> _pump(
@@ -92,6 +103,7 @@ Future<void> _pump(
       overrides: [
         discussionRepositoryProvider.overrideWithValue(repo),
         currentAccountIdProvider.overrideWith((ref) => 'phys'),
+        patientsProvider.overrideWith((ref) => [_patient()]),
       ],
       child: MaterialApp(
         home: DiscussionScreen(
@@ -190,6 +202,18 @@ void main() {
 
     expect(repo.postCalled, isTrue);
     expect(repo.lastInstruction, isTrue);
+  });
+
+  testWidgets('header shows the appointment number and patient name', (
+    tester,
+  ) async {
+    final repo = _FakePhysioDiscussionRepo(const MessagePage(items: []));
+    await _pump(tester, AppointmentStatus.confirmed, repo: repo);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Discussion'), findsOneWidget);
+    expect(find.text('PHY-20260610-0001'), findsOneWidget);
+    expect(find.text('John Doe'), findsOneWidget);
   });
 
   testWidgets('empty thread shows the physio prompt', (tester) async {

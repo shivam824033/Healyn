@@ -40,6 +40,7 @@ Appointment _appt(String id, AppointmentStatus status, {String patientId = 'pt1'
     patientId: patientId,
     bookedByAccountId: 'ac1',
     physiotherapistId: 'ph1',
+    requestedDate: DateTime(start.year, start.month, start.day),
     scheduledAt: start,
     scheduledEndAt: start.add(const Duration(minutes: 30)),
     durationMinutes: 30,

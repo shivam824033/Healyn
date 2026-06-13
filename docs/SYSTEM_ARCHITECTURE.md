@@ -65,7 +65,7 @@ Each module is a top-level Java package: `com.healyn.<module>`.
 | Module | Responsibility | Key Entities | Talks To |
 |---|---|---|---|
 | `auth` | Registration, login, OTP, JWT issue/refresh, device sessions | `Account`, `DeviceSession`, `OtpChallenge` | Redis (token blacklist), SMS/email OTP adapter |
-| `patients` | Patient CRUD, account↔patient links, relationships | `Patient`, `AccountPatient` | `auth` (account context) |
+| `patients` | Patient CRUD, account↔patient links, relationships, account household address | `Patient`, `AccountPatient`, `AccountAddress` | `auth` (account context) |
 | `availability` | Physiotherapist availability rules, blackout windows, slot expansion (pure-function `SlotExpansionService` consumed by `appointments`) | `AvailabilityRule`, `BlackoutWindow` | `auth` (physio account) |
 | `appointments` | Booking, state-machine transitions, reschedule, cursor-paginated listing, idempotency on book | `Appointment` | `patients` (access policy), `availability` (slot validation), `discussion`, `notifications`, `treatment-notes` |
 | `discussion` | Appointment-scoped messages, 5-min edit/delete window, cursor list, per-account read markers, unread count | `DiscussionMessage`, `DiscussionReadMarker` | `appointments`, `patients` (access policy), `files` (attachments — deferred), `notifications` |

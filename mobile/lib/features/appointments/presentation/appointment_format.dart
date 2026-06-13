@@ -1,6 +1,8 @@
 // Presentation helpers for appointment dates/times. Instants arrive in UTC;
 // every formatter converts to local time before rendering. Pure functions.
 
+import '../data/models/appointment_models.dart';
+
 const _months = [
   'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
   'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
@@ -29,9 +31,53 @@ String formatDateShort(DateTime instant) {
   return '${_weekdays[d.weekday - 1]}, ${d.day} ${_months[d.month - 1]}';
 }
 
+/// Month + year as `Jun 2026` — for the calendar header.
+String formatMonthYear(DateTime month) =>
+    '${_months[month.month - 1]} ${month.year}';
+
 /// Full when-line for a tile or detail: `Wed, 10 Jun 2026 · 9:00 AM`.
 String formatWhen(DateTime instant) =>
     '${formatDateLong(instant)} · ${formatTimeOfDay(instant)}';
+
+/// A wire `HH:mm[:ss]` clock string (a backend `LocalTime`) as `9:30 AM`.
+/// Returns null when [wire] is null or unparseable, so callers can fall back.
+String? formatClockTime(String? wire) {
+  if (wire == null) return null;
+  final parts = wire.split(':');
+  if (parts.length < 2) return null;
+  final h = int.tryParse(parts[0]);
+  final m = int.tryParse(parts[1]);
+  if (h == null || m == null) return null;
+  final hour12 = h % 12 == 0 ? 12 : h % 12;
+  final minute = m.toString().padLeft(2, '0');
+  final period = h < 12 ? 'AM' : 'PM';
+  return '$hour12:$minute $period';
+}
+
+/// The wire `HH:mm:ss` (a `LocalTime`) for a picked time-of-day; seconds are
+/// always `00`. Used when sending an optional preferred-time hint.
+String wireClockTime(int hour, int minute) =>
+    '${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}:00';
+
+/// The full when-line for an appointment, whatever its status: the confirmed
+/// date + time once scheduled, otherwise the requested day with a note that the
+/// physiotherapist will confirm the time.
+String formatAppointmentWhen(Appointment a) {
+  final at = a.scheduledAt;
+  if (at != null) return formatWhen(at);
+  return '${formatDateLong(a.requestedDate)} · time to be confirmed';
+}
+
+/// A compact date(+time) line for a tile. A scheduled appointment shows
+/// `Wed, 10 Jun · 9:00 AM`; an unscheduled request shows
+/// `Wed, 10 Jun · Time to be confirmed`.
+String formatAppointmentWhenShort(Appointment a) {
+  final at = a.scheduledAt;
+  if (at != null) {
+    return '${formatDateShort(at)} · ${formatTimeOfDay(at)}';
+  }
+  return '${formatDateShort(a.requestedDate)} · Time to be confirmed';
+}
 
 /// Human duration: `45 min`, `1 hr`, `1 hr 30 min`.
 String formatDuration(int minutes) {

@@ -4,13 +4,16 @@ import 'package:go_router/go_router.dart';
 
 import '../../../patients/presentation/patients_providers.dart';
 import '../../../shared/design/colors.dart';
-import '../../../shared/design/radii.dart';
 import '../../../shared/design/spacing.dart';
 import '../../../shared/design/typography.dart';
+import '../../../shared/widgets/app_bar.dart';
 import '../../../shared/widgets/error_banner.dart';
+import '../../../shared/widgets/healyn_list_row.dart';
+import '../../../shared/widgets/healyn_section_header.dart';
 import '../../data/models/appointment_models.dart';
 import '../appointment_format.dart';
 import '../appointments_providers.dart';
+import '../widgets/appointment_filter_bar.dart';
 import '../widgets/appointment_status_chip.dart';
 
 /// Appointments tab — the patient's timeline of upcoming and past
@@ -23,10 +26,12 @@ class AppointmentsScreen extends ConsumerWidget {
     final appointments = ref.watch(appointmentsProvider);
     final patients = ref.watch(patientsProvider).valueOrNull ?? const [];
     final names = {for (final p in patients) p.id: p.fullName};
+    final filter = ref.watch(appointmentFilterProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Appointments'),
+      backgroundColor: HealynColors.surfaceAlt,
+      appBar: HealynAppBar(
+        title: 'Appointments',
         actions: [
           IconButton(
             tooltip: 'Book appointment',
@@ -36,25 +41,34 @@ class AppointmentsScreen extends ConsumerWidget {
         ],
       ),
       body: SafeArea(
-        child: RefreshIndicator(
-          onRefresh: () async {
-            ref.invalidate(appointmentsProvider);
-            await ref.read(appointmentsProvider.future);
-          },
-          child: appointments.when(
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (_, _) => ListView(
-              padding: const EdgeInsets.all(HealynSpacing.screenEdge),
-              children: const [
-                ErrorBanner(
-                  message:
-                      'Could not load your appointments. Pull down to retry.',
-                ),
-              ],
-            ),
-            data: (state) {
-              final all = state.items;
-              if (all.isEmpty) return const _EmptyAppointments();
+        child: Column(
+          children: [
+            AppointmentFilterBar(filterProvider: appointmentFilterProvider),
+            Expanded(
+              child: RefreshIndicator(
+                onRefresh: () async {
+                  ref.invalidate(appointmentsProvider);
+                  await ref.read(appointmentsProvider.future);
+                },
+                child: appointments.when(
+                  loading: () =>
+                      const Center(child: CircularProgressIndicator()),
+                  error: (_, _) => ListView(
+                    padding: const EdgeInsets.all(HealynSpacing.screenEdge),
+                    children: const [
+                      ErrorBanner(
+                        message:
+                            'Could not load your appointments. Pull down to retry.',
+                      ),
+                    ],
+                  ),
+                  data: (state) {
+                    final all = state.items;
+                    if (all.isEmpty) {
+                      return filter.isDefault
+                          ? const _EmptyAppointments()
+                          : const _NoMatchingAppointments();
+                    }
               final upcoming = upcomingOf(all);
               final past = pastOf(all);
               // Auto-load the next cursor page as the list nears its bottom.
@@ -71,7 +85,7 @@ class AppointmentsScreen extends ConsumerWidget {
                   padding: const EdgeInsets.all(HealynSpacing.screenEdge),
                   children: [
                     if (upcoming.isNotEmpty) ...[
-                      const _SectionTitle('Upcoming'),
+                      const HealynSectionHeader(title: 'Upcoming'),
                       const SizedBox(height: HealynSpacing.s3),
                       for (final a in upcoming) ...[
                         _AppointmentTile(appointment: a, patientName: names[a.patientId]),
@@ -81,7 +95,7 @@ class AppointmentsScreen extends ConsumerWidget {
                     if (past.isNotEmpty) ...[
                       if (upcoming.isNotEmpty)
                         const SizedBox(height: HealynSpacing.s4),
-                      const _SectionTitle('Past'),
+                      const HealynSectionHeader(title: 'Past'),
                       const SizedBox(height: HealynSpacing.s3),
                       for (final a in past) ...[
                         _AppointmentTile(appointment: a, patientName: names[a.patientId]),
@@ -97,8 +111,11 @@ class AppointmentsScreen extends ConsumerWidget {
                   ],
                 ),
               );
-            },
-          ),
+                  },
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -113,50 +130,52 @@ class _AppointmentTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final meta = [
+    final number = appointment.appointmentNumber;
+    final subtitle = [
       ?patientName,
-      formatDuration(appointment.durationMinutes),
+      if (appointment.isScheduled) formatDuration(appointment.durationMinutes),
+      ?number,
     ].join(' · ');
-    return Container(
-      decoration: BoxDecoration(
-        color: HealynColors.surfaceBase,
-        borderRadius: HealynRadii.brLg,
-        border: Border.all(color: HealynColors.borderSubtle),
+    return HealynListRow(
+      title: formatAppointmentWhenShort(appointment),
+      subtitle: subtitle.isEmpty ? null : subtitle,
+      footer: AppointmentStatusChip(status: appointment.status),
+      onTap: () => context.push(
+        '/appointments/${appointment.id}',
+        extra: appointment,
       ),
-      child: Material(
-        type: MaterialType.transparency,
-        child: InkWell(
-          borderRadius: HealynRadii.brLg,
-          onTap: () => context.push(
-            '/appointments/${appointment.id}',
-            extra: appointment,
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(HealynSpacing.s4),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        '${formatDateShort(appointment.scheduledAt)} · '
-                        '${formatTimeOfDay(appointment.scheduledAt)}',
-                        style: HealynTypography.bodyStrong,
-                      ),
-                      const SizedBox(height: HealynSpacing.s1),
-                      Text(meta, style: HealynTypography.caption),
-                      const SizedBox(height: HealynSpacing.s2),
-                      AppointmentStatusChip(status: appointment.status),
-                    ],
-                  ),
-                ),
-                const Icon(Icons.chevron_right, color: HealynColors.textMuted),
-              ],
-            ),
-          ),
+    );
+  }
+}
+
+/// Shown when a filter is active but nothing matches — distinct from the
+/// first-run [_EmptyAppointments] onboarding (which invites a first booking).
+class _NoMatchingAppointments extends StatelessWidget {
+  const _NoMatchingAppointments();
+
+  @override
+  Widget build(BuildContext context) {
+    // Inside a scrollable so pull-to-refresh still works with no matches.
+    return ListView(
+      padding: const EdgeInsets.all(HealynSpacing.s8),
+      children: [
+        const SizedBox(height: HealynSpacing.s8),
+        const Icon(Icons.event_outlined, size: 48, color: HealynColors.textMuted),
+        const SizedBox(height: HealynSpacing.s4),
+        const Text(
+          'No appointments match this filter',
+          style: HealynTypography.h3,
+          textAlign: TextAlign.center,
         ),
-      ),
+        const SizedBox(height: HealynSpacing.s2),
+        Text(
+          'Try a different filter above, or pull down to refresh.',
+          style: HealynTypography.body.copyWith(
+            color: HealynColors.textSecondary,
+          ),
+          textAlign: TextAlign.center,
+        ),
+      ],
     );
   }
 }
@@ -188,16 +207,6 @@ class _LoadMoreFooter extends StatelessWidget {
       ),
     );
   }
-}
-
-class _SectionTitle extends StatelessWidget {
-  const _SectionTitle(this.text);
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) =>
-      Text(text.toUpperCase(), style: HealynTypography.overline);
 }
 
 class _EmptyAppointments extends StatelessWidget {

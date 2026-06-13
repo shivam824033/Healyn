@@ -30,7 +30,9 @@ final physioScheduleProvider = FutureProvider.autoDispose<List<Appointment>>((
   final page = await ref
       .watch(appointmentsRepositoryProvider)
       .list(from: from, to: to, limit: _dayFetchLimit);
-  return [...page.items]..sort((a, b) => a.scheduledAt.compareTo(b.scheduledAt));
+  // The from/to bound on `scheduled_at` already excludes unscheduled requests,
+  // so every row here has a time; sort by `day` to stay null-safe regardless.
+  return [...page.items]..sort((a, b) => a.day.compareTo(b.day));
 });
 
 /// Whether [day] is the local calendar day "today" — drives the stepper's

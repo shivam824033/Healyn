@@ -64,6 +64,7 @@ Appointment _appt(AppointmentStatus status) => Appointment(
   patientId: 'pt1',
   bookedByAccountId: 'ac1',
   physiotherapistId: 'ph1',
+  requestedDate: DateTime.now(),
   scheduledAt: DateTime.now().add(const Duration(hours: 2)),
   scheduledEndAt: DateTime.now().add(const Duration(hours: 2, minutes: 45)),
   durationMinutes: 45,
@@ -101,8 +102,9 @@ Future<_RecordingRepo> _pump(
 void main() {
   group('physioActionsFor', () {
     test('mirrors the allowed-transition matrix', () {
+      // Request-first: a REQUESTED appointment offers only Reject as a plain
+      // transition — confirming it assigns a time (the assign-time sheet).
       expect(physioActionsFor(AppointmentStatus.requested), [
-        PhysioAppointmentAction.confirm,
         PhysioAppointmentAction.reject,
       ]);
       expect(physioActionsFor(AppointmentStatus.confirmed), [
@@ -135,25 +137,28 @@ void main() {
   });
 
   group('physio appointment detail actions', () {
-    testWidgets('a requested appointment offers Confirm and Reject', (
+    testWidgets('a requested appointment offers Set time & confirm and Reject', (
       tester,
     ) async {
       await _pump(tester, _appt(AppointmentStatus.requested));
 
-      expect(find.widgetWithText(ElevatedButton, 'Confirm'), findsOneWidget);
+      expect(
+        find.widgetWithText(ElevatedButton, 'Set time & confirm'),
+        findsOneWidget,
+      );
       expect(find.widgetWithText(OutlinedButton, 'Reject'), findsOneWidget);
       expect(find.text('Start session'), findsNothing);
     });
 
-    testWidgets('a confirmed appointment offers Start, no-show and Cancel', (
-      tester,
-    ) async {
+    testWidgets('a confirmed appointment offers Start, Reschedule, no-show and '
+        'Cancel', (tester) async {
       await _pump(tester, _appt(AppointmentStatus.confirmed));
 
       expect(find.text('Start session'), findsOneWidget);
+      expect(find.text('Reschedule'), findsOneWidget);
       expect(find.text('Mark no-show'), findsOneWidget);
       expect(find.text('Cancel appointment'), findsOneWidget);
-      expect(find.text('Confirm'), findsNothing);
+      expect(find.text('Set time & confirm'), findsNothing);
     });
 
     testWidgets('an in-progress appointment offers Complete and Cancel', (
@@ -174,23 +179,32 @@ void main() {
       expect(find.text('Cancel appointment'), findsNothing);
     });
 
-    testWidgets('confirming fires a CONFIRMED transition and re-renders', (
-      tester,
-    ) async {
+    testWidgets('rejecting a request needs a note and fires a REJECTED '
+        'transition with no cancel reason', (tester) async {
       final repo = await _pump(tester, _appt(AppointmentStatus.requested));
 
-      await tester.tap(find.widgetWithText(ElevatedButton, 'Confirm'));
+      final reject = find.widgetWithText(OutlinedButton, 'Reject');
+      await tester.ensureVisible(reject);
+      await tester.tap(reject);
       await tester.pumpAndSettle();
-      // The confirmation dialog's action is a TextButton, distinct from the
-      // ElevatedButton behind it.
-      await tester.tap(find.widgetWithText(TextButton, 'Confirm'));
+
+      // The dialog's submit (a TextButton) is disabled while the note is empty.
+      final submit = find.widgetWithText(TextButton, 'Reject');
+      expect(tester.widget<TextButton>(submit).onPressed, isNull);
+      expect(repo.calls, isEmpty);
+
+      await tester.enterText(find.byType(TextField), 'No availability that week');
+      await tester.pump();
+      await tester.tap(submit);
       await tester.pumpAndSettle();
 
       expect(repo.calls, hasLength(1));
-      expect(repo.calls.single.to, AppointmentStatus.confirmed);
+      // A rejection is its own terminal state, not a cancellation: no reason.
+      expect(repo.calls.single.to, AppointmentStatus.rejected);
       expect(repo.calls.single.reason, isNull);
-      // State updated: the screen now shows the confirmed-state actions.
-      expect(find.text('Start session'), findsOneWidget);
+      expect(repo.calls.single.note, 'No availability that week');
+      // Rejected is terminal: the scheduling action is gone.
+      expect(find.text('Set time & confirm'), findsNothing);
 
       // Flush the success snackbar's auto-dismiss timer before teardown.
       await tester.pumpAndSettle(const Duration(seconds: 5));

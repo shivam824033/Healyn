@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Brand indigo (HealynColors.brandPrimary). Backs the Android 12+ system
+         splash so there is no white flash before launch_background draws. -->
+    <color name="splash_background">#FF3B4AA0</color>
+</resources>

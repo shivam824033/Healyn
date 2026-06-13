@@ -110,31 +110,60 @@ void main() {
   });
 
   group('routeForPush', () {
-    test('routes an appointment notification by id', () {
+    test('an appointment-lifecycle notification opens the detail, role-scoped', () {
       expect(
-        routeForPush({'kind': 'BOOKING_CONFIRMED', 'appointmentId': 'ap1'}),
+        routeForPush(
+          {'kind': 'BOOKING_CONFIRMED', 'appointmentId': 'ap1'},
+          isPhysio: false,
+        ),
         '/appointments/ap1',
+      );
+      expect(
+        routeForPush(
+          {'kind': 'BOOKING_REQUESTED', 'appointmentId': 'ap1'},
+          isPhysio: true,
+        ),
+        '/physio/appointments/ap1',
+      );
+    });
+
+    test('a new-message notification opens the discussion, role-scoped', () {
+      expect(
+        routeForPush(
+          {'kind': 'DISCUSSION_NEW_MESSAGE', 'appointmentId': 'ap1', 'messageId': 'm1'},
+          isPhysio: false,
+        ),
+        '/appointments/ap1/discussion',
+      );
+      expect(
+        routeForPush(
+          {'kind': 'DISCUSSION_NEW_MESSAGE', 'appointmentId': 'ap1', 'messageId': 'm1'},
+          isPhysio: true,
+        ),
+        '/physio/appointments/ap1/discussion',
       );
     });
 
     test('returns null when there is no actionable id', () {
-      expect(routeForPush({'kind': 'SOMETHING'}), isNull);
-      expect(routeForPush({'appointmentId': ''}), isNull);
+      expect(routeForPush({'kind': 'SOMETHING'}, isPhysio: false), isNull);
+      expect(routeForPush({'appointmentId': ''}, isPhysio: true), isNull);
     });
   });
 
   test('wireTaps delivers the cold-start tap and subsequent taps', () async {
     final messaging = _FakeMessaging(
-      initialMessage: {'appointmentId': 'ap-initial'},
+      initialMessage: {'kind': 'BOOKING_CONFIRMED', 'appointmentId': 'ap-initial'},
     );
-    final routes = <String>[];
-    await _service(messaging, _RecordingTokenApi()).wireTaps(routes.add);
+    final taps = <Map<String, String>>[];
+    await _service(messaging, _RecordingTokenApi()).wireTaps(taps.add);
 
-    expect(routes, ['/appointments/ap-initial']);
+    expect(taps, hasLength(1));
+    expect(taps.single['appointmentId'], 'ap-initial');
 
-    messaging.emitOpened({'appointmentId': 'ap-2'});
+    messaging.emitOpened({'kind': 'BOOKING_CONFIRMED', 'appointmentId': 'ap-2'});
     await Future<void>.delayed(const Duration(milliseconds: 1));
-    expect(routes, ['/appointments/ap-initial', '/appointments/ap-2']);
+    expect(taps, hasLength(2));
+    expect(taps.last['appointmentId'], 'ap-2');
   });
 
   test('wireTaps is inert when push is unconfigured', () async {
@@ -142,8 +171,8 @@ void main() {
       configured: false,
       initialMessage: {'appointmentId': 'ap-x'},
     );
-    final routes = <String>[];
-    await _service(messaging, _RecordingTokenApi()).wireTaps(routes.add);
-    expect(routes, isEmpty);
+    final taps = <Map<String, String>>[];
+    await _service(messaging, _RecordingTokenApi()).wireTaps(taps.add);
+    expect(taps, isEmpty);
   });
 }

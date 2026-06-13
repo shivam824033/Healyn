@@ -126,9 +126,11 @@ DiscussionMessage _msg({
 
 Appointment _appt(AppointmentStatus status) => Appointment(
   id: 'ap1',
+  appointmentNumber: 'PHY-20260610-0001',
   patientId: 'pt1',
   bookedByAccountId: 'ac1',
   physiotherapistId: 'ph1',
+  requestedDate: DateTime(2026, 6, 10),
   scheduledAt: DateTime.utc(2026, 6, 10, 9),
   scheduledEndAt: DateTime.utc(2026, 6, 10, 9, 45),
   durationMinutes: 45,
@@ -188,6 +190,17 @@ void main() {
     expect(find.text('Yes, fifteen minutes.'), findsOneWidget);
     // The composer is available on an open appointment.
     expect(find.byTooltip('Send'), findsOneWidget);
+  });
+
+  testWidgets('header shows the appointment number (no patient name for the patient viewer)', (
+    tester,
+  ) async {
+    final repo = _FakeDiscussionRepo(const MessagePage(items: []));
+    await _pump(tester, AppointmentStatus.confirmed, repo: repo);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Discussion'), findsOneWidget);
+    expect(find.text('PHY-20260610-0001'), findsOneWidget);
   });
 
   testWidgets('shows an empty state when there are no messages', (tester) async {

@@ -8,8 +8,11 @@ import '../../../shared/design/colors.dart';
 import '../../../shared/design/spacing.dart';
 import '../../../shared/design/typography.dart';
 import '../../../shared/domain/patient_sex.dart';
+import '../../../shared/widgets/app_bar.dart';
 import '../../../shared/widgets/error_banner.dart';
+import '../../../shared/widgets/healyn_section_header.dart';
 import '../../../shared/widgets/nav_card.dart';
+import '../../../shared/widgets/copyable_id.dart';
 import '../../../shared/widgets/section_card.dart';
 import '../../data/models/patient_models.dart';
 import '../patient_format.dart';
@@ -26,8 +29,9 @@ class ProfileScreen extends ConsumerWidget {
     final list = patients.valueOrNull;
     final me = (list == null || list.isEmpty) ? null : primaryPatientOf(list);
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Profile'),
+      backgroundColor: HealynColors.surfaceAlt,
+      appBar: HealynAppBar(
+        title: 'Profile',
         actions: [
           if (me != null)
             IconButton(
@@ -101,17 +105,19 @@ class _ProfileBody extends ConsumerWidget {
       children: [
         _Header(patient: patient),
         const SizedBox(height: HealynSpacing.s6),
-        const _SectionTitle('Personal details'),
+        const HealynSectionHeader(title: 'Personal details'),
         const SizedBox(height: HealynSpacing.s3),
         _DetailCard(rows: details),
         if (medical.isNotEmpty) ...[
           const SizedBox(height: HealynSpacing.s6),
-          const _SectionTitle('Medical'),
+          const HealynSectionHeader(title: 'Medical'),
           const SizedBox(height: HealynSpacing.s3),
           _DetailCard(rows: medical),
         ],
         const SizedBox(height: HealynSpacing.s6),
-        const _SectionTitle('Care'),
+        _AddressSection(address: patient.address),
+        const SizedBox(height: HealynSpacing.s6),
+        const HealynSectionHeader(title: 'Care'),
         const SizedBox(height: HealynSpacing.s3),
         NavCard(
           icon: Icons.assignment_outlined,
@@ -122,7 +128,7 @@ class _ProfileBody extends ConsumerWidget {
           ),
         ),
         const SizedBox(height: HealynSpacing.s6),
-        const _SectionTitle('Settings'),
+        const HealynSectionHeader(title: 'Settings'),
         const SizedBox(height: HealynSpacing.s3),
         NavCard(
           icon: Icons.notifications_outlined,
@@ -148,6 +154,55 @@ class _ProfileBody extends ConsumerWidget {
   }
 
   static bool _has(String? s) => s != null && s.trim().isNotEmpty;
+}
+
+/// The account's household address — shared across the family and visible to the
+/// physiotherapist. Edited via the household-address form (the same address for
+/// every patient on the account, so it is not part of the per-patient edit).
+class _AddressSection extends StatelessWidget {
+  const _AddressSection({required this.address});
+
+  final Address? address;
+
+  @override
+  Widget build(BuildContext context) {
+    final addr = address;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        HealynSectionHeader(
+          title: 'Address',
+          trailing: TextButton(
+            onPressed: () =>
+                context.push('/account/address/edit', extra: addr),
+            child: Text(addr == null ? 'Add' : 'Edit'),
+          ),
+        ),
+        const SizedBox(height: HealynSpacing.s3),
+        SectionCard(
+          child: addr == null
+              ? Text(
+                  'No address added yet.',
+                  style: HealynTypography.body.copyWith(
+                    color: HealynColors.textMuted,
+                  ),
+                )
+              : Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    for (final line in addr.displayLines)
+                      Padding(
+                        padding: const EdgeInsets.only(
+                          bottom: HealynSpacing.s1,
+                        ),
+                        child: Text(line, style: HealynTypography.body),
+                      ),
+                  ],
+                ),
+        ),
+      ],
+    );
+  }
 }
 
 class _Header extends StatelessWidget {
@@ -176,6 +231,10 @@ class _Header extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(patient.fullName, style: HealynTypography.h2),
+                if (patient.patientNumber != null) ...[
+                  const SizedBox(height: HealynSpacing.s1),
+                  CopyableId(value: patient.patientNumber!),
+                ],
                 const SizedBox(height: HealynSpacing.s1),
                 Text(
                   'Primary patient',
@@ -190,16 +249,6 @@ class _Header extends StatelessWidget {
       ),
     );
   }
-}
-
-class _SectionTitle extends StatelessWidget {
-  const _SectionTitle(this.text);
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) =>
-      Text(text.toUpperCase(), style: HealynTypography.overline);
 }
 
 class _DetailCard extends StatelessWidget {

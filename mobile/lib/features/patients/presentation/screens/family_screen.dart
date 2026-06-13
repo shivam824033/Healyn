@@ -3,10 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../shared/design/colors.dart';
-import '../../../shared/design/radii.dart';
 import '../../../shared/design/spacing.dart';
 import '../../../shared/design/typography.dart';
+import '../../../shared/widgets/app_bar.dart';
 import '../../../shared/widgets/error_banner.dart';
+import '../../../shared/widgets/healyn_avatar.dart';
+import '../../../shared/widgets/healyn_list_row.dart';
 import '../../data/models/patient_models.dart';
 import '../patient_format.dart';
 import '../patients_providers.dart';
@@ -20,8 +22,9 @@ class FamilyScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final patients = ref.watch(patientsProvider);
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Family'),
+      backgroundColor: HealynColors.surfaceAlt,
+      appBar: HealynAppBar(
+        title: 'Family',
         actions: [
           IconButton(
             tooltip: 'Add family member',
@@ -73,70 +76,16 @@ class _FamilyTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final relationship = patient.relationship?.label;
     final age = patientAgeInYears(patient.dateOfBirth);
-    final meta = [
+    final subtitle = [
       ?relationship,
       '$age yrs',
     ].join(' · ');
-    return Container(
-      decoration: BoxDecoration(
-        color: HealynColors.surfaceBase,
-        borderRadius: HealynRadii.brLg,
-        border: Border.all(color: HealynColors.borderSubtle),
-      ),
-      child: Material(
-        type: MaterialType.transparency,
-        child: InkWell(
-          borderRadius: HealynRadii.brLg,
-          onTap: () =>
-              context.push('/patients/${patient.id}/edit', extra: patient),
-          child: Padding(
-            padding: const EdgeInsets.all(HealynSpacing.s4),
-            child: Row(
-              children: [
-                _Avatar(name: patient.fullName),
-                const SizedBox(width: HealynSpacing.s3),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        patient.fullName,
-                        style: HealynTypography.bodyStrong,
-                      ),
-                      const SizedBox(height: HealynSpacing.s1),
-                      Text(meta, style: HealynTypography.caption),
-                    ],
-                  ),
-                ),
-                const Icon(
-                  Icons.chevron_right,
-                  color: HealynColors.textMuted,
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _Avatar extends StatelessWidget {
-  const _Avatar({required this.name});
-
-  final String name;
-
-  @override
-  Widget build(BuildContext context) {
-    return CircleAvatar(
-      radius: 20,
-      backgroundColor: HealynColors.brandPrimarySubtle,
-      child: Text(
-        patientInitials(name),
-        style: HealynTypography.bodyStrong.copyWith(
-          color: HealynColors.brandPrimaryHover,
-        ),
-      ),
+    return HealynListRow(
+      leading: HealynAvatar(name: patient.fullName, seed: patient.id, size: 44),
+      title: patient.fullName,
+      subtitle: subtitle,
+      onTap: () =>
+          context.push('/patients/${patient.id}/edit', extra: patient),
     );
   }
 }

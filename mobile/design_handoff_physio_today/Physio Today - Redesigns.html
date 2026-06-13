@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Physio · Today — Redesign Explorations</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+<style>
+  :root{
+    /* Healyn tokens */
+    --brand:#3B4AA0;
+    --brand-hover:#2E3A82;
+    --brand-subtle:#ECEDF9;
+    --ink:#0F172A;
+    --ink-2:#475569;
+    --ink-3:#94A3B8;
+    --surface:#FFFFFF;
+    --surface-alt:#F7F8FA;
+    --border:#E5E7EB;
+    --ok:#16A34A;
+    --warn:#D97706;
+    --danger:#DC2626;
+    --info:#2563EB;
+    --sans:'Plus Jakarta Sans','Inter',system-ui,sans-serif;
+    --body:'Inter',system-ui,sans-serif;
+  }
+  *{box-sizing:border-box;-webkit-font-smoothing:antialiased;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:#EBEDF2;
+    background-image:radial-gradient(circle at 1px 1px, rgba(15,23,42,.06) 1px, transparent 0);
+    background-size:22px 22px;
+    font-family:var(--body);
+    color:var(--ink);
+    min-height:100vh;
+  }
+
+  /* ===== Canvas chrome ===== */
+  .canvas{padding:40px 48px 72px;}
+  .brief{
+    max-width:1180px;margin:0 auto 40px;
+    background:var(--surface);border:1px solid var(--border);border-radius:20px;
+    padding:30px 34px;box-shadow:0 2px 8px rgba(15,23,42,.06);
+  }
+  .brief .eyebrow{font-family:var(--sans);font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--brand);}
+  .brief h1{font-family:var(--sans);font-weight:800;font-size:30px;line-height:1.15;margin:10px 0 12px;letter-spacing:-.02em;}
+  .brief p{margin:0;color:var(--ink-2);font-size:15px;line-height:1.6;max-width:780px;}
+  .brief .meta{display:flex;flex-wrap:wrap;gap:10px;margin-top:20px;}
+  .pill{display:inline-flex;align-items:center;gap:7px;font-family:var(--sans);font-size:12.5px;font-weight:600;color:var(--ink-2);background:var(--surface-alt);border:1px solid var(--border);padding:7px 12px;border-radius:999px;}
+  .pill i{color:var(--brand);font-size:12px;}
+
+  /* ===== Phones row ===== */
+  .rail{display:flex;gap:56px;align-items:flex-start;width:max-content;margin:0 auto;padding:4px;}
+  .frame-wrap{display:flex;flex-direction:column;align-items:center;gap:18px;}
+  .frame-label{font-family:var(--sans);text-align:center;}
+  .frame-label .n{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:8px;background:var(--brand);color:#fff;font-weight:700;font-size:13px;margin-bottom:10px;}
+  .frame-label h2{margin:0;font-size:19px;font-weight:700;letter-spacing:-.01em;color:var(--ink);}
+  .frame-label p{margin:5px 0 0;font-size:13px;color:var(--ink-3);max-width:300px;}
+
+  /* iPhone bezel */
+  .phone{
+    position:relative;width:380px;height:812px;border-radius:54px;
+    background:#0B0D12;padding:13px;
+    box-shadow:0 50px 90px -30px rgba(15,23,42,.45), 0 0 0 2px rgba(15,23,42,.06);
+  }
+  .screen{
+    position:relative;width:100%;height:100%;border-radius:42px;overflow:hidden;
+    background:var(--surface-alt);
+  }
+  .notch{position:absolute;top:13px;left:50%;transform:translateX(-50%);width:122px;height:32px;background:#0B0D12;border-radius:0 0 18px 18px;z-index:60;}
+  .scroll{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;scrollbar-width:none;}
+  .scroll::-webkit-scrollbar{display:none;}
+
+  /* status bar */
+  .statusbar{position:relative;z-index:55;display:flex;align-items:center;justify-content:space-between;padding:16px 28px 6px;font-family:var(--sans);font-weight:600;font-size:14px;}
+  .statusbar .time{letter-spacing:.02em;}
+  .statusbar .ic{display:flex;gap:7px;align-items:center;font-size:13px;}
+
+  /* bottom tab bar */
+  .tabbar{position:absolute;bottom:0;left:0;right:0;z-index:50;display:flex;justify-content:space-around;align-items:center;padding:12px 14px 26px;background:rgba(255,255,255,.86);backdrop-filter:blur(18px);border-top:1px solid var(--border);}
+  .tab{display:flex;flex-direction:column;align-items:center;gap:5px;font-family:var(--sans);font-size:10.5px;font-weight:600;color:var(--ink-3);}
+  .tab i{font-size:19px;}
+  .tab.on{color:var(--brand);}
+
+  .pad{padding:0 18px 120px;}
+
+  /* shared card status pill */
+  .chip{display:inline-flex;align-items:center;gap:5px;font-family:var(--sans);font-weight:600;font-size:11.5px;padding:3px 9px;border-radius:6px;}
+  .chip.confirmed{color:var(--ok);background:rgba(22,163,74,.12);}
+  .chip.requested{color:var(--warn);background:rgba(217,119,6,.12);}
+  .chip.progress{color:var(--info);background:rgba(37,99,235,.12);}
+  .chip.done{color:var(--ink-2);background:rgba(71,85,105,.12);}
+
+  .avatar{flex:none;display:flex;align-items:center;justify-content:center;border-radius:999px;font-family:var(--sans);font-weight:700;color:#fff;letter-spacing:.02em;}
+  .badge{display:inline-flex;align-items:center;gap:4px;font-family:var(--sans);font-weight:600;font-size:11px;padding:3px 8px;border-radius:999px;}
+  .badge.unread{background:var(--brand);color:#fff;}
+  .badge.file{background:var(--brand-subtle);color:var(--brand);}
+
+  /* =========================================================
+     VARIANT 1 — Refined Indigo
+  ========================================================= */
+  .v1 .scroll{background:#fff;}
+  .v1 .hero{position:relative;background:linear-gradient(135deg,var(--brand),var(--brand-hover));padding:8px 22px 64px;border-radius:0 0 30px 30px;color:#fff;}
+  .v1 .hero .row{display:flex;align-items:center;justify-content:space-between;}
+  .v1 .hero .hi{font-family:var(--sans);font-weight:500;font-size:13.5px;opacity:.82;}
+  .v1 .hero .name{font-family:var(--sans);font-weight:800;font-size:22px;letter-spacing:-.01em;margin-top:2px;white-space:nowrap;}
+  .v1 .hero .ava{width:44px;height:44px;border-radius:999px;background:rgba(255,255,255,.18);border:1.5px solid rgba(255,255,255,.35);display:flex;align-items:center;justify-content:center;font-family:var(--sans);font-weight:700;font-size:15px;}
+  .v1 .hero .date{margin-top:18px;display:inline-flex;align-items:center;gap:8px;font-family:var(--sans);font-size:13px;font-weight:600;background:rgba(255,255,255,.16);padding:7px 13px;border-radius:999px;}
+  .v1 .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:11px;margin:-44px 18px 0;position:relative;z-index:5;}
+  .v1 .stat{background:#fff;border:1px solid var(--border);border-radius:16px;padding:14px 12px;box-shadow:0 8px 24px -10px rgba(15,23,42,.22);}
+  .v1 .stat .ic{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:15px;margin-bottom:9px;}
+  .v1 .stat .num{font-family:var(--sans);font-weight:800;font-size:22px;line-height:1;letter-spacing:-.02em;}
+  .v1 .stat .lab{font-size:11.5px;color:var(--ink-3);font-weight:500;margin-top:4px;}
+
+  .week{display:flex;gap:7px;justify-content:space-between;padding:22px 4px 4px;}
+  .day{flex:1;display:flex;flex-direction:column;align-items:center;gap:7px;padding:9px 0;border-radius:14px;cursor:pointer;transition:.18s;}
+  .day .dn{font-family:var(--sans);font-size:10.5px;font-weight:600;color:var(--ink-3);text-transform:uppercase;letter-spacing:.04em;}
+  .day .dd{font-family:var(--sans);font-size:15px;font-weight:700;color:var(--ink);}
+  .day .dot{width:5px;height:5px;border-radius:999px;background:var(--brand);opacity:0;}
+  .day.has .dot{opacity:1;}
+  .day.sel{background:linear-gradient(135deg,var(--brand),var(--brand-hover));box-shadow:0 8px 18px -8px rgba(59,74,160,.7);}
+  .day.sel .dn,.day.sel .dd{color:#fff;}
+  .day.sel .dot{background:#fff;}
+
+  .sec-head{display:flex;align-items:center;justify-content:space-between;padding:20px 4px 12px;}
+  .sec-head h3{font-family:var(--sans);font-weight:700;font-size:16px;margin:0;}
+  .sec-head .cnt{font-family:var(--sans);font-size:12px;font-weight:600;color:var(--brand);background:var(--brand-subtle);padding:3px 9px;border-radius:999px;}
+
+  .v1 .appt{display:flex;gap:13px;background:#fff;border:1px solid var(--border);border-radius:18px;padding:13px;margin-bottom:12px;box-shadow:0 2px 8px rgba(15,23,42,.05);align-items:stretch;transition:.18s;}
+  .v1 .appt:active{transform:scale(.985);}
+  .v1 .appt .timecol{flex:none;width:54px;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:13px;background:var(--surface-alt);padding:8px 4px;}
+  .v1 .appt .timecol .t{font-family:var(--sans);font-weight:800;font-size:15px;letter-spacing:-.02em;}
+  .v1 .appt .timecol .ap{font-family:var(--sans);font-size:10px;font-weight:700;color:var(--ink-3);margin-top:1px;}
+  .v1 .appt .timecol .dur{font-size:9.5px;color:var(--ink-3);margin-top:5px;}
+  .v1 .appt .body{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;}
+  .v1 .appt .top{display:flex;align-items:center;gap:9px;}
+  .v1 .appt .nm{font-family:var(--sans);font-weight:700;font-size:14.5px;}
+  .v1 .appt .tx{font-size:12.5px;color:var(--ink-2);margin-top:1px;}
+  .v1 .appt .meta{display:flex;align-items:center;gap:6px;margin-top:9px;flex-wrap:wrap;}
+
+  .req-banner{display:flex;align-items:center;gap:12px;background:var(--brand-subtle);border-radius:14px;padding:13px 14px;margin:4px 4px 4px;}
+  .req-banner .ic{width:34px;height:34px;border-radius:10px;background:#fff;color:var(--brand);display:flex;align-items:center;justify-content:center;font-size:15px;}
+  .req-banner .tt{font-family:var(--sans);font-weight:700;font-size:13.5px;color:var(--brand);}
+  .req-banner .ss{font-size:11.5px;color:var(--brand);opacity:.8;}
+
+  /* =========================================================
+     VARIANT 2 — Timeline rail
+  ========================================================= */
+  .v2 .scroll{background:var(--surface-alt);}
+  .v2 .head{padding:6px 22px 16px;}
+  .v2 .head .lab{font-family:var(--sans);font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--brand);}
+  .v2 .head h1{font-family:var(--sans);font-weight:800;font-size:26px;margin:5px 0 0;letter-spacing:-.02em;}
+  .v2 .head .nav{display:flex;align-items:center;justify-content:space-between;margin-top:16px;background:#fff;border:1px solid var(--border);border-radius:14px;padding:9px 12px;}
+  .v2 .head .nav .d{font-family:var(--sans);font-weight:700;font-size:14px;}
+  .v2 .head .nav .arr{width:30px;height:30px;border-radius:9px;background:var(--surface-alt);display:flex;align-items:center;justify-content:center;color:var(--ink-2);}
+
+  .v2 .miniweek{display:flex;gap:6px;padding:0 18px 6px;}
+  .v2 .mday{flex:1;text-align:center;padding:10px 0;border-radius:12px;background:#fff;border:1px solid var(--border);cursor:pointer;}
+  .v2 .mday .w{font-family:var(--sans);font-size:10px;font-weight:600;color:var(--ink-3);text-transform:uppercase;}
+  .v2 .mday .n{font-family:var(--sans);font-size:14px;font-weight:700;margin-top:3px;}
+  .v2 .mday.sel{background:var(--brand);border-color:var(--brand);}
+  .v2 .mday.sel .w,.v2 .mday.sel .n{color:#fff;}
+
+  .v2 .timeline{padding:18px 18px 0;position:relative;}
+  .v2 .trow{display:flex;gap:14px;position:relative;}
+  .v2 .gutter{flex:none;width:46px;text-align:right;padding-top:2px;}
+  .v2 .gutter .hr{font-family:var(--sans);font-weight:700;font-size:13px;color:var(--ink);}
+  .v2 .gutter .mn{font-family:var(--sans);font-size:10px;color:var(--ink-3);font-weight:600;}
+  .v2 .axis{flex:none;width:14px;display:flex;flex-direction:column;align-items:center;position:relative;}
+  .v2 .axis .line{position:absolute;top:0;bottom:0;width:2px;background:var(--border);}
+  .v2 .axis .node{position:relative;z-index:2;width:13px;height:13px;border-radius:999px;background:#fff;border:3px solid var(--brand);margin-top:3px;}
+  .v2 .trow.empty .axis .node{border-color:var(--border);}
+  .v2 .tcard{flex:1;min-width:0;background:#fff;border:1px solid var(--border);border-radius:16px;padding:13px 14px;margin-bottom:16px;box-shadow:0 1px 3px rgba(15,23,42,.05);position:relative;overflow:hidden;}
+  .v2 .tcard .accent{position:absolute;left:0;top:0;bottom:0;width:4px;}
+  .v2 .tcard .top{display:flex;align-items:center;gap:10px;}
+  .v2 .tcard .nm{font-family:var(--sans);font-weight:700;font-size:14.5px;}
+  .v2 .tcard .tx{font-size:12.5px;color:var(--ink-2);margin-top:1px;}
+  .v2 .tcard .foot{display:flex;align-items:center;gap:6px;margin-top:10px;flex-wrap:wrap;}
+  .v2 .tcard .dur{font-size:11px;color:var(--ink-3);font-weight:600;font-family:var(--sans);}
+  .v2 .nowrow{display:flex;align-items:center;gap:14px;margin-bottom:16px;}
+  .v2 .nowrow .gutter .hr{color:var(--danger);}
+  .v2 .nowline{flex:1;height:2px;background:var(--danger);position:relative;border-radius:2px;}
+  .v2 .nowline::before{content:'';position:absolute;left:-7px;top:50%;transform:translateY(-50%);width:9px;height:9px;border-radius:999px;background:var(--danger);}
+  .v2 .nowrow .axis .node{border-color:var(--danger);width:13px;height:13px;}
+
+  /* =========================================================
+     VARIANT 3 — Tonal colorful
+  ========================================================= */
+  .v3 .scroll{background:linear-gradient(180deg,#F4F1FB 0%,#F7F8FA 280px);}
+  .v3 .head{padding:8px 22px 4px;display:flex;align-items:center;justify-content:space-between;}
+  .v3 .head .hi{font-family:var(--sans);font-size:13px;color:var(--ink-2);font-weight:500;}
+  .v3 .head .nm{font-family:var(--sans);font-weight:800;font-size:24px;letter-spacing:-.02em;margin-top:2px;}
+  .v3 .head .bell{width:44px;height:44px;border-radius:14px;background:#fff;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;color:var(--brand);font-size:17px;position:relative;box-shadow:0 2px 8px rgba(15,23,42,.05);}
+  .v3 .head .bell .dt{position:absolute;top:11px;right:12px;width:8px;height:8px;border-radius:999px;background:var(--danger);border:2px solid #fff;}
+  .v3 .tiles{display:flex;gap:12px;overflow-x:auto;padding:18px 22px 6px;scrollbar-width:none;}
+  .v3 .tiles::-webkit-scrollbar{display:none;}
+  .v3 .tile{flex:none;width:138px;border-radius:20px;padding:16px;color:#fff;position:relative;overflow:hidden;}
+  .v3 .tile .ic{width:36px;height:36px;border-radius:11px;background:rgba(255,255,255,.22);display:flex;align-items:center;justify-content:center;font-size:16px;}
+  .v3 .tile .num{font-family:var(--sans);font-weight:800;font-size:28px;margin-top:14px;line-height:1;letter-spacing:-.02em;}
+  .v3 .tile .lab{font-size:12px;font-weight:500;opacity:.9;margin-top:5px;font-family:var(--sans);}
+  .v3 .tile.indigo{background:linear-gradient(135deg,#3B4AA0,#2E3A82);}
+  .v3 .tile.green{background:linear-gradient(135deg,#1F9D57,#15803D);}
+  .v3 .tile.amber{background:linear-gradient(135deg,#E0942A,#C2740E);}
+
+  .v3 .sec-head{padding:22px 22px 12px;}
+  .v3 .list{padding:0 18px;}
+  .v3 .card{background:#fff;border-radius:22px;padding:15px;margin-bottom:14px;box-shadow:0 8px 22px -14px rgba(15,23,42,.25);border:1px solid rgba(229,231,235,.7);position:relative;overflow:hidden;}
+  .v3 .card .strip{position:absolute;left:0;top:0;bottom:0;width:6px;border-radius:0 6px 6px 0;}
+  .v3 .card .top{display:flex;align-items:center;gap:13px;}
+  .v3 .card .ava{width:50px;height:50px;border-radius:16px;font-size:16px;}
+  .v3 .card .nm{font-family:var(--sans);font-weight:700;font-size:16px;}
+  .v3 .card .tx{font-size:13px;color:var(--ink-2);margin-top:2px;display:flex;align-items:center;gap:6px;}
+  .v3 .card .tx i{font-size:11px;color:var(--brand);}
+  .v3 .card .time{display:flex;flex-direction:column;align-items:flex-end;}
+  .v3 .card .time .t{font-family:var(--sans);font-weight:800;font-size:16px;letter-spacing:-.02em;}
+  .v3 .card .time .ampm{font-size:10px;font-weight:700;color:var(--ink-3);}
+  .v3 .card .div{height:1px;background:var(--border);margin:13px 0 11px;}
+  .v3 .card .foot{display:flex;align-items:center;justify-content:space-between;}
+  .v3 .card .foot .meta{display:flex;gap:6px;align-items:center;}
+  .v3 .card .go{font-family:var(--sans);font-size:12.5px;font-weight:700;color:var(--brand);display:flex;align-items:center;gap:5px;}
+
+  .v3 .reqcta{margin:0 22px 6px;background:linear-gradient(135deg,#3B4AA0,#2E3A82);border-radius:20px;padding:16px;display:flex;align-items:center;gap:13px;color:#fff;box-shadow:0 14px 30px -14px rgba(59,74,160,.7);}
+  .v3 .reqcta .ic{width:42px;height:42px;border-radius:13px;background:rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;font-size:18px;}
+  .v3 .reqcta .tt{font-family:var(--sans);font-weight:700;font-size:14.5px;}
+  .v3 .reqcta .ss{font-size:12px;opacity:.85;margin-top:2px;}
+  .v3 .reqcta .arr{margin-left:auto;width:30px;height:30px;border-radius:999px;background:rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;}
+
+  /* =========================================================
+     VARIANT 4 — Pro Dark
+  ========================================================= */
+  .v4 .screen{background:#0E1018;}
+  .v4 .scroll{background:radial-gradient(120% 50% at 50% 0%, #1B2150 0%, #0E1018 55%);}
+  .v4 .statusbar{color:#fff;}
+  .v4 .head{padding:6px 22px 6px;display:flex;align-items:center;justify-content:space-between;}
+  .v4 .head .hi{font-family:var(--sans);font-size:13px;color:#9aa3c4;font-weight:500;}
+  .v4 .head .nm{font-family:var(--sans);font-weight:800;font-size:24px;color:#fff;letter-spacing:-.02em;margin-top:2px;}
+  .v4 .head .ava{width:46px;height:46px;border-radius:14px;background:linear-gradient(135deg,#5563D6,#3B4AA0);display:flex;align-items:center;justify-content:center;font-family:var(--sans);font-weight:700;color:#fff;font-size:15px;box-shadow:0 6px 18px -6px rgba(85,99,214,.8);}
+  .v4 .glass-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:18px 22px 6px;}
+  .v4 .gstat{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:13px;backdrop-filter:blur(12px);}
+  .v4 .gstat .num{font-family:var(--sans);font-weight:800;font-size:22px;color:#fff;letter-spacing:-.02em;}
+  .v4 .gstat .lab{font-size:10.5px;color:#9aa3c4;font-weight:500;margin-top:3px;}
+  .v4 .gstat .ic{font-size:13px;margin-bottom:8px;}
+
+  .v4 .week{padding:14px 18px 4px;gap:6px;}
+  .v4 .day{padding:10px 0;}
+  .v4 .day .dn{color:#7d86ad;}
+  .v4 .day .dd{color:#e6e9f5;}
+  .v4 .day.sel{background:linear-gradient(135deg,#5563D6,#3B4AA0);box-shadow:0 8px 20px -8px rgba(85,99,214,.9);}
+  .v4 .day.sel .dn,.v4 .day.sel .dd{color:#fff;}
+
+  .v4 .sec-head{padding:20px 22px 12px;}
+  .v4 .sec-head h3{color:#fff;}
+  .v4 .sec-head .cnt{background:rgba(85,99,214,.25);color:#aeb6f0;}
+  .v4 .list{padding:0 18px;}
+  .v4 .gcard{display:flex;gap:13px;align-items:center;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.09);border-radius:18px;padding:14px;margin-bottom:12px;backdrop-filter:blur(14px);position:relative;overflow:hidden;}
+  .v4 .gcard .glow{position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:3px;}
+  .v4 .gcard .time{flex:none;width:50px;text-align:center;}
+  .v4 .gcard .time .t{font-family:var(--sans);font-weight:800;font-size:15px;color:#fff;letter-spacing:-.02em;}
+  .v4 .gcard .time .ap{font-size:10px;font-weight:700;color:#7d86ad;}
+  .v4 .gcard .sep{width:1px;align-self:stretch;background:rgba(255,255,255,.1);}
+  .v4 .gcard .body{flex:1;min-width:0;}
+  .v4 .gcard .nm{font-family:var(--sans);font-weight:700;font-size:14.5px;color:#fff;}
+  .v4 .gcard .tx{font-size:12.5px;color:#9aa3c4;margin-top:1px;}
+  .v4 .gcard .foot{display:flex;align-items:center;gap:6px;margin-top:9px;flex-wrap:wrap;}
+  .v4 .chip.dk-confirmed{color:#5ee59b;background:rgba(34,197,94,.16);}
+  .v4 .chip.dk-requested{color:#fbbf5a;background:rgba(217,119,6,.18);}
+  .v4 .chip.dk-progress{color:#7aa8ff;background:rgba(37,99,235,.2);}
+  .v4 .tabbar.dk{background:rgba(14,16,24,.75);border-top:1px solid rgba(255,255,255,.08);}
+  .v4 .tabbar.dk .tab{color:#6b7396;}
+  .v4 .tabbar.dk .tab.on{color:#aeb6f0;}
+  .v4 .req-banner.dk{background:rgba(85,99,214,.15);border:1px solid rgba(85,99,214,.25);}
+  .v4 .req-banner.dk .ic{background:rgba(85,99,214,.25);color:#aeb6f0;}
+  .v4 .req-banner.dk .tt{color:#cdd2f5;}
+  .v4 .req-banner.dk .ss{color:#9aa3c4;}
+
+  @media (max-width:600px){
+    .canvas{padding:20px 14px 48px;}
+    .brief{padding:22px;}
+  }
+</style>
+</head>
+<body>
+<div class="canvas">
+
+  <div class="brief">
+    <div class="eyebrow">Healyn · Physiotherapist app</div>
+    <h1>“Today” schedule screen — 4 redesign directions</h1>
+    <p>
+      A faithful reuse of your Healyn tokens — premium indigo (#3B4AA0 → #2E3A82), soft elevation, the status palette and the 4-px spacing scale — pushed into four richer treatments of the physio's daily roster. Same data, same information (requests banner, day picker, appointment roster with patient, treatment, status &amp; unread/file badges) so you can compare layouts directly. Nothing in your Flutter code is touched — these are HTML prototypes for picking a direction.
+    </p>
+    <div class="meta">
+      <span class="pill"><i class="fa-solid fa-palette"></i> Healyn indigo system</span>
+      <span class="pill"><i class="fa-solid fa-user-doctor"></i> Physio · Today / Schedule</span>
+      <span class="pill"><i class="fa-solid fa-mobile-screen"></i> iPhone · 380×812</span>
+      <span class="pill"><i class="fa-solid fa-icons"></i> Font Awesome icons</span>
+    </div>
+  </div>
+
+  <div class="rail">
+
+    <!-- ============ VARIANT 1 ============ -->
+    <div class="frame-wrap">
+      <div class="frame-label">
+        <span class="n">1</span>
+        <h2>Refined Indigo</h2>
+        <p>Premium &amp; by-the-book: gradient hero, floating stat cards, time-block roster.</p>
+      </div>
+      <div class="phone v1">
+        <div class="notch"></div>
+        <div class="screen">
+          <div class="scroll">
+            <div class="statusbar"><span class="time">9:41</span><span class="ic"><i class="fa-solid fa-signal"></i><i class="fa-solid fa-wifi"></i><i class="fa-solid fa-battery-three-quarters"></i></span></div>
+            <div class="hero">
+              <div class="row">
+                <div>
+                  <div class="hi">Good morning,</div>
+                  <div class="name">Dr. Maya Anaya</div>
+                </div>
+                <div class="ava">MA</div>
+              </div>
+              <div class="date"><i class="fa-solid fa-calendar-day"></i> Friday, June 6</div>
+            </div>
+            <div class="stats">
+              <div class="stat">
+                <div class="ic" style="background:var(--brand-subtle);color:var(--brand);"><i class="fa-solid fa-calendar-check"></i></div>
+                <div class="num">5</div><div class="lab">Today</div>
+              </div>
+              <div class="stat">
+                <div class="ic" style="background:rgba(217,119,6,.12);color:var(--warn);"><i class="fa-solid fa-inbox"></i></div>
+                <div class="num">3</div><div class="lab">Requests</div>
+              </div>
+              <div class="stat">
+                <div class="ic" style="background:rgba(22,163,74,.12);color:var(--ok);"><i class="fa-solid fa-note-sticky"></i></div>
+                <div class="num">2</div><div class="lab">Notes due</div>
+              </div>
+            </div>
+            <div class="pad">
+              <div class="week" data-week>
+                <div class="day"><span class="dn">Mon</span><span class="dd">2</span><span class="dot"></span></div>
+                <div class="day has"><span class="dn">Tue</span><span class="dd">3</span><span class="dot"></span></div>
+                <div class="day"><span class="dn">Wed</span><span class="dd">4</span><span class="dot"></span></div>
+                <div class="day has"><span class="dn">Thu</span><span class="dd">5</span><span class="dot"></span></div>
+                <div class="day sel has"><span class="dn">Fri</span><span class="dd">6</span><span class="dot"></span></div>
+                <div class="day"><span class="dn">Sat</span><span class="dd">7</span><span class="dot"></span></div>
+                <div class="day"><span class="dn">Sun</span><span class="dd">8</span><span class="dot"></span></div>
+              </div>
+
+              <div class="req-banner">
+                <div class="ic"><i class="fa-solid fa-inbox"></i></div>
+                <div><div class="tt">3 new booking requests</div><div class="ss">Tap to review &amp; confirm</div></div>
+                <i class="fa-solid fa-chevron-right" style="margin-left:auto;color:var(--brand);"></i>
+              </div>
+
+              <div class="sec-head"><h3>Today's schedule</h3><span class="cnt">5 appts</span></div>
+
+              <div class="appt">
+                <div class="timecol"><span class="t">9:00</span><span class="ap">AM</span><span class="dur">45m</span></div>
+                <div class="body">
+                  <div class="top"><div class="avatar" style="width:30px;height:30px;font-size:11px;background:#3B4AA0;">LC</div><div><div class="nm">Liam Carter</div></div></div>
+                  <div class="tx">Post-op knee rehab</div>
+                  <div class="meta"><span class="chip confirmed"><i class="fa-solid fa-circle-check"></i> Confirmed</span><span class="badge unread"><i class="fa-solid fa-envelope"></i> 2</span></div>
+                </div>
+                <i class="fa-solid fa-chevron-right" style="align-self:center;color:var(--ink-3);"></i>
+              </div>
+
+              <div class="appt">
+                <div class="timecol"><span class="t">10:00</span><span class="ap">AM</span><span class="dur">30m</span></div>
+                <div class="body">
+                  <div class="top"><div class="avatar" style="width:30px;height:30px;font-size:11px;background:#1F9D57;">SR</div><div><div class="nm">Sofia Reyes</div></div></div>
+                  <div class="tx">Lower-back assessment</div>
+                  <div class="meta"><span class="chip confirmed"><i class="fa-solid fa-circle-check"></i> Confirmed</span></div>
+                </div>
+                <i class="fa-solid fa-chevron-right" style="align-self:center;color:var(--ink-3);"></i>
+              </div>
+
+              <div class="appt">
+                <div class="timecol"><span class="t">11:15</span><span class="ap">AM</span><span class="dur">45m</span></div>
+                <div class="body">
+                  <div class="top"><div class="avatar" style="width:30px;height:30px;font-size:11px;background:#E0942A;">NP</div><div><div class="nm">Noah Patel</div></div></div>
+                  <div class="tx">Shoulder mobility</div>
+                  <div class="meta"><span class="chip requested"><i class="fa-solid fa-clock"></i> Requested</span><span class="badge file"><i class="fa-solid fa-paperclip"></i> 1</span></div>
+                </div>
+                <i class="fa-solid fa-chevron-right" style="align-self:center;color:var(--ink-3);"></i>
+              </div>
+
+              <div class="appt">
+                <div class="timecol"><span class="t">1:30</span><span class="ap">PM</span><span class="dur">30m</span></div>
+                <div class="body">
+                  <div class="top"><div class="avatar" style="width:30px;height:30px;font-size:11px;background:#2563EB;">EL</div><div><div class="nm">Emma Lin</div></div></div>
+                  <div class="tx">Gait analysis</div>
+                  <div class="meta"><span class="chip progress"><i class="fa-solid fa-spinner"></i> In progress</span></div>
+                </div>
+                <i class="fa-solid fa-chevron-right" style="align-self:center;color:var(--ink-3);"></i>
+              </div>
+
+              <div class="appt">
+                <div class="timecol"><span class="t">3:00</span><span class="ap">PM</span><span class="dur">45m</span></div>
+                <div class="body">
+                  <div class="top"><div class="avatar" style="width:30px;height:30px;font-size:11px;background:#7C3AED;">OB</div><div><div class="nm">Oliver Brooks</div></div></div>
+                  <div class="tx">Sports massage</div>
+                  <div class="meta"><span class="chip confirmed"><i class="fa-solid fa-circle-check"></i> Confirmed</span></div>
+                </div>
+                <i class="fa-solid fa-chevron-right" style="align-self:center;color:var(--ink-3);"></i>
+              </div>
+            </div>
+          </div>
+          <div class="tabbar">
+            <div class="tab on"><i class="fa-solid fa-calendar-day"></i>Today</div>
+            <div class="tab"><i class="fa-solid fa-user-group"></i>Patients</div>
+            <div class="tab"><i class="fa-solid fa-clock"></i>Availability</div>
+            <div class="tab"><i class="fa-solid fa-user"></i>Profile</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ VARIANT 2 ============ -->
+    <div class="frame-wrap">
+      <div class="frame-label">
+        <span class="n">2</span>
+        <h2>Timeline Rail</h2>
+        <p>A vertical day-axis: hours in the gutter, a live “now” line, cards on the rail.</p>
+      </div>
+      <div class="phone v2">
+        <div class="notch"></div>
+        <div class="screen">
+          <div class="scroll">
+            <div class="statusbar"><span class="time">9:41</span><span class="ic"><i class="fa-solid fa-signal"></i><i class="fa-solid fa-wifi"></i><i class="fa-solid fa-battery-three-quarters"></i></span></div>
+            <div class="head">
+              <div class="lab">Schedule</div>
+              <h1>Today</h1>
+              <div class="nav">
+                <div class="arr"><i class="fa-solid fa-chevron-left"></i></div>
+                <div class="d">Friday, June 6</div>
+                <div class="arr"><i class="fa-solid fa-chevron-right"></i></div>
+              </div>
+            </div>
+            <div class="miniweek" data-week>
+              <div class="mday"><div class="w">M</div><div class="n">2</div></div>
+              <div class="mday"><div class="w">T</div><div class="n">3</div></div>
+              <div class="mday"><div class="w">W</div><div class="n">4</div></div>
+              <div class="mday"><div class="w">T</div><div class="n">5</div></div>
+              <div class="mday sel"><div class="w">F</div><div class="n">6</div></div>
+              <div class="mday"><div class="w">S</div><div class="n">7</div></div>
+              <div class="mday"><div class="w">S</div><div class="n">8</div></div>
+            </div>
+            <div class="timeline">
+              <div class="trow">
+                <div class="gutter"><div class="hr">9:00</div><div class="mn">AM</div></div>
+                <div class="axis"><div class="line"></div><div class="node"></div></div>
+                <div class="tcard"><div class="accent" style="background:var(--ok);"></div>
+                  <div class="top"><div class="avatar" style="width:34px;height:34px;font-size:12px;background:#3B4AA0;">LC</div><div><div class="nm">Liam Carter</div><div class="tx">Post-op knee rehab</div></div></div>
+                  <div class="foot"><span class="dur">45 min</span><span class="chip confirmed">Confirmed</span><span class="badge unread"><i class="fa-solid fa-envelope"></i> 2</span></div>
+                </div>
+              </div>
+              <div class="trow">
+                <div class="gutter"><div class="hr">10:00</div><div class="mn">AM</div></div>
+                <div class="axis"><div class="line"></div><div class="node"></div></div>
+                <div class="tcard"><div class="accent" style="background:var(--ok);"></div>
+                  <div class="top"><div class="avatar" style="width:34px;height:34px;font-size:12px;background:#1F9D57;">SR</div><div><div class="nm">Sofia Reyes</div><div class="tx">Lower-back assessment</div></div></div>
+                  <div class="foot"><span class="dur">30 min</span><span class="chip confirmed">Confirmed</span></div>
+                </div>
+              </div>
+              <div class="trow">
+                <div class="gutter"><div class="hr">11:15</div><div class="mn">AM</div></div>
+                <div class="axis"><div class="line"></div><div class="node"></div></div>
+                <div class="tcard"><div class="accent" style="background:var(--warn);"></div>
+                  <div class="top"><div class="avatar" style="width:34px;height:34px;font-size:12px;background:#E0942A;">NP</div><div><div class="nm">Noah Patel</div><div class="tx">Shoulder mobility</div></div></div>
+                  <div class="foot"><span class="dur">45 min</span><span class="chip requested">Requested</span><span class="badge file"><i class="fa-solid fa-paperclip"></i> 1</span></div>
+                </div>
+              </div>
+              <div class="nowrow">
+                <div class="gutter"><div class="hr">12:30</div><div class="mn">now</div></div>
+                <div class="axis"><div class="node"></div></div>
+                <div class="nowline"></div>
+              </div>
+              <div class="trow">
+                <div class="gutter"><div class="hr">1:30</div><div class="mn">PM</div></div>
+                <div class="axis"><div class="line"></div><div class="node"></div></div>
+                <div class="tcard"><div class="accent" style="background:var(--info);"></div>
+                  <div class="top"><div class="avatar" style="width:34px;height:34px;font-size:12px;background:#2563EB;">EL</div><div><div class="nm">Emma Lin</div><div class="tx">Gait analysis</div></div></div>
+                  <div class="foot"><span class="dur">30 min</span><span class="chip progress">In progress</span></div>
+                </div>
+              </div>
+              <div class="trow">
+                <div class="gutter"><div class="hr">3:00</div><div class="mn">PM</div></div>
+                <div class="axis"><div class="line" style="bottom:auto;height:24px;"></div><div class="node"></div></div>
+                <div class="tcard"><div class="accent" style="background:var(--ok);"></div>
+                  <div class="top"><div class="avatar" style="width:34px;height:34px;font-size:12px;background:#7C3AED;">OB</div><div><div class="nm">Oliver Brooks</div><div class="tx">Sports massage</div></div></div>
+                  <div class="foot"><span class="dur">45 min</span><span class="chip confirmed">Confirmed</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="tabbar">
+            <div class="tab on"><i class="fa-solid fa-calendar-day"></i>Today</div>
+            <div class="tab"><i class="fa-solid fa-user-group"></i>Patients</div>
+            <div class="tab"><i class="fa-solid fa-clock"></i>Availability</div>
+            <div class="tab"><i class="fa-solid fa-user"></i>Profile</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ VARIANT 3 ============ -->
+    <div class="frame-wrap">
+      <div class="frame-label">
+        <span class="n">3</span>
+        <h2>Tonal Cards</h2>
+        <p>Friendly &amp; colorful: gradient stat tiles, soft pastel field, generous patient cards.</p>
+      </div>
+      <div class="phone v3">
+        <div class="notch"></div>
+        <div class="screen">
+          <div class="scroll">
+            <div class="statusbar"><span class="time">9:41</span><span class="ic"><i class="fa-solid fa-signal"></i><i class="fa-solid fa-wifi"></i><i class="fa-solid fa-battery-three-quarters"></i></span></div>
+            <div class="head">
+              <div><div class="hi">Friday, June 6</div><div class="nm">Hi, Dr. Anaya 👋</div></div>
+              <div class="bell"><i class="fa-regular fa-bell"></i><span class="dt"></span></div>
+            </div>
+            <div class="tiles">
+              <div class="tile indigo"><div class="ic"><i class="fa-solid fa-calendar-check"></i></div><div class="num">5</div><div class="lab">Appointments today</div></div>
+              <div class="tile amber"><div class="ic"><i class="fa-solid fa-inbox"></i></div><div class="num">3</div><div class="lab">New requests</div></div>
+              <div class="tile green"><div class="ic"><i class="fa-solid fa-note-sticky"></i></div><div class="num">2</div><div class="lab">Notes to write</div></div>
+            </div>
+
+            <div class="reqcta">
+              <div class="ic"><i class="fa-solid fa-inbox"></i></div>
+              <div><div class="tt">3 booking requests</div><div class="ss">Review &amp; confirm new patients</div></div>
+              <div class="arr"><i class="fa-solid fa-arrow-right"></i></div>
+            </div>
+
+            <div class="sec-head"><h3>Your day</h3><span class="cnt">5 appts</span></div>
+
+            <div class="list">
+              <div class="card"><div class="strip" style="background:var(--ok);"></div>
+                <div class="top">
+                  <div class="avatar ava" style="background:linear-gradient(135deg,#5563D6,#3B4AA0);">LC</div>
+                  <div style="flex:1;min-width:0;"><div class="nm">Liam Carter</div><div class="tx"><i class="fa-solid fa-person-walking"></i> Post-op knee rehab</div></div>
+                  <div class="time"><span class="t">9:00</span><span class="ampm">AM · 45m</span></div>
+                </div>
+                <div class="div"></div>
+                <div class="foot"><div class="meta"><span class="chip confirmed"><i class="fa-solid fa-circle-check"></i> Confirmed</span><span class="badge unread"><i class="fa-solid fa-envelope"></i> 2</span></div><span class="go">Open <i class="fa-solid fa-arrow-right"></i></span></div>
+              </div>
+
+              <div class="card"><div class="strip" style="background:var(--ok);"></div>
+                <div class="top">
+                  <div class="avatar ava" style="background:linear-gradient(135deg,#22B573,#15803D);">SR</div>
+                  <div style="flex:1;min-width:0;"><div class="nm">Sofia Reyes</div><div class="tx"><i class="fa-solid fa-notes-medical"></i> Lower-back assessment</div></div>
+                  <div class="time"><span class="t">10:00</span><span class="ampm">AM · 30m</span></div>
+                </div>
+                <div class="div"></div>
+                <div class="foot"><div class="meta"><span class="chip confirmed"><i class="fa-solid fa-circle-check"></i> Confirmed</span></div><span class="go">Open <i class="fa-solid fa-arrow-right"></i></span></div>
+              </div>
+
+              <div class="card"><div class="strip" style="background:var(--warn);"></div>
+                <div class="top">
+                  <div class="avatar ava" style="background:linear-gradient(135deg,#EBA94A,#C2740E);">NP</div>
+                  <div style="flex:1;min-width:0;"><div class="nm">Noah Patel</div><div class="tx"><i class="fa-solid fa-hand-fist"></i> Shoulder mobility</div></div>
+                  <div class="time"><span class="t">11:15</span><span class="ampm">AM · 45m</span></div>
+                </div>
+                <div class="div"></div>
+                <div class="foot"><div class="meta"><span class="chip requested"><i class="fa-solid fa-clock"></i> Requested</span><span class="badge file"><i class="fa-solid fa-paperclip"></i> 1</span></div><span class="go">Open <i class="fa-solid fa-arrow-right"></i></span></div>
+              </div>
+
+              <div class="card"><div class="strip" style="background:var(--info);"></div>
+                <div class="top">
+                  <div class="avatar ava" style="background:linear-gradient(135deg,#4F8CF7,#2563EB);">EL</div>
+                  <div style="flex:1;min-width:0;"><div class="nm">Emma Lin</div><div class="tx"><i class="fa-solid fa-shoe-prints"></i> Gait analysis</div></div>
+                  <div class="time"><span class="t">1:30</span><span class="ampm">PM · 30m</span></div>
+                </div>
+                <div class="div"></div>
+                <div class="foot"><div class="meta"><span class="chip progress"><i class="fa-solid fa-spinner"></i> In progress</span></div><span class="go">Open <i class="fa-solid fa-arrow-right"></i></span></div>
+              </div>
+
+              <div class="card"><div class="strip" style="background:var(--ok);"></div>
+                <div class="top">
+                  <div class="avatar ava" style="background:linear-gradient(135deg,#9B6BF0,#7C3AED);">OB</div>
+                  <div style="flex:1;min-width:0;"><div class="nm">Oliver Brooks</div><div class="tx"><i class="fa-solid fa-hand-holding-heart"></i> Sports massage</div></div>
+                  <div class="time"><span class="t">3:00</span><span class="ampm">PM · 45m</span></div>
+                </div>
+                <div class="div"></div>
+                <div class="foot"><div class="meta"><span class="chip confirmed"><i class="fa-solid fa-circle-check"></i> Confirmed</span></div><span class="go">Open <i class="fa-solid fa-arrow-right"></i></span></div>
+              </div>
+            </div>
+          </div>
+          <div class="tabbar">
+            <div class="tab on"><i class="fa-solid fa-calendar-day"></i>Today</div>
+            <div class="tab"><i class="fa-solid fa-user-group"></i>Patients</div>
+            <div class="tab"><i class="fa-solid fa-clock"></i>Availability</div>
+            <div class="tab"><i class="fa-solid fa-user"></i>Profile</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ VARIANT 4 ============ -->
+    <div class="frame-wrap">
+      <div class="frame-label">
+        <span class="n">4</span>
+        <h2>Pro Dark</h2>
+        <p>Premium dark glass: glowing indigo accents, frosted cards, bold type.</p>
+      </div>
+      <div class="phone v4">
+        <div class="notch"></div>
+        <div class="screen">
+          <div class="scroll">
+            <div class="statusbar"><span class="time">9:41</span><span class="ic"><i class="fa-solid fa-signal"></i><i class="fa-solid fa-wifi"></i><i class="fa-solid fa-battery-three-quarters"></i></span></div>
+            <div class="head">
+              <div><div class="hi">Friday, June 6</div><div class="nm">Good morning</div></div>
+              <div class="ava">MA</div>
+            </div>
+            <div class="glass-stats">
+              <div class="gstat"><div class="ic" style="color:#aeb6f0;"><i class="fa-solid fa-calendar-check"></i></div><div class="num">5</div><div class="lab">Today</div></div>
+              <div class="gstat"><div class="ic" style="color:#fbbf5a;"><i class="fa-solid fa-inbox"></i></div><div class="num">3</div><div class="lab">Requests</div></div>
+              <div class="gstat"><div class="ic" style="color:#5ee59b;"><i class="fa-solid fa-note-sticky"></i></div><div class="num">2</div><div class="lab">Notes</div></div>
+            </div>
+            <div class="week" data-week>
+              <div class="day"><span class="dn">Mon</span><span class="dd">2</span><span class="dot"></span></div>
+              <div class="day"><span class="dn">Tue</span><span class="dd">3</span><span class="dot"></span></div>
+              <div class="day"><span class="dn">Wed</span><span class="dd">4</span><span class="dot"></span></div>
+              <div class="day"><span class="dn">Thu</span><span class="dd">5</span><span class="dot"></span></div>
+              <div class="day sel"><span class="dn">Fri</span><span class="dd">6</span><span class="dot"></span></div>
+              <div class="day"><span class="dn">Sat</span><span class="dd">7</span><span class="dot"></span></div>
+              <div class="day"><span class="dn">Sun</span><span class="dd">8</span><span class="dot"></span></div>
+            </div>
+
+            <div class="req-banner dk" style="margin:14px 18px 0;">
+              <div class="ic"><i class="fa-solid fa-inbox"></i></div>
+              <div><div class="tt">3 new requests</div><div class="ss">Tap to review &amp; confirm</div></div>
+              <i class="fa-solid fa-chevron-right" style="margin-left:auto;color:#aeb6f0;"></i>
+            </div>
+
+            <div class="sec-head"><h3>Schedule</h3><span class="cnt">5 appts</span></div>
+
+            <div class="list">
+              <div class="gcard"><div class="glow" style="background:#5ee59b;box-shadow:0 0 12px #22c55e;"></div>
+                <div class="time"><div class="t">9:00</div><div class="ap">AM</div></div><div class="sep"></div>
+                <div class="body"><div class="nm">Liam Carter</div><div class="tx">Post-op knee rehab</div>
+                  <div class="foot"><span class="chip dk-confirmed">Confirmed</span><span class="badge unread"><i class="fa-solid fa-envelope"></i> 2</span></div></div>
+              </div>
+              <div class="gcard"><div class="glow" style="background:#5ee59b;box-shadow:0 0 12px #22c55e;"></div>
+                <div class="time"><div class="t">10:00</div><div class="ap">AM</div></div><div class="sep"></div>
+                <div class="body"><div class="nm">Sofia Reyes</div><div class="tx">Lower-back assessment</div>
+                  <div class="foot"><span class="chip dk-confirmed">Confirmed</span></div></div>
+              </div>
+              <div class="gcard"><div class="glow" style="background:#fbbf5a;box-shadow:0 0 12px #d97706;"></div>
+                <div class="time"><div class="t">11:15</div><div class="ap">AM</div></div><div class="sep"></div>
+                <div class="body"><div class="nm">Noah Patel</div><div class="tx">Shoulder mobility</div>
+                  <div class="foot"><span class="chip dk-requested">Requested</span><span class="badge file"><i class="fa-solid fa-paperclip"></i> 1</span></div></div>
+              </div>
+              <div class="gcard"><div class="glow" style="background:#7aa8ff;box-shadow:0 0 12px #2563eb;"></div>
+                <div class="time"><div class="t">1:30</div><div class="ap">PM</div></div><div class="sep"></div>
+                <div class="body"><div class="nm">Emma Lin</div><div class="tx">Gait analysis</div>
+                  <div class="foot"><span class="chip dk-progress">In progress</span></div></div>
+              </div>
+              <div class="gcard"><div class="glow" style="background:#5ee59b;box-shadow:0 0 12px #22c55e;"></div>
+                <div class="time"><div class="t">3:00</div><div class="ap">PM</div></div><div class="sep"></div>
+                <div class="body"><div class="nm">Oliver Brooks</div><div class="tx">Sports massage</div>
+                  <div class="foot"><span class="chip dk-confirmed">Confirmed</span></div></div>
+              </div>
+            </div>
+          </div>
+          <div class="tabbar dk">
+            <div class="tab on"><i class="fa-solid fa-calendar-day"></i>Today</div>
+            <div class="tab"><i class="fa-solid fa-user-group"></i>Patients</div>
+            <div class="tab"><i class="fa-solid fa-clock"></i>Availability</div>
+            <div class="tab"><i class="fa-solid fa-user"></i>Profile</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  // Light interactivity: day-picker selection within each phone's week strip.
+  document.querySelectorAll('[data-week]').forEach(function(week){
+    var days = week.querySelectorAll('.day, .mday');
+    days.forEach(function(d){
+      d.addEventListener('click', function(){
+        days.forEach(function(x){ x.classList.remove('sel'); });
+        d.classList.add('sel');
+      });
+    });
+  });
+  // Card press feedback
+  document.querySelectorAll('.appt, .tcard, .card, .gcard').forEach(function(c){
+    c.style.cursor = 'pointer';
+  });
+</script>
+</body>
+</html>

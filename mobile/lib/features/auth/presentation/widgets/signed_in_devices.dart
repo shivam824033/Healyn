@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../shared/design/colors.dart';
+import '../../../shared/design/radii.dart';
 import '../../../shared/design/spacing.dart';
 import '../../../shared/design/typography.dart';
 import '../../../shared/network/api_exception.dart';
@@ -177,7 +178,7 @@ class _CurrentChip extends StatelessWidget {
       ),
       decoration: BoxDecoration(
         color: HealynColors.brandPrimarySubtle,
-        borderRadius: BorderRadius.circular(999),
+        borderRadius: BorderRadius.circular(HealynRadii.full),
       ),
       child: Text(
         'This device',

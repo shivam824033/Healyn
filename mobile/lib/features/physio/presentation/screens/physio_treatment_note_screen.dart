@@ -5,7 +5,10 @@ import '../../../shared/design/colors.dart';
 import '../../../shared/design/spacing.dart';
 import '../../../shared/design/typography.dart';
 import '../../../shared/network/api_exception.dart';
+import '../../../shared/widgets/app_bar.dart';
 import '../../../shared/widgets/error_banner.dart';
+import '../../../shared/widgets/field_label.dart';
+import '../../../shared/widgets/primary_button.dart';
 import '../../../treatment_notes/data/models/treatment_note_models.dart';
 import '../../../treatment_notes/data/treatment_notes_repository.dart';
 import '../../../treatment_notes/presentation/treatment_notes_format.dart';
@@ -141,8 +144,9 @@ class _PhysioTreatmentNoteScreenState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(_isEdit ? 'Edit treatment note' : 'Treatment note'),
+      backgroundColor: HealynColors.surfaceAlt,
+      appBar: HealynAppBar(
+        title: _isEdit ? 'Edit treatment note' : 'Treatment note',
       ),
       body: SafeArea(
         child: ListView(
@@ -152,25 +156,25 @@ class _PhysioTreatmentNoteScreenState
               ErrorBanner(message: _error!),
               const SizedBox(height: HealynSpacing.s4),
             ],
-            const _FieldLabel('Diagnosis'),
+            const FieldLabel('Diagnosis'),
             _NoteField(
               controller: _diagnosis,
               hint: 'Assessment / diagnosis',
             ),
             const SizedBox(height: HealynSpacing.s5),
-            const _FieldLabel('Notes'),
+            const FieldLabel('Notes'),
             _NoteField(
               controller: _notes,
               hint: 'Session notes and observations',
             ),
             const SizedBox(height: HealynSpacing.s5),
-            const _FieldLabel('Recovery instructions'),
+            const FieldLabel('Recovery instructions'),
             _NoteField(
               controller: _recovery,
               hint: 'Exercises, precautions, home care',
             ),
             const SizedBox(height: HealynSpacing.s6),
-            const _FieldLabel('Next review'),
+            const FieldLabel('Next review'),
             const SizedBox(height: HealynSpacing.s2),
             _ReviewRow(
               value: _nextReviewAt,
@@ -188,37 +192,16 @@ class _PhysioTreatmentNoteScreenState
               ),
             ),
             const SizedBox(height: HealynSpacing.s7),
-            ElevatedButton.icon(
+            PrimaryButton(
+              label: _isEdit ? 'Save changes' : 'Save note',
+              loading: _submitting,
               onPressed: (!_hasContent || _submitting) ? null : _save,
-              icon: _submitting
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.save_outlined),
-              label: Text(_isEdit ? 'Save changes' : 'Save note'),
-              style: ElevatedButton.styleFrom(
-                minimumSize: const Size.fromHeight(48),
-              ),
             ),
           ],
         ),
       ),
     );
   }
-}
-
-class _FieldLabel extends StatelessWidget {
-  const _FieldLabel(this.text);
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.only(bottom: HealynSpacing.s2),
-    child: Text(text.toUpperCase(), style: HealynTypography.overline),
-  );
 }
 
 class _NoteField extends StatelessWidget {
@@ -238,7 +221,6 @@ class _NoteField extends StatelessWidget {
       decoration: InputDecoration(
         hintText: hint,
         counterText: '',
-        border: const OutlineInputBorder(),
       ),
     );
   }

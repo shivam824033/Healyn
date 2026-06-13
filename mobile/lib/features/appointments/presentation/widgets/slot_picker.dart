@@ -21,6 +21,7 @@ class SlotPicker extends StatelessWidget {
     required this.enabled,
     required this.onSelected,
     required this.onRetry,
+    this.bookedStarts = const {},
     super.key,
   });
 
@@ -33,6 +34,12 @@ class SlotPicker extends StatelessWidget {
   final bool enabled;
   final ValueChanged<Slot> onSelected;
   final VoidCallback? onRetry;
+
+  /// Start instants already taken (compared by moment). Such slots render as a
+  /// distinct, non-selectable "booked" chip so the physiotherapist can see the
+  /// day's commitments at a glance and never double-books. Empty for the patient
+  /// flows, which only ever see open slots.
+  final Set<DateTime> bookedStarts;
 
   @override
   Widget build(BuildContext context) {
@@ -92,17 +99,54 @@ class SlotPicker extends StatelessWidget {
         style: HealynTypography.caption,
       );
     }
-    return Wrap(
-      spacing: HealynSpacing.s2,
-      runSpacing: HealynSpacing.s2,
+    final hasBooked = list.any(_isBooked);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        for (final s in list)
-          ChoiceChip(
-            label: Text(formatTimeOfDay(s.startsAt)),
-            selected: selected?.startsAt == s.startsAt,
-            onSelected: enabled ? (_) => onSelected(s) : null,
+        Wrap(
+          spacing: HealynSpacing.s2,
+          runSpacing: HealynSpacing.s2,
+          children: [
+            for (final s in list)
+              if (_isBooked(s))
+                _bookedChip(s)
+              else
+                ChoiceChip(
+                  label: Text(formatTimeOfDay(s.startsAt)),
+                  selected: selected?.startsAt == s.startsAt,
+                  onSelected: enabled ? (_) => onSelected(s) : null,
+                ),
+          ],
+        ),
+        if (hasBooked) ...[
+          const SizedBox(height: HealynSpacing.s2),
+          Text(
+            'Amber times are already booked.',
+            style: HealynTypography.caption.copyWith(
+              color: HealynColors.textSecondary,
+            ),
           ),
+        ],
       ],
+    );
+  }
+
+  bool _isBooked(Slot s) =>
+      bookedStarts.any((b) => b.isAtSameMomentAs(s.startsAt));
+
+  /// A non-selectable chip for a slot the physiotherapist has already filled.
+  Widget _bookedChip(Slot s) {
+    const booked = HealynColors.statusWarning;
+    return Chip(
+      avatar: const Icon(Icons.event_busy, size: 16, color: booked),
+      label: Text(formatTimeOfDay(s.startsAt)),
+      labelStyle: HealynTypography.caption.copyWith(
+        color: booked,
+        fontWeight: FontWeight.w600,
+      ),
+      backgroundColor: booked.withValues(alpha: 0.12),
+      side: BorderSide(color: booked.withValues(alpha: 0.4)),
+      visualDensity: VisualDensity.compact,
     );
   }
 }

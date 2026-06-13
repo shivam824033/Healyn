@@ -9,6 +9,7 @@ import 'package:healyn/features/physio/presentation/physio_requests_providers.da
 import 'package:healyn/features/physio/presentation/physio_schedule_providers.dart';
 import 'package:healyn/features/physio/presentation/screens/physio_requests_screen.dart';
 import 'package:healyn/features/physio/presentation/screens/physio_today_screen.dart';
+import 'package:healyn/features/shared/widgets/healyn_section_header.dart';
 
 final _asha = Patient(
   id: 'pt1',
@@ -24,18 +25,21 @@ final _vikram = Patient(
   relationship: PatientRelationship.other,
 );
 
+// A request is unscheduled (request-first): only a requested date and an
+// optional preferred-time hint, no assigned time yet.
 Appointment _req({
   required String id,
   required String patientId,
-  required DateTime scheduledAt,
+  required DateTime requestedDate,
+  String? preferredTime,
 }) => Appointment(
   id: id,
   patientId: patientId,
   bookedByAccountId: 'ac1',
   physiotherapistId: 'ph1',
-  scheduledAt: scheduledAt,
-  scheduledEndAt: scheduledAt.add(const Duration(minutes: 45)),
-  durationMinutes: 45,
+  requestedDate: requestedDate,
+  preferredTime: preferredTime,
+  durationMinutes: 30,
   status: AppointmentStatus.requested,
 );
 
@@ -60,26 +64,34 @@ void main() {
     testWidgets('lists requests by day with patient name and status', (
       tester,
     ) async {
-      final day = DateTime(2026, 6, 10, 9, 0);
+      final day = DateTime(2026, 6, 10);
       await pump(
         tester,
         requests: [
-          _req(id: 'r1', patientId: 'pt1', scheduledAt: day),
+          _req(id: 'r1', patientId: 'pt1', requestedDate: day),
           _req(
             id: 'r2',
             patientId: 'pt2',
-            scheduledAt: day.add(const Duration(hours: 2)),
+            requestedDate: day,
+            preferredTime: '14:00:00',
           ),
         ],
         patients: [_asha, _vikram],
       );
       await tester.pumpAndSettle();
 
-      // One day header for both same-day requests.
-      expect(find.text(formatDateLong(day).toUpperCase()), findsOneWidget);
-      // The patient name shares a caption with the duration (`Name · 45 min`).
-      expect(find.textContaining('Asha Rao'), findsOneWidget);
-      expect(find.textContaining('Vikram Singh'), findsOneWidget);
+      // One day header (HealynSectionHeader, title as-is) for both same-day
+      // requests.
+      expect(
+        find.widgetWithText(HealynSectionHeader, formatDateLong(day)),
+        findsOneWidget,
+      );
+      // Each tile leads with the patient name.
+      expect(find.text('Asha Rao'), findsOneWidget);
+      expect(find.text('Vikram Singh'), findsOneWidget);
+      // The stated preference renders; the other reads "no preference".
+      expect(find.text('Prefers 2:00 PM'), findsOneWidget);
+      expect(find.text('No time preference'), findsOneWidget);
       expect(find.text('Requested'), findsNWidgets(2));
     });
 
@@ -112,25 +124,25 @@ void main() {
       await pump(
         tester,
         requests: [
-          _req(id: 'r1', patientId: 'pt1', scheduledAt: DateTime(2026, 6, 10, 9)),
-          _req(id: 'r2', patientId: 'pt1', scheduledAt: DateTime(2026, 6, 11, 9)),
+          _req(id: 'r1', patientId: 'pt1', requestedDate: DateTime(2026, 6, 10)),
+          _req(id: 'r2', patientId: 'pt1', requestedDate: DateTime(2026, 6, 11)),
         ],
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('2 new requests'), findsOneWidget);
+      expect(find.text('2 new booking requests'), findsOneWidget);
     });
 
     testWidgets('singularises a lone request', (tester) async {
       await pump(
         tester,
         requests: [
-          _req(id: 'r1', patientId: 'pt1', scheduledAt: DateTime(2026, 6, 10, 9)),
+          _req(id: 'r1', patientId: 'pt1', requestedDate: DateTime(2026, 6, 10)),
         ],
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('1 new request'), findsOneWidget);
+      expect(find.text('1 new booking request'), findsOneWidget);
     });
 
     testWidgets('hides the banner when nothing is pending', (tester) async {

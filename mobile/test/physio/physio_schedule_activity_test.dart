@@ -8,10 +8,12 @@ import 'package:healyn/features/discussion/data/discussion_repository.dart';
 import 'package:healyn/features/discussion/data/models/discussion_models.dart';
 import 'package:healyn/features/patients/data/models/patient_models.dart';
 import 'package:healyn/features/patients/presentation/patients_providers.dart';
+import 'package:healyn/features/physio/presentation/physio_calendar_providers.dart';
 import 'package:healyn/features/physio/presentation/physio_requests_providers.dart';
 import 'package:healyn/features/physio/presentation/physio_schedule_providers.dart';
 import 'package:healyn/features/physio/presentation/screens/physio_today_screen.dart';
 import 'package:healyn/features/shared/network/api_exception.dart';
+import 'package:healyn/features/shared/widgets/healyn_list_row.dart';
 
 Appointment _appt({
   required String id,
@@ -25,6 +27,7 @@ Appointment _appt({
     patientId: patientId,
     bookedByAccountId: 'ac1',
     physiotherapistId: 'ph1',
+    requestedDate: DateTime(at.year, at.month, at.day),
     scheduledAt: at,
     scheduledEndAt: at.add(const Duration(minutes: 45)),
     durationMinutes: 45,
@@ -119,11 +122,19 @@ Future<void> _pumpScreen(
   required List<Appointment> appointments,
   required _FakeDiscussionRepo repo,
 }) {
+  // A tall surface so the calendar + the day's roster both fit and the lazy
+  // roster list actually builds its tiles (default is 800x600).
+  tester.view.physicalSize = const Size(1000, 2400);
+  tester.view.devicePixelRatio = 1.0;
+  addTearDown(tester.view.resetPhysicalSize);
+  addTearDown(tester.view.resetDevicePixelRatio);
+
   return tester.pumpWidget(
     ProviderScope(
       overrides: [
         physioScheduleProvider.overrideWith((ref) async => appointments),
         physioRequestsProvider.overrideWith((ref) async => const []),
+        calendarMarkedDaysProvider.overrideWith((ref) async => <DateTime>{}),
         discussionRepositoryProvider.overrideWithValue(repo),
         patientsProvider.overrideWith((ref) => [_asha]),
       ],
@@ -131,6 +142,19 @@ Future<void> _pumpScreen(
     ),
   );
 }
+
+/// The [icon] within an appointment tile (a [HealynListRow]), not the floating
+/// stat cards — the "Unread" stat reuses [Icons.mark_email_unread_outlined] and
+/// its value, so an unscoped finder would collide.
+Finder _rowIcon(IconData icon) =>
+    find.descendant(of: find.byType(HealynListRow), matching: find.byIcon(icon));
+
+/// The count [Text] of the badge built around [icon], scoped to that badge's Row
+/// inside the tile, so it never matches a stat card or a calendar day number.
+Finder _badgeCount(IconData icon, String count) => find.descendant(
+  of: find.ancestor(of: _rowIcon(icon), matching: find.byType(Row)),
+  matching: find.text(count),
+);
 
 void main() {
   group('physioScheduleActivityProvider', () {
@@ -227,10 +251,12 @@ void main() {
       await _pumpScreen(tester, appointments: [_appt(id: 'a1')], repo: repo);
       await tester.pumpAndSettle();
 
-      expect(find.byIcon(Icons.mark_email_unread_outlined), findsOneWidget);
-      expect(find.text('2'), findsOneWidget); // unread count
-      expect(find.byIcon(Icons.attach_file), findsOneWidget);
-      expect(find.text('1'), findsOneWidget); // pending files
+      // The calendar day numbers and the "Unread" stat card share text/icons
+      // with the badges; scope every assertion to the appointment tile.
+      expect(_rowIcon(Icons.mark_email_unread_outlined), findsOneWidget);
+      expect(_badgeCount(Icons.mark_email_unread_outlined, '2'), findsOneWidget);
+      expect(_rowIcon(Icons.attach_file), findsOneWidget);
+      expect(_badgeCount(Icons.attach_file, '1'), findsOneWidget);
     });
 
     testWidgets('shows no badges when the thread has no activity', (
@@ -240,8 +266,8 @@ void main() {
       await _pumpScreen(tester, appointments: [_appt(id: 'a1')], repo: repo);
       await tester.pumpAndSettle();
 
-      expect(find.byIcon(Icons.mark_email_unread_outlined), findsNothing);
-      expect(find.byIcon(Icons.attach_file), findsNothing);
+      expect(_rowIcon(Icons.mark_email_unread_outlined), findsNothing);
+      expect(_rowIcon(Icons.attach_file), findsNothing);
     });
   });
 }

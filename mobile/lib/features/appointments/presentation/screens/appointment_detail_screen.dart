@@ -7,7 +7,10 @@ import '../../../shared/design/colors.dart';
 import '../../../shared/design/spacing.dart';
 import '../../../shared/design/typography.dart';
 import '../../../shared/network/api_exception.dart';
+import '../../../shared/widgets/app_bar.dart';
 import '../../../shared/widgets/error_banner.dart';
+import '../../../shared/widgets/healyn_section_header.dart';
+import '../../../shared/widgets/copyable_id.dart';
 import '../../../shared/widgets/section_card.dart';
 import '../../../treatment_notes/presentation/widgets/treatment_note_section.dart';
 import '../../data/appointments_repository.dart';
@@ -15,6 +18,7 @@ import '../../data/models/appointment_models.dart';
 import '../appointment_format.dart';
 import '../appointments_providers.dart';
 import '../widgets/appointment_status_chip.dart';
+import '../widgets/appointment_timeline_section.dart';
 
 /// Read view of one appointment, with the patient's write actions while it is
 /// still open (Requested or Confirmed): reschedule to a new time, or cancel.
@@ -55,7 +59,7 @@ class _AppointmentDetailScreenState
       builder: (ctx) => AlertDialog(
         title: const Text('Cancel appointment?'),
         content: Text(
-          'Your appointment on ${formatWhen(_appt.scheduledAt)} will be '
+          'Your appointment on ${formatAppointmentWhen(_appt)} will be '
           'cancelled.',
         ),
         actions: [
@@ -103,15 +107,24 @@ class _AppointmentDetailScreenState
       for (final p in patients) p.id: p.fullName,
     }[_appt.patientId];
 
+    final scheduledAt = _appt.scheduledAt;
+    final scheduledEndAt = _appt.scheduledEndAt;
+    final preferred = formatClockTime(_appt.preferredTime);
     final rows = <(String, String)>[
       if (patientName != null) ('Patient', patientName),
-      ('When', formatDateLong(_appt.scheduledAt)),
-      (
-        'Time',
-        '${formatTimeOfDay(_appt.scheduledAt)} – '
-            '${formatTimeOfDay(_appt.scheduledEndAt)}',
-      ),
-      ('Duration', formatDuration(_appt.durationMinutes)),
+      ('When', formatDateLong(_appt.day)),
+      if (scheduledAt != null)
+        (
+          'Time',
+          scheduledEndAt != null
+              ? '${formatTimeOfDay(scheduledAt)} – ${formatTimeOfDay(scheduledEndAt)}'
+              : formatTimeOfDay(scheduledAt),
+        )
+      else
+        ('Time', 'To be confirmed'),
+      if (scheduledAt != null) ('Duration', formatDuration(_appt.durationMinutes)),
+      if (scheduledAt == null && preferred != null) ('Preferred time', preferred),
+      if (_appt.isFollowUp) ('Type', 'Follow-up review'),
       if (_has(_appt.reason)) ('Reason', _appt.reason!),
     ];
     final cancellation = <(String, String)>[
@@ -121,7 +134,8 @@ class _AppointmentDetailScreenState
     ];
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Appointment')),
+      backgroundColor: HealynColors.surfaceAlt,
+      appBar: const HealynAppBar(title: 'Appointment'),
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.all(HealynSpacing.screenEdge),
@@ -135,14 +149,20 @@ class _AppointmentDetailScreenState
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   AppointmentStatusChip(status: _appt.status),
+                  if (_appt.appointmentNumber != null) ...[
+                    const SizedBox(height: HealynSpacing.s2),
+                    CopyableId(value: _appt.appointmentNumber!),
+                  ],
                   const SizedBox(height: HealynSpacing.s3),
                   Text(
-                    formatDateShort(_appt.scheduledAt),
+                    formatDateShort(_appt.day),
                     style: HealynTypography.h2,
                   ),
                   const SizedBox(height: HealynSpacing.s1),
                   Text(
-                    formatTimeOfDay(_appt.scheduledAt),
+                    scheduledAt != null
+                        ? formatTimeOfDay(scheduledAt)
+                        : 'Time to be confirmed',
                     style: HealynTypography.body.copyWith(
                       color: HealynColors.textSecondary,
                     ),
@@ -151,7 +171,7 @@ class _AppointmentDetailScreenState
               ),
             ),
             const SizedBox(height: HealynSpacing.s6),
-            const _SectionTitle('Details'),
+            const HealynSectionHeader(title: 'Details'),
             const SizedBox(height: HealynSpacing.s3),
             _DetailCard(rows: rows),
             const SizedBox(height: HealynSpacing.s6),
@@ -172,7 +192,11 @@ class _AppointmentDetailScreenState
             ],
             if (cancellation.isNotEmpty) ...[
               const SizedBox(height: HealynSpacing.s6),
-              const _SectionTitle('Cancellation'),
+              HealynSectionHeader(
+                title: _appt.status == AppointmentStatus.rejected
+                    ? 'Rejection'
+                    : 'Cancellation',
+              ),
               const SizedBox(height: HealynSpacing.s3),
               _DetailCard(rows: cancellation),
             ],
@@ -202,6 +226,8 @@ class _AppointmentDetailScreenState
                 ),
               ),
             ],
+            const SizedBox(height: HealynSpacing.s6),
+            AppointmentTimelineSection(appointmentId: _appt.id),
           ],
         ),
       ),
@@ -209,16 +235,6 @@ class _AppointmentDetailScreenState
   }
 
   static bool _has(String? s) => s != null && s.trim().isNotEmpty;
-}
-
-class _SectionTitle extends StatelessWidget {
-  const _SectionTitle(this.text);
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) =>
-      Text(text.toUpperCase(), style: HealynTypography.overline);
 }
 
 class _DetailCard extends StatelessWidget {

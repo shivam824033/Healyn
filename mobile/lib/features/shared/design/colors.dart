@@ -3,10 +3,20 @@ import 'package:flutter/painting.dart';
 /// Color tokens from UI_UX_GUIDELINES §2. Light mode only (Phase 1); dark mode
 /// (Phase 2) is a token swap, not a re-skin. One brand color, used sparingly.
 abstract final class HealynColors {
-  // Brand
-  static const Color brandPrimary = Color(0xFF1E88A8);
-  static const Color brandPrimaryHover = Color(0xFF176E89);
-  static const Color brandPrimarySubtle = Color(0xFFE6F2F6);
+  // Brand — premium indigo (§2.1). One hue: primary for actions/active states,
+  // hover for the pressed step, subtle for selected backgrounds and tonal chips.
+  static const Color brandPrimary = Color(0xFF3B4AA0);
+  static const Color brandPrimaryHover = Color(0xFF2E3A82);
+  static const Color brandPrimarySubtle = Color(0xFFECEDF9);
+
+  /// The signature indigo gradient — used on headers (and the selected calendar
+  /// day) for a premium, depth-rich brand surface. A diagonal blend from
+  /// [brandPrimary] into the deeper [brandPrimaryHover].
+  static const Gradient brandGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [brandPrimary, brandPrimaryHover],
+  );
 
   // Surfaces
   static const Color surfaceBase = Color(0xFFFFFFFF);

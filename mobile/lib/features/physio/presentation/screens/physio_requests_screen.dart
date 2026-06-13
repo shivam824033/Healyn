@@ -5,13 +5,17 @@ import 'package:go_router/go_router.dart';
 import '../../../appointments/data/models/appointment_models.dart';
 import '../../../appointments/presentation/appointment_format.dart';
 import '../../../appointments/presentation/widgets/appointment_status_chip.dart';
+import '../../../patients/data/models/patient_models.dart';
 import '../../../patients/presentation/patients_providers.dart';
 import '../../../shared/design/colors.dart';
-import '../../../shared/design/radii.dart';
 import '../../../shared/design/spacing.dart';
 import '../../../shared/design/typography.dart';
+import '../../../shared/widgets/app_bar.dart';
 import '../../../shared/widgets/error_banner.dart';
+import '../../../shared/widgets/healyn_list_row.dart';
+import '../../../shared/widgets/healyn_section_header.dart';
 import '../physio_requests_providers.dart';
+import '../widgets/patient_avatar_button.dart';
 
 /// The physiotherapist's incoming-requests queue (F1.11): pending REQUESTED
 /// appointments grouped by day, earliest first. Tapping a row opens the existing
@@ -23,10 +27,11 @@ class PhysioRequestsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final requests = ref.watch(physioRequestsProvider);
     final patients = ref.watch(patientsProvider).valueOrNull ?? const [];
-    final names = {for (final p in patients) p.id: p.fullName};
+    final byId = {for (final p in patients) p.id: p};
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Requests')),
+      backgroundColor: HealynColors.surfaceAlt,
+      appBar: const HealynAppBar(title: 'Requests'),
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: () async {
@@ -45,23 +50,29 @@ class PhysioRequestsScreen extends ConsumerWidget {
             ),
             data: (items) {
               if (items.isEmpty) return const _NoRequests();
-              // Group by local calendar day, preserving the earliest-first order.
+              // Group by requested calendar day, preserving the earliest-first
+              // order (a request has no scheduled time yet).
               final groups = <String, List<Appointment>>{};
               for (final a in items) {
                 groups
-                    .putIfAbsent(formatDateLong(a.scheduledAt), () => [])
+                    .putIfAbsent(formatDateLong(a.requestedDate), () => [])
                     .add(a);
               }
               return ListView(
                 padding: const EdgeInsets.all(HealynSpacing.screenEdge),
                 children: [
                   for (final entry in groups.entries) ...[
-                    _DayHeader(label: entry.key),
+                    HealynSectionHeader(
+                      title: entry.key,
+                      countLabel: entry.value.length == 1
+                          ? '1 request'
+                          : '${entry.value.length} requests',
+                    ),
                     const SizedBox(height: HealynSpacing.s3),
                     for (final a in entry.value) ...[
                       _RequestTile(
                         appointment: a,
-                        patientName: names[a.patientId],
+                        patient: byId[a.patientId],
                       ),
                       const SizedBox(height: HealynSpacing.s3),
                     ],
@@ -77,67 +88,28 @@ class PhysioRequestsScreen extends ConsumerWidget {
   }
 }
 
-class _DayHeader extends StatelessWidget {
-  const _DayHeader({required this.label});
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) =>
-      Text(label.toUpperCase(), style: HealynTypography.overline);
-}
-
 class _RequestTile extends StatelessWidget {
-  const _RequestTile({required this.appointment, this.patientName});
+  const _RequestTile({required this.appointment, this.patient});
 
   final Appointment appointment;
-  final String? patientName;
+  final Patient? patient;
 
   @override
   Widget build(BuildContext context) {
-    final meta = [
-      ?patientName,
-      formatDuration(appointment.durationMinutes),
-    ].join(' · ');
-    return Container(
-      decoration: BoxDecoration(
-        color: HealynColors.surfaceBase,
-        borderRadius: HealynRadii.brLg,
-        border: Border.all(color: HealynColors.borderSubtle),
+    final patientName = patient?.fullName;
+    final preferred = formatClockTime(appointment.preferredTime);
+    return HealynListRow(
+      leading: PatientAvatarButton(
+        patientId: appointment.patientId,
+        name: patientName,
+        patient: patient,
       ),
-      child: Material(
-        type: MaterialType.transparency,
-        child: InkWell(
-          borderRadius: HealynRadii.brLg,
-          onTap: () => context.push(
-            '/physio/appointments/${appointment.id}',
-            extra: appointment,
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(HealynSpacing.s4),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        '${formatTimeOfDay(appointment.scheduledAt)} – '
-                        '${formatTimeOfDay(appointment.scheduledEndAt)}',
-                        style: HealynTypography.bodyStrong,
-                      ),
-                      const SizedBox(height: HealynSpacing.s1),
-                      Text(meta, style: HealynTypography.caption),
-                      const SizedBox(height: HealynSpacing.s2),
-                      AppointmentStatusChip(status: appointment.status),
-                    ],
-                  ),
-                ),
-                const Icon(Icons.chevron_right, color: HealynColors.textMuted),
-              ],
-            ),
-          ),
-        ),
+      title: patientName ?? 'Patient',
+      subtitle: preferred != null ? 'Prefers $preferred' : 'No time preference',
+      footer: AppointmentStatusChip(status: appointment.status),
+      onTap: () => context.push(
+        '/physio/appointments/${appointment.id}',
+        extra: appointment,
       ),
     );
   }

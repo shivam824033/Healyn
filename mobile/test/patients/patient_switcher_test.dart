@@ -68,4 +68,42 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Switch patient'), findsNothing);
   });
+
+  testWidgets('scrolls a long family list instead of overflowing', (
+    tester,
+  ) async {
+    // A short surface so a long list cannot fit — this is what reproduced the
+    // "Bottom overflowed by N pixels" before the sheet was made scrollable.
+    tester.view.physicalSize = const Size(400, 700);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final many = [
+      _asha,
+      for (var i = 1; i <= 14; i++)
+        Patient(
+          id: 'm$i',
+          fullName: 'Member $i',
+          dateOfBirth: DateTime(2016, 1, 1),
+          relationship: PatientRelationship.child,
+        ),
+    ];
+    await _pump(tester, many);
+
+    await tester.tap(find.text('Asha Rao')); // open the sheet
+    await tester.pumpAndSettle();
+
+    // The sheet opened without a layout overflow...
+    expect(tester.takeException(), isNull);
+    expect(find.text('Switch patient'), findsOneWidget);
+
+    // ...and the list scrolls, so a far-down member is still reachable.
+    await tester.dragUntilVisible(
+      find.text('Member 14'),
+      find.byType(ListView),
+      const Offset(0, -200),
+    );
+    expect(find.text('Member 14'), findsOneWidget);
+  });
 }

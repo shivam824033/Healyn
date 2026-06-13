@@ -8,6 +8,7 @@ import 'package:healyn/features/auth/domain/auth_status.dart';
 import 'package:healyn/features/auth/presentation/controllers/auth_controller.dart';
 import 'package:healyn/features/patients/data/models/patient_models.dart';
 import 'package:healyn/features/patients/presentation/patients_providers.dart';
+import 'package:healyn/features/physio/presentation/physio_calendar_providers.dart';
 import 'package:healyn/features/physio/presentation/physio_schedule_providers.dart';
 import 'package:healyn/features/shared/auth/account_role.dart';
 import 'package:healyn/features/shared/router/app_router.dart';
@@ -51,6 +52,13 @@ void main() {
 
   group('role-aware router', () {
     Future<ProviderContainer> pumpPhysio(WidgetTester tester) async {
+      // A tall surface so the Today calendar + roster fit under the shell's nav
+      // bar and the lazy roster list builds its empty state (default is 800x600).
+      tester.view.physicalSize = const Size(1000, 2400);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
       final container = ProviderContainer(
         overrides: [
           authControllerProvider.overrideWith(
@@ -63,6 +71,7 @@ void main() {
           ),
           // Keep the physio Schedule screen off the network so the shell settles.
           physioScheduleProvider.overrideWith((ref) async => <Appointment>[]),
+          calendarMarkedDaysProvider.overrideWith((ref) async => <DateTime>{}),
           patientsProvider.overrideWith((ref) => <Patient>[]),
         ],
       );
@@ -81,7 +90,7 @@ void main() {
       await pumpPhysio(tester);
 
       // The Schedule screen, not a patient screen.
-      expect(find.text('Schedule'), findsOneWidget);
+      expect(find.text("Today's schedule"), findsOneWidget);
       expect(find.text('Nothing scheduled'), findsOneWidget);
       // Physio nav, not the patient nav.
       expect(find.text('Availability'), findsOneWidget);
@@ -95,7 +104,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // Redirected back into the physio app rather than the patient Home.
-      expect(find.text('Schedule'), findsOneWidget);
+      expect(find.text("Today's schedule"), findsOneWidget);
       expect(find.text('Availability'), findsOneWidget);
     });
   });

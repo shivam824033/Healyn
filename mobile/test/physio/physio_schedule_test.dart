@@ -5,9 +5,11 @@ import 'package:healyn/features/appointments/data/models/appointment_models.dart
 import 'package:healyn/features/appointments/presentation/appointment_format.dart';
 import 'package:healyn/features/patients/data/models/patient_models.dart';
 import 'package:healyn/features/patients/presentation/patients_providers.dart';
+import 'package:healyn/features/physio/presentation/physio_calendar_providers.dart';
 import 'package:healyn/features/physio/presentation/physio_requests_providers.dart';
 import 'package:healyn/features/physio/presentation/physio_schedule_providers.dart';
 import 'package:healyn/features/physio/presentation/screens/physio_today_screen.dart';
+import 'package:healyn/features/physio/presentation/widgets/month_calendar.dart';
 
 final _asha = Patient(
   id: 'pt1',
@@ -34,6 +36,7 @@ Appointment _appt({
   patientId: patientId,
   bookedByAccountId: 'ac1',
   physiotherapistId: 'ph1',
+  requestedDate: DateTime(scheduledAt.year, scheduledAt.month, scheduledAt.day),
   scheduledAt: scheduledAt,
   scheduledEndAt: scheduledAt.add(Duration(minutes: duration)),
   durationMinutes: duration,
@@ -45,11 +48,19 @@ Future<void> _pump(
   required List<Appointment> appointments,
   List<Patient> patients = const [],
 }) {
+  // A tall surface so the calendar + roster both fit and the lazy roster list
+  // builds its tiles / empty state (default is 800x600).
+  tester.view.physicalSize = const Size(1000, 2400);
+  tester.view.devicePixelRatio = 1.0;
+  addTearDown(tester.view.resetPhysicalSize);
+  addTearDown(tester.view.resetDevicePixelRatio);
+
   return tester.pumpWidget(
     ProviderScope(
       overrides: [
         physioScheduleProvider.overrideWith((ref) async => appointments),
         physioRequestsProvider.overrideWith((ref) async => const []),
+        calendarMarkedDaysProvider.overrideWith((ref) async => <DateTime>{}),
         patientsProvider.overrideWith((ref) => patients),
       ],
       child: const MaterialApp(home: PhysioTodayScreen()),
@@ -96,22 +107,59 @@ void main() {
     expect(find.text('Nothing scheduled'), findsOneWidget);
   });
 
-  testWidgets('day stepper moves the displayed day', (tester) async {
-    // The schedule list is pinned empty; the header reads scheduleDayProvider
-    // directly, which the stepper mutates — so only the date label changes.
+  testWidgets('picking a day in the calendar moves the roster header', (
+    tester,
+  ) async {
+    // The schedule list is pinned empty; the header reads scheduleDayProvider,
+    // which a calendar tap mutates — so only the date label changes.
     await _pump(tester, appointments: const []);
     await tester.pumpAndSettle();
 
     final today = DateTime.now();
     final todayMidnight = DateTime(today.year, today.month, today.day);
     expect(find.text(formatDateLong(todayMidnight)), findsOneWidget);
-    expect(find.text('Today'), findsOneWidget);
 
-    await tester.tap(find.byTooltip('Next day'));
+    // The month grid now lives in a sheet reached from the hero's calendar
+    // action; open it, then pick a day.
+    await tester.tap(find.byTooltip('Open calendar'));
     await tester.pumpAndSettle();
 
-    final tomorrow = DateTime(today.year, today.month, today.day + 1);
-    expect(find.text(formatDateLong(tomorrow)), findsOneWidget);
-    expect(find.text('Jump to today'), findsOneWidget);
+    // The 15th (or 16th, to avoid landing on today) is always present in the
+    // visible month; scope to the grid so the week strip's numbers don't collide.
+    final targetDay = today.day == 15 ? 16 : 15;
+    await tester.tap(
+      find.descendant(
+        of: find.byType(MonthCalendar),
+        matching: find.text('$targetDay'),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final picked = DateTime(today.year, today.month, targetDay);
+    expect(find.text(formatDateLong(picked)), findsOneWidget);
+  });
+
+  testWidgets('the month arrows page the grid without moving the selected day', (
+    tester,
+  ) async {
+    await _pump(tester, appointments: const []);
+    await tester.pumpAndSettle();
+
+    // The month grid + its arrows live in a sheet reached from the hero.
+    await tester.tap(find.byTooltip('Open calendar'));
+    await tester.pumpAndSettle();
+
+    final today = DateTime.now();
+    final month = DateTime(today.year, today.month);
+    expect(find.text(formatMonthYear(month)), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Next month'));
+    await tester.pumpAndSettle();
+
+    final next = DateTime(today.year, today.month + 1);
+    expect(find.text(formatMonthYear(next)), findsOneWidget);
+    // The selected day (the hero's date pill, behind the sheet) stays on today.
+    final todayMidnight = DateTime(today.year, today.month, today.day);
+    expect(find.text(formatDateLong(todayMidnight)), findsOneWidget);
   });
 }

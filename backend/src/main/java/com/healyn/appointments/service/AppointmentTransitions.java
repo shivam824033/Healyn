@@ -14,15 +14,17 @@ public final class AppointmentTransitions {
     private static final Map<AppointmentStatus, Set<AppointmentStatus>> ALLOWED =
             new EnumMap<>(AppointmentStatus.class);
 
+    // This map governs the /transitions route only. REQUESTED→CONFIRMED is excluded: the
+    // physiotherapist confirms by assigning a time via /schedule. RESCHEDULED is excluded
+    // from every source: rescheduling goes through /reschedule, which creates a fresh row
+    // and marks the old one RESCHEDULED itself (APPOINTMENT_FLOW §3.1).
     static {
         ALLOWED.put(AppointmentStatus.REQUESTED, EnumSet.of(
-                AppointmentStatus.CONFIRMED,
                 AppointmentStatus.CANCELLED,
-                AppointmentStatus.RESCHEDULED));
+                AppointmentStatus.REJECTED));
         ALLOWED.put(AppointmentStatus.CONFIRMED, EnumSet.of(
                 AppointmentStatus.IN_PROGRESS,
                 AppointmentStatus.CANCELLED,
-                AppointmentStatus.RESCHEDULED,
                 AppointmentStatus.NO_SHOW));
         ALLOWED.put(AppointmentStatus.IN_PROGRESS, EnumSet.of(
                 AppointmentStatus.COMPLETED,
@@ -31,6 +33,7 @@ public final class AppointmentTransitions {
         ALLOWED.put(AppointmentStatus.CANCELLED, EnumSet.noneOf(AppointmentStatus.class));
         ALLOWED.put(AppointmentStatus.NO_SHOW, EnumSet.noneOf(AppointmentStatus.class));
         ALLOWED.put(AppointmentStatus.RESCHEDULED, EnumSet.noneOf(AppointmentStatus.class));
+        ALLOWED.put(AppointmentStatus.REJECTED, EnumSet.noneOf(AppointmentStatus.class));
     }
 
     private AppointmentTransitions() {}

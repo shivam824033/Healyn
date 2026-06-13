@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../auth/presentation/controllers/auth_controller.dart';
 import '../config/app_config.dart';
 import '../storage/token_store.dart';
 import 'auth_interceptor.dart';
@@ -25,7 +26,16 @@ final dioProvider = Provider<Dio>((ref) {
   final refreshClient = Dio(_baseOptions(baseUrl));
 
   return Dio(_baseOptions(baseUrl))
-    ..interceptors.add(AuthInterceptor(tokenStore, refreshClient));
+    ..interceptors.add(
+      AuthInterceptor(
+        tokenStore,
+        refreshClient,
+        // Read lazily (at 401 time, not provider build) so there's no dependency
+        // cycle between the Dio and auth providers.
+        onSessionExpired: () =>
+            ref.read(authControllerProvider.notifier).onSessionExpired(),
+      ),
+    );
 });
 
 /// A bare Dio for uploading bytes straight to object storage via a presigned

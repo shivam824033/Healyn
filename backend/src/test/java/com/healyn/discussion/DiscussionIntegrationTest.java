@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.healyn.appointments.domain.Appointment;
 import com.healyn.appointments.repository.AppointmentRepository;
+import com.healyn.appointments.service.AppointmentNumberGenerator;
 import com.healyn.auth.adapter.OtpSender;
 import com.healyn.auth.domain.Account;
 import com.healyn.auth.domain.AccountRole;
@@ -15,6 +16,9 @@ import com.healyn.discussion.domain.DiscussionMessage;
 import com.healyn.discussion.domain.DiscussionMessageType;
 import com.healyn.discussion.domain.DiscussionSenderRole;
 import com.healyn.discussion.repository.DiscussionMessageRepository;
+import com.healyn.notifications.domain.NotificationKind;
+import com.healyn.notifications.domain.NotificationOutbox;
+import com.healyn.notifications.repository.NotificationOutboxRepository;
 import com.redis.testcontainers.RedisContainer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -96,8 +100,10 @@ class DiscussionIntegrationTest {
     @Autowired CapturingOtpSender otpSender;
     @Autowired AccountRepository accounts;
     @Autowired AppointmentRepository appointments;
+    @Autowired AppointmentNumberGenerator numbers;
     @Autowired DiscussionMessageRepository messages;
     @Autowired AccessTokenIssuer tokenIssuer;
+    @Autowired NotificationOutboxRepository outbox;
 
     @BeforeEach
     void reset() {
@@ -116,6 +122,29 @@ class DiscussionIntegrationTest {
                 .andExpect(jsonPath("$.items[0].body").value("Hi, what should I do?"))
                 .andExpect(jsonPath("$.items[0].sender_role").value("PATIENT_SIDE"))
                 .andExpect(jsonPath("$.items[0].message_type").value("QUESTION"));
+    }
+
+    @Test
+    void new_message_notification_payload_carries_ids_and_appointment_number_but_no_body() throws Exception {
+        // A new patient message notifies the physiotherapist. The payload carries IDs only
+        // (CLAUDE.md Hard Rule #4) — appointmentId, messageId, and the human-friendly
+        // appointmentNumber (a business id) — and never the message body, which is PHI.
+        Fixture f = bootstrap("priya");
+        String msgId = postMessage(f.account, f.apptId, "Can we reschedule?", DiscussionMessageType.QUESTION);
+        String number = appointments.findById(f.apptId).orElseThrow().getAppointmentNumber();
+
+        NotificationOutbox row = outbox.findByCorrelationIdOrderByCreatedAtAsc(UUID.fromString(msgId)).stream()
+                .filter(o -> o.getKind() == NotificationKind.DISCUSSION_NEW_MESSAGE)
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("no DISCUSSION_NEW_MESSAGE row enqueued"));
+
+        assertThat(row.getPayload())
+                .containsEntry("appointmentId", f.apptId.toString())
+                .containsEntry("messageId", msgId)
+                .containsEntry("appointmentNumber", number);
+        assertThat(row.getPayload().keySet())
+                .containsExactlyInAnyOrder("appointmentId", "messageId", "appointmentNumber");
+        assertThat(row.getPayload().values()).doesNotContain("Can we reschedule?");
     }
 
     @Test
@@ -245,10 +274,9 @@ class DiscussionIntegrationTest {
 
     private Fixture bootstrap(String tag) throws Exception {
         Session physio = seedPhysio();
-        createMondayRule(physio);
         Session account = registerPatient(tag);
         UUID patientId = primaryPatientId(account);
-        UUID apptId = bookAppointment(account, patientId);
+        UUID apptId = seedAppointment(physio, account, patientId);
         return new Fixture(physio, account, patientId, apptId);
     }
 
@@ -276,33 +304,16 @@ class DiscussionIntegrationTest {
         return nextMondayAt(9 + minutes / 60, minutes % 60);
     }
 
-    private UUID bookAppointment(Session actor, UUID patientId) throws Exception {
-        MvcResult res = mvc.perform(post("/appointments")
-                        .header("Authorization", "Bearer " + actor.access)
-                        .header("Idempotency-Key", "disc-" + UUID.randomUUID())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(json.writeValueAsString(Map.of(
-                                "patient_id", patientId.toString(),
-                                "scheduled_at", nextSlot(),
-                                "duration_minutes", 30))))
-                .andExpect(status().isCreated())
-                .andReturn();
-        return UUID.fromString(json.readTree(res.getResponse().getContentAsByteArray()).get("id").asText());
-    }
-
-    private void createMondayRule(Session physio) throws Exception {
-        String effectiveFrom = LocalDate.now().minusDays(30).toString();
-        mvc.perform(post("/availability/rules")
-                        .header("Authorization", "Bearer " + physio.access)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(json.writeValueAsString(Map.of(
-                                "day_of_week", 1,
-                                "start_time", "09:00:00",
-                                "end_time", "17:00:00",
-                                "slot_minutes", 30,
-                                "timezone", "Asia/Kolkata",
-                                "effective_from", effectiveFrom))))
-                .andExpect(status().isCreated());
+    /// Seeds an appointment for the fixture's own physiotherapist directly. Booking is now a
+    /// patient request with no time, so a thread-bearing appointment is seeded straight to the
+    /// repository (a distinct slot keeps each one apart in the shared container).
+    private UUID seedAppointment(Session physio, Session actor, UUID patientId) {
+        Appointment appt = new Appointment(
+                UuidV7.generate(), patientId, actor.id, physio.id,
+                Instant.parse(nextSlot()), (short) 30, "discussion seed", null);
+        appt.assignNumber(numbers.generate());
+        appointments.save(appt);
+        return appt.getId();
     }
 
     private static String nextMondayAt(int hour, int minute) {
@@ -322,7 +333,7 @@ class DiscussionIntegrationTest {
                 "$argon2id$placeholder$noop", new byte[]{0},
                 AccountRole.ROLE_PHYSIO);
         accounts.save(physio);
-        String token = tokenIssuer.issue(physio).token();
+        String token = tokenIssuer.issue(physio, java.util.UUID.randomUUID()).token();
         return new Session(physio.getId(), token);
     }
 
@@ -347,6 +358,12 @@ class DiscussionIntegrationTest {
                 "full_name", tag + " Person",
                 "date_of_birth", "1991-05-20",
                 "sex", "UNDISCLOSED"));
+        body.put("address", Map.of(
+                "line1", "1 Test Street",
+                "city", "Pune",
+                "state", "Maharashtra",
+                "postal_code", "411001",
+                "country", "India"));
 
         MvcResult tokensRes = mvc.perform(post("/auth/register/complete")
                         .contentType(MediaType.APPLICATION_JSON)

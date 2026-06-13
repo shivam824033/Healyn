@@ -131,7 +131,7 @@ class MessageBubble extends StatelessWidget {
     final edited = message.editedAt != null ? ' · edited' : '';
     return Text(
       '${formatClockTime(message.createdAt)}$edited',
-      style: HealynTypography.caption.copyWith(color: color, fontSize: 11),
+      style: HealynTypography.caption.copyWith(color: color),
     );
   }
 }
@@ -190,10 +190,7 @@ class _AttachmentChip extends StatelessWidget {
           const SizedBox(width: HealynSpacing.s2),
           Text(
             formatBytes(attachment.sizeBytes),
-            style: HealynTypography.caption.copyWith(
-              color: fg,
-              fontSize: 11,
-            ),
+            style: HealynTypography.caption.copyWith(color: fg),
           ),
           if (onTap != null) ...[
             const SizedBox(width: HealynSpacing.s2),

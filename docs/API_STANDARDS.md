@@ -226,7 +226,7 @@ GET /api/v1/appointments?cursor=eyJpZCI6Ii4uLiJ9&limit=20
 | Method | Path | Purpose |
 |---|---|---|
 | `POST` | `/api/v1/auth/register/start` | Begin registration, send OTP |
-| `POST` | `/api/v1/auth/register/verify` | Verify OTP, create account + primary patient |
+| `POST` | `/api/v1/auth/register/verify` | Verify OTP, create account + primary patient + household address |
 | `POST` | `/api/v1/auth/login` | Email/phone + password, returns tokens |
 | `POST` | `/api/v1/auth/refresh` | Single-use refresh, rotates tokens |
 | `POST` | `/api/v1/auth/logout` | Revoke current session |
@@ -242,15 +242,31 @@ GET /api/v1/appointments?cursor=eyJpZCI6Ii4uLiJ9&limit=20
 > resource is owned by the notifications module; the controller lives there but serves the
 > `/auth/fcm_tokens` path (served unprefixed by the running backend — see §9.4 note).
 
+> **`register/complete` (the running backend's path for register/verify) body** carries
+> `{ challenge_id, code, password, device, profile, address }`. `address` is **required**
+> at signup: `{ line1 (required), line2?, city (required), state (required), postal_code
+> (required), country? (defaults "India") }`. It is the **account household** address,
+> shared across every patient on the account (see §9.2 `/account/address`).
+
 ### 9.2 Patients
 
 | Method | Path | Purpose |
 |---|---|---|
-| `GET`  | `/api/v1/patients` | List patients linked to me |
+| `GET`  | `/api/v1/patients` | List patients linked to me (each carries the household `address`) |
 | `POST` | `/api/v1/patients` | Add a family member patient |
-| `GET`  | `/api/v1/patients/{id}` | Get a patient |
+| `GET`  | `/api/v1/patients/{id}` | Get a patient (includes resolved household `address`) |
 | `PATCH` | `/api/v1/patients/{id}` | Update a patient |
 | `DELETE` | `/api/v1/patients/{id}` | Remove link (and soft-delete if last link) |
+| `GET`  | `/api/v1/account/address` | The signed-in account's household address — `{ address }`, null when unset |
+| `PUT`  | `/api/v1/account/address` | Create / replace the household address (one per account, shared by all its patients) |
+
+> The household **address** is account-level, not per-patient: one row per account
+> (`account_addresses`), captured at signup and editable via `PUT /account/address`. It
+> appears on every `PatientView` (the patient app shows the account's own; the
+> physiotherapist sees each patient's resolved through its managing account). `PUT` body:
+> `{ line1, line2?, city, state, postal_code, country? }` — `line1`/`city`/`state`/
+> `postal_code` required, `country` defaults `"India"`. There is no per-patient address
+> field on `PATCH /patients/{id}`. See [DATABASE_SCHEMA.md §3.5a](./DATABASE_SCHEMA.md).
 
 ### 9.3 Availability
 
@@ -275,20 +291,35 @@ GET /api/v1/appointments?cursor=eyJpZCI6Ii4uLiJ9&limit=20
 
 | Method | Path | Purpose |
 |---|---|---|
-| `GET`  | `/appointments?patientId=&status=&from=&to=&cursor=&limit=` | List (cursor pagination, `limit ≤ 50`, default 20) |
-| `POST` | `/appointments` | Book (requires `Idempotency-Key` header) |
+| `GET`  | `/appointments?patientId=&status=&is_follow_up=&from=&to=&cursor=&limit=` | List (cursor pagination, `limit ≤ 50`, default 20). `status` is a CSV of statuses; `is_follow_up` (true/false, omit for either) filters follow-ups |
+| `GET`  | `/appointments/upcoming?limit=` | Next live scheduled appointments ascending from now (`CONFIRMED`/`IN_PROGRESS`, `limit ≤ 50`, default 30). Role-scoped. Returns `{items}` (no cursor) |
+| `GET`  | `/appointments/calendar?from=&to=` | All scheduled appointments in an instant window, ascending (month grid). `from`/`to` are ISO date-times; range ≤ 62 days. Role-scoped. Returns `{items}` |
+| `GET`  | `/appointments/search?q=&limit=` | Header autocomplete. Matches `q` against the Appointment Number / Patient Number (prefix) and patient name (substring), role-scoped to the caller's patients. `q` shorter than 2 chars returns empty; `limit ≤ 20`, default 10. Returns `{items}` of `AppointmentSuggestion` (no cursor), most recent first |
+| `POST` | `/appointments` | Request an appointment for a date — patient-side, no time (requires `Idempotency-Key` header) |
 | `GET`  | `/appointments/{id}` | Get |
-| `POST` | `/appointments/{id}/transitions` | Move status — body: `{to, cancelReason?, cancelNote?}` (see [APPOINTMENT_FLOW.md](./APPOINTMENT_FLOW.md)) |
-| `POST` | `/appointments/{id}/reschedule` | Reschedule — body: `{scheduledAt, durationMinutes, reason?}`; creates new `REQUESTED` row, old → `RESCHEDULED` |
+| `GET`  | `/appointments/{id}/timeline` | Unified lineage timeline: lifecycle events (`CREATED`/`SCHEDULED`/`STARTED`/`COMPLETED`/`CANCELLED`/`NO_SHOW`/`RESCHEDULED`/`REJECTED`) of every appointment sharing this row's lineage root, oldest first, each tagged with its Appointment Number. Returns `{items}` (no cursor) |
+| `POST` | `/appointments/{id}/schedule` | **Physio only** — assign the final time to a `REQUESTED` request → `CONFIRMED`. Body: `{scheduledAt, durationMinutes}` |
+| `POST` | `/appointments/follow-ups` | **Physio only** — create a follow-up at a time the physio sets (`is_follow_up = true`). Body: `{patientId, scheduledAt, durationMinutes, reason?}` |
+| `POST` | `/appointments/{id}/transitions` | Move status — body: `{to, cancelReason?, cancelNote?}`. Does **not** accept `REQUESTED → CONFIRMED` (use `/schedule`). `REQUESTED → REJECTED` is **physio only** (declines a request; optional `cancelNote`). See [APPOINTMENT_FLOW.md](./APPOINTMENT_FLOW.md) |
+| `POST` | `/appointments/{id}/reschedule` | Reschedule, old → `RESCHEDULED`. Physio body: `{scheduledAt, durationMinutes, reason?}` → new `CONFIRMED`. Patient body: `{requestedDate, preferredTime?, reason?}` → new unscheduled `REQUESTED` |
 
-`POST /appointments` body:
+`POST /appointments` body (patient request — date is mandatory, time is the physiotherapist's to set):
 
 ```json
 {
   "patientId": "uuid",
-  "scheduledAt": "2026-06-15T09:00:00+05:30",
-  "durationMinutes": 30,
+  "requestedDate": "2026-06-15",
+  "preferredTime": "09:00",
   "reason": "Lower-back follow-up"
+}
+```
+
+`POST /appointments/{id}/schedule` body (physiotherapist assigns the time):
+
+```json
+{
+  "scheduledAt": "2026-06-15T09:00:00+05:30",
+  "durationMinutes": 30
 }
 ```
 
@@ -301,7 +332,26 @@ GET /api/v1/appointments?cursor=eyJpZCI6Ii4uLiJ9&limit=20
 }
 ```
 
-Status values: `REQUESTED`, `CONFIRMED`, `IN_PROGRESS`, `COMPLETED`, `CANCELLED`, `NO_SHOW`, `RESCHEDULED`.
+`GET /appointments/search` response envelope (`AppointmentSuggestion` is a thin, extensible shape — not the full `AppointmentView`):
+
+```json
+{
+  "items": [
+    {
+      "appointmentId": "uuid",
+      "appointmentNumber": "PHY-20260615-0001",
+      "patientId": "uuid",
+      "patientName": "Asha Rao",
+      "patientNumber": "PAT-100001",
+      "status": "CONFIRMED",
+      "scheduledAt": "2026-06-15T09:00:00+05:30",
+      "requestedDate": "2026-06-15"
+    }
+  ]
+}
+```
+
+Status values: `REQUESTED`, `CONFIRMED`, `IN_PROGRESS`, `COMPLETED`, `CANCELLED`, `NO_SHOW`, `RESCHEDULED`, `REJECTED`.
 Cancel reasons: `PATIENT_CANCELLED`, `PHYSIO_CANCELLED`, `CLINIC_CLOSED`, `OTHER`.
 
 ### 9.5 Discussion
@@ -420,6 +470,21 @@ Rules:
   who has opted out of that kind's category, so an opt-out is honoured before dispatch and never
   produces a suppressed row.
 
+**Push payload (FCM, data-only).** Notifications are delivered as *data-only* FCM messages — never a
+notification title/body — so no PHI leaves the system and the lock-screen banner is rendered
+client-side (SECURITY_GUIDELINES §1, CLAUDE.md Hard Rule #4). The data map carries IDs only:
+
+| Key | When | Notes |
+|---|---|---|
+| `kind` | always | the `notification_kind` (e.g. `BOOKING_REQUESTED`, `DISCUSSION_NEW_MESSAGE`) |
+| `appointmentId` | always | internal UUID — the deep-link target |
+| `appointmentNumber` | when assigned | human-friendly business id (e.g. `PHY-20260615-0001`); a display identifier, **not** PHI. Lets the client name the banner without a fetch |
+| `messageId` | `DISCUSSION_NEW_MESSAGE` | the new message's id |
+
+The client builds the banner text from `kind` + `appointmentNumber` only (never a patient name or
+message body) and the tap deep-links to the appointment detail — or its discussion thread for a new
+message — scoped to the signed-in role.
+
 ### 9.9 Health
 
 | Method | Path | Purpose |
@@ -431,7 +496,7 @@ Rules:
 
 ## 10. Request / Response Examples
 
-### 10.1 Book an Appointment
+### 10.1 Request an Appointment
 
 ```http
 POST /api/v1/appointments HTTP/1.1
@@ -442,8 +507,8 @@ X-Request-Id: 0f3e22ad-9b6e-4f8e-8b2f-3e1d5a8b6f10
 
 {
   "patient_id": "8a7b6c5d-1e2f-3a4b-5c6d-7e8f9a0b1c2d",
-  "scheduled_at": "2026-05-30T10:30:00+05:30",
-  "duration_minutes": 30,
+  "requested_date": "2026-05-30",
+  "preferred_time": "10:30",
   "reason": "Lower back pain — follow up"
 }
 ```
@@ -460,14 +525,19 @@ X-Trace-Id: t-2bc7f4e1
     "id": "3d2c1b0a-9f8e-7d6c-5b4a-3c2d1e0f9a8b",
     "patient_id": "8a7b6c5d-1e2f-3a4b-5c6d-7e8f9a0b1c2d",
     "physiotherapist_id": "...",
-    "scheduled_at": "2026-05-30T05:00:00Z",
+    "requested_date": "2026-05-30",
+    "preferred_time": "10:30:00",
+    "scheduled_at": null,
     "duration_minutes": 30,
     "status": "REQUESTED",
+    "is_follow_up": false,
     "reason": "Lower back pain — follow up",
     "created_at": "2026-05-27T13:45:12Z"
   }
 }
 ```
+
+The physiotherapist later assigns the time with `POST /appointments/{id}/schedule`, which sets `scheduled_at` and moves the status to `CONFIRMED`.
 
 ### 10.2 Conflict Example
 

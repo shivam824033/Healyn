@@ -15,3 +15,17 @@ class LocalDateConverter implements JsonConverter<DateTime, String> {
       '${object.month.toString().padLeft(2, '0')}-'
       '${object.day.toString().padLeft(2, '0')}';
 }
+
+/// Serializes a [DateTime] as a UTC ISO-8601 instant (with a trailing `Z`) to
+/// match the backend's `Instant`. A local DateTime is converted to UTC first, so
+/// callers can build the instant in local time (e.g. a picked date + time) and
+/// the wire value is always unambiguous.
+class UtcInstantConverter implements JsonConverter<DateTime, String> {
+  const UtcInstantConverter();
+
+  @override
+  DateTime fromJson(String json) => DateTime.parse(json).toUtc();
+
+  @override
+  String toJson(DateTime object) => object.toUtc().toIso8601String();
+}

@@ -4,7 +4,9 @@ import com.healyn.appointments.domain.Appointment;
 import com.healyn.appointments.domain.AppointmentStatus;
 import com.healyn.appointments.service.AppointmentService;
 import com.healyn.appointments.service.BookingRequest;
+import com.healyn.appointments.service.FollowUpRequest;
 import com.healyn.appointments.service.RescheduleRequest;
+import com.healyn.appointments.service.ScheduleRequest;
 import com.healyn.appointments.service.TransitionRequest;
 import com.healyn.auth.domain.AccountRole;
 import com.healyn.common.pagination.CursorPage;
@@ -46,6 +48,7 @@ public class AppointmentController {
             @AuthenticationPrincipal Jwt jwt,
             @RequestParam(value = "patient_id", required = false) UUID patientId,
             @RequestParam(value = "status", required = false) String statusCsv,
+            @RequestParam(value = "is_follow_up", required = false) Boolean isFollowUp,
             @RequestParam(value = "from", required = false)
                 @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant from,
             @RequestParam(value = "to", required = false)
@@ -57,10 +60,49 @@ public class AppointmentController {
         AccountRole role = roleOf(jwt);
         Set<AppointmentStatus> statuses = parseStatuses(statusCsv);
 
-        CursorPage<Appointment> page = service.list(actorId, role, patientId, statuses, from, to, cursor, limit);
+        CursorPage<Appointment> page =
+                service.list(actorId, role, patientId, statuses, isFollowUp, from, to, cursor, limit);
         List<AppointmentDtos.AppointmentView> views =
                 page.items().stream().map(AppointmentMapper::toView).toList();
         return new AppointmentDtos.AppointmentPage(views, page.nextCursor());
+    }
+
+    @GetMapping("/upcoming")
+    public AppointmentDtos.AppointmentList upcoming(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestParam(value = "limit", required = false, defaultValue = "30") int limit) {
+        UUID actorId = UUID.fromString(jwt.getSubject());
+        AccountRole role = roleOf(jwt);
+        List<AppointmentDtos.AppointmentView> views =
+                service.upcoming(actorId, role, limit).stream().map(AppointmentMapper::toView).toList();
+        return new AppointmentDtos.AppointmentList(views);
+    }
+
+    @GetMapping("/calendar")
+    public AppointmentDtos.AppointmentList calendar(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestParam(value = "from")
+                @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant from,
+            @RequestParam(value = "to")
+                @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant to) {
+        UUID actorId = UUID.fromString(jwt.getSubject());
+        AccountRole role = roleOf(jwt);
+        List<AppointmentDtos.AppointmentView> views =
+                service.calendar(actorId, role, from, to).stream().map(AppointmentMapper::toView).toList();
+        return new AppointmentDtos.AppointmentList(views);
+    }
+
+    /// Global appointment search for the header autocomplete (API_STANDARDS §9.4). [q] is matched
+    /// against the appointment / patient number (prefix) and patient name (substring), scoped to
+    /// the caller's patients. A literal segment, so it resolves ahead of the {id} path below.
+    @GetMapping("/search")
+    public AppointmentDtos.SearchResults search(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestParam("q") String q,
+            @RequestParam(value = "limit", required = false, defaultValue = "10") int limit) {
+        UUID actorId = UUID.fromString(jwt.getSubject());
+        AccountRole role = roleOf(jwt);
+        return AppointmentMapper.toSearchResults(service.search(actorId, role, q, limit));
     }
 
     @GetMapping("/{id}")
@@ -71,6 +113,16 @@ public class AppointmentController {
         return AppointmentMapper.toView(service.get(actorId, role, id));
     }
 
+    /// The unified timeline of the appointment's whole lineage, oldest first: lifecycle
+    /// events of every appointment sharing this row's lineage root (APPOINTMENT_FLOW §3).
+    @GetMapping("/{id}/timeline")
+    public AppointmentDtos.TimelineView timeline(@AuthenticationPrincipal Jwt jwt,
+                                                 @PathVariable("id") UUID id) {
+        UUID actorId = UUID.fromString(jwt.getSubject());
+        AccountRole role = roleOf(jwt);
+        return AppointmentMapper.toTimelineView(service.timeline(actorId, role, id));
+    }
+
     @PostMapping
     public ResponseEntity<AppointmentDtos.AppointmentView> book(
             @AuthenticationPrincipal Jwt jwt,
@@ -79,9 +131,33 @@ public class AppointmentController {
         UUID actorId = UUID.fromString(jwt.getSubject());
         AccountRole role = roleOf(jwt);
         BookingRequest req = new BookingRequest(
-                body.patientId(), body.scheduledAt(), body.durationMinutes(), body.reason());
+                body.patientId(), body.requestedDate(), body.preferredTime(), body.reason());
         Appointment booked = service.book(actorId, role, req, idempotencyKey);
         return ResponseEntity.status(HttpStatus.CREATED).body(AppointmentMapper.toView(booked));
+    }
+
+    @PostMapping("/{id}/schedule")
+    public AppointmentDtos.AppointmentView schedule(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable("id") UUID id,
+            @Valid @RequestBody AppointmentDtos.ScheduleRequestBody body) {
+        UUID actorId = UUID.fromString(jwt.getSubject());
+        AccountRole role = roleOf(jwt);
+        ScheduleRequest req = new ScheduleRequest(body.scheduledAt(), body.durationMinutes());
+        return AppointmentMapper.toView(service.schedule(actorId, role, id, req));
+    }
+
+    @PostMapping("/follow-ups")
+    @ResponseStatus(HttpStatus.CREATED)
+    public AppointmentDtos.AppointmentView createFollowUp(
+            @AuthenticationPrincipal Jwt jwt,
+            @Valid @RequestBody AppointmentDtos.FollowUpRequestBody body) {
+        UUID actorId = UUID.fromString(jwt.getSubject());
+        AccountRole role = roleOf(jwt);
+        FollowUpRequest req = new FollowUpRequest(
+                body.patientId(), body.sourceAppointmentId(),
+                body.scheduledAt(), body.durationMinutes(), body.reason());
+        return AppointmentMapper.toView(service.createFollowUp(actorId, role, req));
     }
 
     @PostMapping("/{id}/transitions")
@@ -104,7 +180,8 @@ public class AppointmentController {
         UUID actorId = UUID.fromString(jwt.getSubject());
         AccountRole role = roleOf(jwt);
         RescheduleRequest req = new RescheduleRequest(
-                body.scheduledAt(), body.durationMinutes(), body.reason());
+                body.scheduledAt(), body.durationMinutes(),
+                body.requestedDate(), body.preferredTime(), body.reason());
         return AppointmentMapper.toView(service.reschedule(actorId, role, id, req));
     }
 

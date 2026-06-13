@@ -8,6 +8,7 @@ part of 'patient_models.dart';
 
 _Patient _$PatientFromJson(Map<String, dynamic> json) => _Patient(
   id: json['id'] as String,
+  patientNumber: json['patient_number'] as String?,
   fullName: json['full_name'] as String,
   dateOfBirth: const LocalDateConverter().fromJson(
     json['date_of_birth'] as String,
@@ -18,6 +19,9 @@ _Patient _$PatientFromJson(Map<String, dynamic> json) => _Patient(
   bloodGroup: json['blood_group'] as String?,
   allergies: json['allergies'] as String?,
   notes: json['notes'] as String?,
+  address: json['address'] == null
+      ? null
+      : Address.fromJson(json['address'] as Map<String, dynamic>),
   relationship: $enumDecodeNullable(
     _$PatientRelationshipEnumMap,
     json['relationship'],
@@ -34,6 +38,7 @@ _Patient _$PatientFromJson(Map<String, dynamic> json) => _Patient(
 
 Map<String, dynamic> _$PatientToJson(_Patient instance) => <String, dynamic>{
   'id': instance.id,
+  'patient_number': ?instance.patientNumber,
   'full_name': instance.fullName,
   'date_of_birth': const LocalDateConverter().toJson(instance.dateOfBirth),
   'sex': ?_$PatientSexEnumMap[instance.sex],
@@ -42,6 +47,7 @@ Map<String, dynamic> _$PatientToJson(_Patient instance) => <String, dynamic>{
   'blood_group': ?instance.bloodGroup,
   'allergies': ?instance.allergies,
   'notes': ?instance.notes,
+  'address': ?instance.address?.toJson(),
   'relationship': ?_$PatientRelationshipEnumMap[instance.relationship],
   'primary': instance.primary,
   'can_manage': instance.canManage,

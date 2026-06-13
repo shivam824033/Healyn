@@ -8,20 +8,23 @@ import 'package:go_router/go_router.dart';
 import '../../../patients/data/models/patient_models.dart';
 import '../../../patients/presentation/active_patient_provider.dart';
 import '../../../patients/presentation/patients_providers.dart';
+import '../../../shared/design/colors.dart';
 import '../../../shared/design/spacing.dart';
+import '../../../shared/design/typography.dart';
 import '../../../shared/network/api_exception.dart';
+import '../../../shared/widgets/app_bar.dart';
 import '../../../shared/widgets/app_text_field.dart';
 import '../../../shared/widgets/error_banner.dart';
+import '../../../shared/widgets/field_label.dart';
 import '../../../shared/widgets/primary_button.dart';
 import '../../data/appointments_repository.dart';
 import '../../data/models/appointment_models.dart';
 import '../appointment_format.dart';
 import '../appointments_providers.dart';
-import '../widgets/slot_picker.dart';
 
 /// Prefill for the booking form, used when it's opened from a "next review"
-/// suggestion (D6): the patient to pre-select and the date to pre-fill. The slot
-/// is still chosen from live availability — nothing is auto-booked.
+/// suggestion (D6): the patient to pre-select and the date to pre-fill. Nothing
+/// is auto-requested — the patient still confirms the request.
 class BookAppointmentArgs {
   const BookAppointmentArgs({this.patientId, this.day});
 
@@ -29,11 +32,11 @@ class BookAppointmentArgs {
   final DateTime? day;
 }
 
-/// Books an appointment: pick the patient, a date, then one of the open slots
-/// for that day, with an optional reason. Slots come live from `/availability`,
-/// so the chosen time is always one the backend will accept. On success it
-/// refreshes the timeline and pops. [initialPatientId] / [initialDay] prefill the
-/// form when arriving from a next-review suggestion.
+/// Requests an appointment (request-first): pick the patient and a date, with an
+/// optional preferred time and reason. The patient never picks a final time —
+/// the physiotherapist confirms the date and assigns the time afterwards. On
+/// success it refreshes the timeline and pops. [initialPatientId] / [initialDay]
+/// prefill the form when arriving from a next-review suggestion.
 class BookAppointmentScreen extends ConsumerStatefulWidget {
   const BookAppointmentScreen({this.initialPatientId, this.initialDay, super.key});
 
@@ -49,18 +52,16 @@ class _BookAppointmentScreenState extends ConsumerState<BookAppointmentScreen> {
   static const int _maxHorizonDays = 90;
   static const int _reasonMaxLength = 280;
 
-  // One key per booking attempt: dedupes retries of the *same* booking (e.g. a
+  // One key per booking attempt: dedupes retries of the *same* request (e.g. a
   // lost response) without blocking a genuinely new one on the next screen.
   final String _idempotencyKey = _newIdempotencyKey();
   final _reason = TextEditingController();
   final _dayField = TextEditingController();
+  final _timeField = TextEditingController();
 
   Patient? _patient;
   DateTime? _day;
-  List<Slot>? _slots;
-  bool _slotsLoading = false;
-  String? _slotsError;
-  Slot? _selectedSlot;
+  TimeOfDay? _time;
 
   bool _submitting = false;
   String? _error;
@@ -73,10 +74,6 @@ class _BookAppointmentScreenState extends ConsumerState<BookAppointmentScreen> {
       final d = DateTime(day.year, day.month, day.day);
       _day = d;
       _dayField.text = formatDateShort(d);
-      // Load that day's slots once the first frame is up (setState-safe).
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) _loadSlots(d);
-      });
     }
   }
 
@@ -84,6 +81,7 @@ class _BookAppointmentScreenState extends ConsumerState<BookAppointmentScreen> {
   void dispose() {
     _reason.dispose();
     _dayField.dispose();
+    _timeField.dispose();
     super.dispose();
   }
 
@@ -101,35 +99,32 @@ class _BookAppointmentScreenState extends ConsumerState<BookAppointmentScreen> {
     setState(() {
       _day = picked;
       _dayField.text = formatDateShort(picked);
-      _selectedSlot = null;
-      _slots = null;
     });
-    await _loadSlots(picked);
   }
 
-  Future<void> _loadSlots(DateTime day) async {
+  Future<void> _pickTime() async {
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: _time ?? const TimeOfDay(hour: 9, minute: 0),
+      helpText: 'Preferred time (optional)',
+    );
+    if (picked == null) return;
     setState(() {
-      _slotsLoading = true;
-      _slotsError = null;
+      _time = picked;
+      _timeField.text = picked.format(context);
     });
-    try {
-      final slots = await ref.read(appointmentsRepositoryProvider).slotsFor(day);
-      if (!mounted) return;
-      setState(() => _slots = slots);
-    } on ApiException catch (e) {
-      if (mounted) setState(() => _slotsError = e.message);
-    } finally {
-      if (mounted) setState(() => _slotsLoading = false);
-    }
+  }
+
+  void _clearTime() {
+    setState(() {
+      _time = null;
+      _timeField.clear();
+    });
   }
 
   Future<void> _submit(Patient patient) async {
     if (_day == null) {
       setState(() => _error = 'Pick a date.');
-      return;
-    }
-    if (_selectedSlot == null) {
-      setState(() => _error = 'Choose a time slot.');
       return;
     }
 
@@ -139,14 +134,15 @@ class _BookAppointmentScreenState extends ConsumerState<BookAppointmentScreen> {
     });
     final repo = ref.read(appointmentsRepositoryProvider);
     final messenger = ScaffoldMessenger.of(context);
-    final slot = _selectedSlot!;
     final reason = _reason.text.trim();
+    final time = _time;
     try {
       await repo.book(
         BookAppointmentRequest(
           patientId: patient.id,
-          scheduledAt: slot.startsAt,
-          durationMinutes: slot.durationMinutes,
+          requestedDate: _day!,
+          preferredTime:
+              time == null ? null : wireClockTime(time.hour, time.minute),
           reason: reason.isEmpty ? null : reason,
         ),
         idempotencyKey: _idempotencyKey,
@@ -168,7 +164,8 @@ class _BookAppointmentScreenState extends ConsumerState<BookAppointmentScreen> {
   Widget build(BuildContext context) {
     final patients = ref.watch(patientsProvider);
     return Scaffold(
-      appBar: AppBar(title: const Text('Book appointment')),
+      backgroundColor: HealynColors.surfaceAlt,
+      appBar: const HealynAppBar(title: 'Request appointment'),
       body: SafeArea(
         child: patients.when(
           loading: () => const Center(child: CircularProgressIndicator()),
@@ -239,16 +236,26 @@ class _BookAppointmentScreenState extends ConsumerState<BookAppointmentScreen> {
             suffixIcon: const Icon(Icons.calendar_today_outlined),
           ),
           const SizedBox(height: HealynSpacing.s4),
-          SlotPicker(
-            label: 'Time',
-            day: _day,
-            loading: _slotsLoading,
-            error: _slotsError,
-            slots: _slots,
-            selected: _selectedSlot,
-            enabled: !_submitting,
-            onSelected: (s) => setState(() => _selectedSlot = s),
-            onRetry: _day == null ? null : () => _loadSlots(_day!),
+          AppTextField(
+            label: 'Preferred time (optional)',
+            controller: _timeField,
+            readOnly: true,
+            onTap: _submitting ? null : _pickTime,
+            hintText: 'No preference',
+            suffixIcon: _time == null
+                ? const Icon(Icons.schedule_outlined)
+                : IconButton(
+                    tooltip: 'Clear time',
+                    icon: const Icon(Icons.close),
+                    onPressed: _submitting ? null : _clearTime,
+                  ),
+          ),
+          const SizedBox(height: HealynSpacing.s2),
+          Text(
+            'Your physiotherapist confirms the final date and time.',
+            style: HealynTypography.caption.copyWith(
+              color: HealynColors.textSecondary,
+            ),
           ),
           const SizedBox(height: HealynSpacing.s4),
           AppTextField(
@@ -295,23 +302,28 @@ class _PatientField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return DropdownButtonFormField<String>(
-      initialValue: value.id,
-      decoration: const InputDecoration(labelText: 'Patient'),
-      items: patients
-          .map(
-            (p) => DropdownMenuItem(
-              value: p.id,
-              child: Text(_label(p)),
-            ),
-          )
-          .toList(),
-      onChanged: enabled
-          ? (id) {
-              if (id == null) return;
-              onChanged(patients.firstWhere((p) => p.id == id));
-            }
-          : null,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const FieldLabel('Patient'),
+        DropdownButtonFormField<String>(
+          initialValue: value.id,
+          items: patients
+              .map(
+                (p) => DropdownMenuItem(
+                  value: p.id,
+                  child: Text(_label(p)),
+                ),
+              )
+              .toList(),
+          onChanged: enabled
+              ? (id) {
+                  if (id == null) return;
+                  onChanged(patients.firstWhere((p) => p.id == id));
+                }
+              : null,
+        ),
+      ],
     );
   }
 

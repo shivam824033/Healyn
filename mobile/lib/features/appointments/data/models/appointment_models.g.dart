@@ -6,15 +6,87 @@ part of 'appointment_models.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
+_TimelineEvent _$TimelineEventFromJson(Map<String, dynamic> json) =>
+    _TimelineEvent(
+      appointmentId: json['appointment_id'] as String,
+      appointmentNumber: json['appointment_number'] as String?,
+      eventType: $enumDecode(_$AppointmentEventTypeEnumMap, json['event_type']),
+      actorAccountId: json['actor_account_id'] as String?,
+      actorRole: $enumDecodeNullable(_$AccountRoleEnumMap, json['actor_role']),
+      relatedAppointmentId: json['related_appointment_id'] as String?,
+      childKind: $enumDecodeNullable(
+        _$AppointmentChildKindEnumMap,
+        json['child_kind'],
+      ),
+      cancelReason: $enumDecodeNullable(
+        _$AppointmentCancelReasonEnumMap,
+        json['cancel_reason'],
+      ),
+      occurredAt: DateTime.parse(json['occurred_at'] as String),
+    );
+
+Map<String, dynamic> _$TimelineEventToJson(_TimelineEvent instance) =>
+    <String, dynamic>{
+      'appointment_id': instance.appointmentId,
+      'appointment_number': ?instance.appointmentNumber,
+      'event_type': _$AppointmentEventTypeEnumMap[instance.eventType]!,
+      'actor_account_id': ?instance.actorAccountId,
+      'actor_role': ?_$AccountRoleEnumMap[instance.actorRole],
+      'related_appointment_id': ?instance.relatedAppointmentId,
+      'child_kind': ?_$AppointmentChildKindEnumMap[instance.childKind],
+      'cancel_reason': ?_$AppointmentCancelReasonEnumMap[instance.cancelReason],
+      'occurred_at': instance.occurredAt.toIso8601String(),
+    };
+
+const _$AppointmentEventTypeEnumMap = {
+  AppointmentEventType.created: 'CREATED',
+  AppointmentEventType.scheduled: 'SCHEDULED',
+  AppointmentEventType.started: 'STARTED',
+  AppointmentEventType.completed: 'COMPLETED',
+  AppointmentEventType.cancelled: 'CANCELLED',
+  AppointmentEventType.noShow: 'NO_SHOW',
+  AppointmentEventType.rescheduled: 'RESCHEDULED',
+  AppointmentEventType.rejected: 'REJECTED',
+};
+
+const _$AccountRoleEnumMap = {
+  AccountRole.account: 'ROLE_ACCOUNT',
+  AccountRole.physio: 'ROLE_PHYSIO',
+};
+
+const _$AppointmentChildKindEnumMap = {
+  AppointmentChildKind.reschedule: 'RESCHEDULE',
+  AppointmentChildKind.followUp: 'FOLLOW_UP',
+  AppointmentChildKind.review: 'REVIEW',
+  AppointmentChildKind.reopen: 'REOPEN',
+};
+
+const _$AppointmentCancelReasonEnumMap = {
+  AppointmentCancelReason.patientCancelled: 'PATIENT_CANCELLED',
+  AppointmentCancelReason.physioCancelled: 'PHYSIO_CANCELLED',
+  AppointmentCancelReason.clinicClosed: 'CLINIC_CLOSED',
+  AppointmentCancelReason.other: 'OTHER',
+};
+
 _Appointment _$AppointmentFromJson(Map<String, dynamic> json) => _Appointment(
   id: json['id'] as String,
+  appointmentNumber: json['appointment_number'] as String?,
   patientId: json['patient_id'] as String,
   bookedByAccountId: json['booked_by_account_id'] as String,
   physiotherapistId: json['physiotherapist_id'] as String,
-  scheduledAt: DateTime.parse(json['scheduled_at'] as String),
-  scheduledEndAt: DateTime.parse(json['scheduled_end_at'] as String),
+  requestedDate: const LocalDateConverter().fromJson(
+    json['requested_date'] as String,
+  ),
+  preferredTime: json['preferred_time'] as String?,
+  scheduledAt: json['scheduled_at'] == null
+      ? null
+      : DateTime.parse(json['scheduled_at'] as String),
+  scheduledEndAt: json['scheduled_end_at'] == null
+      ? null
+      : DateTime.parse(json['scheduled_end_at'] as String),
   durationMinutes: (json['duration_minutes'] as num).toInt(),
   status: $enumDecode(_$AppointmentStatusEnumMap, json['status']),
+  isFollowUp: json['is_follow_up'] as bool? ?? false,
   reason: json['reason'] as String?,
   cancelReason: $enumDecodeNullable(
     _$AppointmentCancelReasonEnumMap,
@@ -22,6 +94,12 @@ _Appointment _$AppointmentFromJson(Map<String, dynamic> json) => _Appointment(
   ),
   cancelNote: json['cancel_note'] as String?,
   rescheduledFromId: json['rescheduled_from_id'] as String?,
+  rootAppointmentId: json['root_appointment_id'] as String?,
+  sourceAppointmentId: json['source_appointment_id'] as String?,
+  childKind: $enumDecodeNullable(
+    _$AppointmentChildKindEnumMap,
+    json['child_kind'],
+  ),
   confirmedAt: json['confirmed_at'] == null
       ? null
       : DateTime.parse(json['confirmed_at'] as String),
@@ -42,27 +120,35 @@ _Appointment _$AppointmentFromJson(Map<String, dynamic> json) => _Appointment(
       : DateTime.parse(json['updated_at'] as String),
 );
 
-Map<String, dynamic> _$AppointmentToJson(_Appointment instance) =>
-    <String, dynamic>{
-      'id': instance.id,
-      'patient_id': instance.patientId,
-      'booked_by_account_id': instance.bookedByAccountId,
-      'physiotherapist_id': instance.physiotherapistId,
-      'scheduled_at': instance.scheduledAt.toIso8601String(),
-      'scheduled_end_at': instance.scheduledEndAt.toIso8601String(),
-      'duration_minutes': instance.durationMinutes,
-      'status': _$AppointmentStatusEnumMap[instance.status]!,
-      'reason': ?instance.reason,
-      'cancel_reason': ?_$AppointmentCancelReasonEnumMap[instance.cancelReason],
-      'cancel_note': ?instance.cancelNote,
-      'rescheduled_from_id': ?instance.rescheduledFromId,
-      'confirmed_at': ?instance.confirmedAt?.toIso8601String(),
-      'started_at': ?instance.startedAt?.toIso8601String(),
-      'completed_at': ?instance.completedAt?.toIso8601String(),
-      'cancelled_at': ?instance.cancelledAt?.toIso8601String(),
-      'created_at': ?instance.createdAt?.toIso8601String(),
-      'updated_at': ?instance.updatedAt?.toIso8601String(),
-    };
+Map<String, dynamic> _$AppointmentToJson(
+  _Appointment instance,
+) => <String, dynamic>{
+  'id': instance.id,
+  'appointment_number': ?instance.appointmentNumber,
+  'patient_id': instance.patientId,
+  'booked_by_account_id': instance.bookedByAccountId,
+  'physiotherapist_id': instance.physiotherapistId,
+  'requested_date': const LocalDateConverter().toJson(instance.requestedDate),
+  'preferred_time': ?instance.preferredTime,
+  'scheduled_at': ?instance.scheduledAt?.toIso8601String(),
+  'scheduled_end_at': ?instance.scheduledEndAt?.toIso8601String(),
+  'duration_minutes': instance.durationMinutes,
+  'status': _$AppointmentStatusEnumMap[instance.status]!,
+  'is_follow_up': instance.isFollowUp,
+  'reason': ?instance.reason,
+  'cancel_reason': ?_$AppointmentCancelReasonEnumMap[instance.cancelReason],
+  'cancel_note': ?instance.cancelNote,
+  'rescheduled_from_id': ?instance.rescheduledFromId,
+  'root_appointment_id': ?instance.rootAppointmentId,
+  'source_appointment_id': ?instance.sourceAppointmentId,
+  'child_kind': ?_$AppointmentChildKindEnumMap[instance.childKind],
+  'confirmed_at': ?instance.confirmedAt?.toIso8601String(),
+  'started_at': ?instance.startedAt?.toIso8601String(),
+  'completed_at': ?instance.completedAt?.toIso8601String(),
+  'cancelled_at': ?instance.cancelledAt?.toIso8601String(),
+  'created_at': ?instance.createdAt?.toIso8601String(),
+  'updated_at': ?instance.updatedAt?.toIso8601String(),
+};
 
 const _$AppointmentStatusEnumMap = {
   AppointmentStatus.requested: 'REQUESTED',
@@ -72,13 +158,37 @@ const _$AppointmentStatusEnumMap = {
   AppointmentStatus.cancelled: 'CANCELLED',
   AppointmentStatus.noShow: 'NO_SHOW',
   AppointmentStatus.rescheduled: 'RESCHEDULED',
+  AppointmentStatus.rejected: 'REJECTED',
 };
 
-const _$AppointmentCancelReasonEnumMap = {
-  AppointmentCancelReason.patientCancelled: 'PATIENT_CANCELLED',
-  AppointmentCancelReason.physioCancelled: 'PHYSIO_CANCELLED',
-  AppointmentCancelReason.clinicClosed: 'CLINIC_CLOSED',
-  AppointmentCancelReason.other: 'OTHER',
+_AppointmentSuggestion _$AppointmentSuggestionFromJson(
+  Map<String, dynamic> json,
+) => _AppointmentSuggestion(
+  appointmentId: json['appointment_id'] as String,
+  appointmentNumber: json['appointment_number'] as String?,
+  patientId: json['patient_id'] as String,
+  patientName: json['patient_name'] as String?,
+  patientNumber: json['patient_number'] as String?,
+  status: $enumDecode(_$AppointmentStatusEnumMap, json['status']),
+  scheduledAt: json['scheduled_at'] == null
+      ? null
+      : DateTime.parse(json['scheduled_at'] as String),
+  requestedDate: const LocalDateConverter().fromJson(
+    json['requested_date'] as String,
+  ),
+);
+
+Map<String, dynamic> _$AppointmentSuggestionToJson(
+  _AppointmentSuggestion instance,
+) => <String, dynamic>{
+  'appointment_id': instance.appointmentId,
+  'appointment_number': ?instance.appointmentNumber,
+  'patient_id': instance.patientId,
+  'patient_name': ?instance.patientName,
+  'patient_number': ?instance.patientNumber,
+  'status': _$AppointmentStatusEnumMap[instance.status]!,
+  'scheduled_at': ?instance.scheduledAt?.toIso8601String(),
+  'requested_date': const LocalDateConverter().toJson(instance.requestedDate),
 };
 
 _AppointmentPage _$AppointmentPageFromJson(Map<String, dynamic> json) =>
@@ -99,8 +209,10 @@ _BookAppointmentRequest _$BookAppointmentRequestFromJson(
   Map<String, dynamic> json,
 ) => _BookAppointmentRequest(
   patientId: json['patient_id'] as String,
-  scheduledAt: DateTime.parse(json['scheduled_at'] as String),
-  durationMinutes: (json['duration_minutes'] as num).toInt(),
+  requestedDate: const LocalDateConverter().fromJson(
+    json['requested_date'] as String,
+  ),
+  preferredTime: json['preferred_time'] as String?,
   reason: json['reason'] as String?,
 );
 
@@ -108,23 +220,77 @@ Map<String, dynamic> _$BookAppointmentRequestToJson(
   _BookAppointmentRequest instance,
 ) => <String, dynamic>{
   'patient_id': instance.patientId,
-  'scheduled_at': instance.scheduledAt.toIso8601String(),
-  'duration_minutes': instance.durationMinutes,
+  'requested_date': const LocalDateConverter().toJson(instance.requestedDate),
+  'preferred_time': ?instance.preferredTime,
   'reason': ?instance.reason,
 };
 
 _RescheduleAppointmentRequest _$RescheduleAppointmentRequestFromJson(
   Map<String, dynamic> json,
 ) => _RescheduleAppointmentRequest(
-  scheduledAt: DateTime.parse(json['scheduled_at'] as String),
-  durationMinutes: (json['duration_minutes'] as num).toInt(),
+  requestedDate: const LocalDateConverter().fromJson(
+    json['requested_date'] as String,
+  ),
+  preferredTime: json['preferred_time'] as String?,
   reason: json['reason'] as String?,
 );
 
 Map<String, dynamic> _$RescheduleAppointmentRequestToJson(
   _RescheduleAppointmentRequest instance,
 ) => <String, dynamic>{
-  'scheduled_at': instance.scheduledAt.toIso8601String(),
+  'requested_date': const LocalDateConverter().toJson(instance.requestedDate),
+  'preferred_time': ?instance.preferredTime,
+  'reason': ?instance.reason,
+};
+
+_ScheduleAppointmentRequest _$ScheduleAppointmentRequestFromJson(
+  Map<String, dynamic> json,
+) => _ScheduleAppointmentRequest(
+  scheduledAt: const UtcInstantConverter().fromJson(
+    json['scheduled_at'] as String,
+  ),
+  durationMinutes: (json['duration_minutes'] as num).toInt(),
+);
+
+Map<String, dynamic> _$ScheduleAppointmentRequestToJson(
+  _ScheduleAppointmentRequest instance,
+) => <String, dynamic>{
+  'scheduled_at': const UtcInstantConverter().toJson(instance.scheduledAt),
+  'duration_minutes': instance.durationMinutes,
+};
+
+_FollowUpRequest _$FollowUpRequestFromJson(Map<String, dynamic> json) =>
+    _FollowUpRequest(
+      patientId: json['patient_id'] as String,
+      scheduledAt: const UtcInstantConverter().fromJson(
+        json['scheduled_at'] as String,
+      ),
+      durationMinutes: (json['duration_minutes'] as num).toInt(),
+      reason: json['reason'] as String?,
+    );
+
+Map<String, dynamic> _$FollowUpRequestToJson(_FollowUpRequest instance) =>
+    <String, dynamic>{
+      'patient_id': instance.patientId,
+      'scheduled_at': const UtcInstantConverter().toJson(instance.scheduledAt),
+      'duration_minutes': instance.durationMinutes,
+      'reason': ?instance.reason,
+    };
+
+_PhysioRescheduleRequest _$PhysioRescheduleRequestFromJson(
+  Map<String, dynamic> json,
+) => _PhysioRescheduleRequest(
+  scheduledAt: const UtcInstantConverter().fromJson(
+    json['scheduled_at'] as String,
+  ),
+  durationMinutes: (json['duration_minutes'] as num).toInt(),
+  reason: json['reason'] as String?,
+);
+
+Map<String, dynamic> _$PhysioRescheduleRequestToJson(
+  _PhysioRescheduleRequest instance,
+) => <String, dynamic>{
+  'scheduled_at': const UtcInstantConverter().toJson(instance.scheduledAt),
   'duration_minutes': instance.durationMinutes,
   'reason': ?instance.reason,
 };

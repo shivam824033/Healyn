@@ -71,6 +71,36 @@ void main() {
     });
   });
 
+  group('pendingReviewNoteFrom', () {
+    test('returns the operative note so its appointment can be referenced', () {
+      final at = DateTime(2026, 6, 18, 9).toUtc();
+      final notes = [
+        _note(id: 'newest', patientId: 'p1', createdAt: _now),
+        _note(
+          id: 'older',
+          patientId: 'p1',
+          nextReviewAt: at,
+          createdAt: _now.subtract(const Duration(days: 7)),
+        ),
+      ];
+      final note = pendingReviewNoteFrom(notes, now: _now);
+      expect(note?.id, 'older');
+      expect(note?.appointmentId, 'a-older'); // the source appointment to label
+    });
+
+    test('is null when the review has lapsed', () {
+      final notes = [
+        _note(
+          id: 'n',
+          patientId: 'p1',
+          nextReviewAt: DateTime(2026, 5, 1, 9).toUtc(),
+          createdAt: _now,
+        ),
+      ];
+      expect(pendingReviewNoteFrom(notes, now: _now), isNull);
+    });
+  });
+
   group('nextReviewSuggestionProvider', () {
     Patient patient(String id, String name, {bool primary = false}) => Patient(
       id: id,
@@ -138,6 +168,7 @@ void main() {
             patientId: 'p1',
             bookedByAccountId: 'ac1',
             physiotherapistId: 'ph1',
+            requestedDate: DateTime.now(),
             scheduledAt: DateTime.now().add(const Duration(days: 3)),
             scheduledEndAt: DateTime.now().add(const Duration(days: 3, hours: 1)),
             durationMinutes: 45,
@@ -153,6 +184,32 @@ void main() {
       expect(s, isNull);
     });
 
+    test('carries the source appointment number when it is loaded', () async {
+      final c = container(
+        patients: [patient('p1', 'Asha Rao', primary: true)],
+        appointments: [
+          // The completed visit whose note set the review. Its id matches the
+          // note's appointmentId ('a-' + note id), so the card can label it.
+          Appointment(
+            id: 'a-p1-n',
+            appointmentNumber: 'PHY-20260601-0007',
+            patientId: 'p1',
+            bookedByAccountId: 'ac1',
+            physiotherapistId: 'ph1',
+            requestedDate: DateTime.now().subtract(const Duration(days: 3)),
+            durationMinutes: 45,
+            status: AppointmentStatus.completed,
+          ),
+        ],
+        notesByPatient: {
+          'p1': pageWithReview('p1', DateTime.now().add(const Duration(days: 12))),
+        },
+      );
+
+      final s = await c.read(nextReviewSuggestionProvider.future);
+      expect(s?.appointmentNumber, 'PHY-20260601-0007');
+    });
+
     test('is null when no patient has a pending review', () async {
       final c = container(
         patients: [patient('p1', 'Asha Rao', primary: true)],
@@ -162,6 +219,64 @@ void main() {
 
       final s = await c.read(nextReviewSuggestionProvider.future);
       expect(s, isNull);
+    });
+
+    group('pendingReviewsProvider', () {
+      test('lists every patient with a pending review, soonest first', () async {
+        final c = container(
+          patients: [
+            patient('p1', 'Asha Rao', primary: true),
+            patient('p2', 'Kiran Rao'),
+            patient('p3', 'Dev Rao'),
+          ],
+          appointments: const [],
+          notesByPatient: {
+            'p1': pageWithReview(
+              'p1',
+              DateTime.now().add(const Duration(days: 20)),
+            ),
+            'p2': pageWithReview(
+              'p2',
+              DateTime.now().add(const Duration(days: 5)),
+            ),
+            'p3': const TreatmentNotePage(items: []), // no review
+          },
+        );
+
+        final list = await c.read(pendingReviewsProvider.future);
+        // p3 excluded (no review); p2 before p1 (sooner). The full family shows.
+        expect(list.map((r) => r.patient.id), ['p2', 'p1']);
+      });
+
+      test('keeps a patient who already has an upcoming appointment', () async {
+        // The Home single-card suppresses these; the grouped screen must not.
+        final c = container(
+          patients: [patient('p1', 'Asha Rao', primary: true)],
+          appointments: [
+            Appointment(
+              id: 'a1',
+              patientId: 'p1',
+              bookedByAccountId: 'ac1',
+              physiotherapistId: 'ph1',
+              requestedDate: DateTime.now(),
+              scheduledAt: DateTime.now().add(const Duration(days: 3)),
+              durationMinutes: 45,
+              status: AppointmentStatus.confirmed,
+            ),
+          ],
+          notesByPatient: {
+            'p1': pageWithReview(
+              'p1',
+              DateTime.now().add(const Duration(days: 10)),
+            ),
+          },
+        );
+
+        final list = await c.read(pendingReviewsProvider.future);
+        expect(list.map((r) => r.patient.id), ['p1']);
+        // And the Home card drops it, proving the two providers differ.
+        expect(await c.read(nextReviewSuggestionProvider.future), isNull);
+      });
     });
   });
 }

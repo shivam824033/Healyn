@@ -36,10 +36,14 @@ CREATE TYPE patient_relationship AS ENUM (
 
 CREATE TYPE appointment_status AS ENUM (
     'REQUESTED', 'CONFIRMED', 'IN_PROGRESS',
-    'COMPLETED', 'CANCELLED', 'NO_SHOW', 'RESCHEDULED'
+    'COMPLETED', 'CANCELLED', 'NO_SHOW', 'RESCHEDULED',
+    'REJECTED'  -- V20: physio declines a request (REQUESTED → REJECTED)
 );
 CREATE TYPE appointment_cancel_reason AS ENUM (
     'PATIENT_CANCELLED', 'PHYSIO_CANCELLED', 'CLINIC_CLOSED', 'OTHER'
+);
+CREATE TYPE appointment_child_kind AS ENUM (         -- V18: how a child row derived from its lineage
+    'RESCHEDULE', 'FOLLOW_UP', 'REVIEW', 'REOPEN'
 );
 
 CREATE TYPE discussion_message_type AS ENUM (
@@ -141,8 +145,12 @@ CREATE INDEX idx_otp_target_purpose_open
 ### 3.4 `patients` — clinical entities
 
 ```sql
+CREATE SEQUENCE patient_number_seq START WITH 100001;       -- V16: human-friendly id source
+
 CREATE TABLE patients (
     id                  UUID PRIMARY KEY,
+    patient_number      VARCHAR(20) NOT NULL UNIQUE          -- V16: business id, e.g. PAT-100001
+                          DEFAULT 'PAT-' || nextval('patient_number_seq'),
     full_name           VARCHAR(160) NOT NULL,
     date_of_birth       DATE NOT NULL,
     sex                 patient_sex NOT NULL DEFAULT 'UNDISCLOSED',
@@ -162,6 +170,11 @@ CREATE INDEX idx_patients_name_trgm
 ```
 
 A `Patient` exists independent of any `Account`. It is **linked** via `account_patients`.
+
+`patient_number` is a **business identifier** distinct from the UUID `id` (the technical
+primary key, never shown to users). It is assigned once at insert from `patient_number_seq`
+and never changes; the application maps it read-only via Hibernate `@Generated(INSERT)`.
+See [FEATURE_ROADMAP.md](./FEATURE_ROADMAP.md) "Identifiers & lifecycle note".
 
 ### 3.5 `account_patients` — many-to-many link with ownership
 
@@ -185,6 +198,34 @@ CREATE INDEX idx_account_patients_patient ON account_patients(patient_id);
 ```
 
 See [PATIENT_RELATIONSHIP_MODEL.md](./PATIENT_RELATIONSHIP_MODEL.md) for ownership semantics.
+
+### 3.5a `account_addresses` — one household postal address per account
+
+```sql
+CREATE TABLE account_addresses (
+    account_id   UUID PRIMARY KEY REFERENCES accounts(id) ON DELETE CASCADE,
+    line1        VARCHAR(160) NOT NULL,
+    line2        VARCHAR(160),
+    city         VARCHAR(80)  NOT NULL,
+    state        VARCHAR(80)  NOT NULL,
+    postal_code  VARCHAR(16)  NOT NULL,
+    country      VARCHAR(60)  NOT NULL DEFAULT 'India',
+    created_at   TIMESTAMPTZ  NOT NULL DEFAULT now(),
+    updated_at   TIMESTAMPTZ  NOT NULL DEFAULT now()
+);
+```
+
+The address belongs to the **Account** (the household login), not to an individual
+Patient: it is captured once at registration and shared across the account's primary
+patient and every family member. `account_id` is the primary key, so the relation is
+1:1 with `accounts` and a row exists only when an address is set — accounts created
+before V23 simply have none, and the read layer tolerates its absence (the address is
+required at *signup* only). The physiotherapist resolves a patient's address through
+`account_patients` (preferring the link where the patient is that account's primary,
+then by account id) for communication and records. Account contact data, not clinical
+PHI in the audit sense (mirrors `notification_preferences`): no soft-delete column,
+`ON DELETE CASCADE` with the account. Owned by the `patients` module (entity
+`AccountAddress`). See [API_STANDARDS.md §9.2](./API_STANDARDS.md#92-patients).
 
 ### 3.6 `availability_rules` — physiotherapist's recurring schedule
 
@@ -228,19 +269,32 @@ CREATE TABLE blackout_windows (
 ### 3.8 `appointments`
 
 ```sql
+-- V17: per clinic-local day counter backing the human-friendly Appointment Number.
+CREATE TABLE appointment_daily_counters (
+    day                 DATE PRIMARY KEY,
+    last_seq            INTEGER NOT NULL
+);
+
 CREATE TABLE appointments (
     id                  UUID PRIMARY KEY,
+    appointment_number  VARCHAR(32) NOT NULL UNIQUE,          -- V17: business id, e.g. PHY-20260610-0001
     patient_id          UUID NOT NULL REFERENCES patients(id) ON DELETE RESTRICT,
     booked_by_account_id UUID NOT NULL REFERENCES accounts(id) ON DELETE RESTRICT,
     physiotherapist_id  UUID NOT NULL REFERENCES accounts(id) ON DELETE RESTRICT,
-    scheduled_at        TIMESTAMPTZ NOT NULL,
-    scheduled_end_at    TIMESTAMPTZ NOT NULL,                -- stored, = scheduled_at + duration; keeps the EXCLUDE index expression IMMUTABLE
+    requested_date      DATE NOT NULL,                       -- the date the patient asked for (mandatory at request time)
+    preferred_time      TIME,                                -- optional non-binding time-of-day hint from the patient
+    scheduled_at        TIMESTAMPTZ,                         -- NULL until the physiotherapist schedules; they set the final time
+    scheduled_end_at    TIMESTAMPTZ,                         -- stored, = scheduled_at + duration; keeps the EXCLUDE index expression IMMUTABLE
     duration_minutes    SMALLINT NOT NULL DEFAULT 30,
     status              appointment_status NOT NULL DEFAULT 'REQUESTED',
+    is_follow_up        BOOLEAN NOT NULL DEFAULT FALSE,      -- true when the physiotherapist created this as a follow-up
     reason              VARCHAR(280),                       -- "Lower back pain", etc.
     cancel_reason       appointment_cancel_reason,
     cancel_note         TEXT,
     rescheduled_from_id UUID REFERENCES appointments(id),
+    root_appointment_id   UUID NOT NULL REFERENCES appointments(id),  -- V18: lineage origin (a root is its own root)
+    source_appointment_id UUID REFERENCES appointments(id),           -- V18: immediate parent (NULL on a root)
+    child_kind            appointment_child_kind,                     -- V18: how it derived (NULL on a root)
     confirmed_at        TIMESTAMPTZ,
     started_at          TIMESTAMPTZ,
     completed_at        TIMESTAMPTZ,
@@ -250,7 +304,14 @@ CREATE TABLE appointments (
     deleted_at          TIMESTAMPTZ,
 
     CHECK (duration_minutes BETWEEN 5 AND 240),
-    CONSTRAINT appointments_end_after_start CHECK (scheduled_end_at > scheduled_at)
+    -- NULL-tolerant: holds only when both endpoints are present (an unscheduled request has neither).
+    CONSTRAINT appointments_end_after_start CHECK (scheduled_end_at > scheduled_at),
+    -- A confirmed/active appointment must carry a concrete time; this also keeps the
+    -- EXCLUDE index safe — only rows with a real time enter its WHERE set.
+    CONSTRAINT appointments_scheduled_when_active CHECK (
+        status NOT IN ('CONFIRMED', 'IN_PROGRESS', 'COMPLETED', 'NO_SHOW')
+        OR scheduled_at IS NOT NULL
+    )
 );
 
 -- Conflict prevention: no two confirmed/in-progress appointments overlap for the same physio.
@@ -274,9 +335,62 @@ CREATE INDEX idx_appt_patient_scheduled
 CREATE INDEX idx_appt_status_scheduled
     ON appointments(status, scheduled_at)
     WHERE status IN ('REQUESTED', 'CONFIRMED', 'IN_PROGRESS');
+
+-- The physiotherapist's pending request queue, ordered by the date the patient asked for.
+CREATE INDEX idx_appt_requested_date
+    ON appointments(physiotherapist_id, requested_date)
+    WHERE status = 'REQUESTED' AND deleted_at IS NULL;
+
+-- Lineage lookups: every row in a chain, and reverse "what derived from this".
+CREATE INDEX idx_appointments_root
+    ON appointments(root_appointment_id) WHERE deleted_at IS NULL;
+CREATE INDEX idx_appointments_source
+    ON appointments(source_appointment_id) WHERE deleted_at IS NULL;
+
+-- V21: prefix scans for the global-search autocomplete. text_pattern_ops makes
+-- `appointment_number LIKE 'PHY-2026%'` index-backed regardless of server collation
+-- (the collation-aware UNIQUE btree cannot serve a prefix LIKE). Same for PAT-….
+CREATE INDEX idx_appointments_number_pattern
+    ON appointments(appointment_number text_pattern_ops) WHERE deleted_at IS NULL;
+CREATE INDEX idx_patients_number_pattern
+    ON patients(patient_number text_pattern_ops) WHERE deleted_at IS NULL;
 ```
 
-State transitions and conflict rules: [APPOINTMENT_FLOW.md](./APPOINTMENT_FLOW.md).
+`requested_date`, `preferred_time`, nullable `scheduled_at`/`scheduled_end_at`, and `is_follow_up` are added by `V15__appointments_request_first.sql`. State transitions and conflict rules: [APPOINTMENT_FLOW.md](./APPOINTMENT_FLOW.md).
+
+`appointment_number` (V17) is a **business identifier** distinct from the UUID `id` (never shown to users): `PHY-YYYYMMDD-NNNN`, where the `YYYYMMDD` stem is the row's creation date in the **clinic timezone** (`healyn.clinic.timezone`) and `NNNN` is a per-day counter held in `appointment_daily_counters` and advanced with an atomic `INSERT … ON CONFLICT … RETURNING` upsert. Generation is application-side (`AppointmentNumberGenerator`) so the stem uses the configured zone and child rows can derive `-R1`/`-F1` suffixes. See [FEATURE_ROADMAP.md](./FEATURE_ROADMAP.md) "Identifiers & lifecycle note".
+
+**Lineage** (V18) links only rows that spawn a *new bookable row* — a reschedule replacement or a follow-up tied to a prior appointment. `root_appointment_id` is the origin of the chain (a root is its own root, `= id`); `source_appointment_id` is the immediate appointment a child derived from; `child_kind` is how (`RESCHEDULE`/`FOLLOW_UP`/`REVIEW`/`REOPEN`, `NULL` on a root). A child's number is its root's stem plus a per-kind suffix and 1-based ordinal (`PHY-20260610-0001-R1`, `-F2`); the count of same-kind children in the lineage (including soft-deleted) decides the ordinal, so numbers are never reused. `rescheduled_from_id` is retained for backward compatibility and equals `source_appointment_id` where `child_kind = 'RESCHEDULE'`. In-place lifecycle changes (confirm/start/complete/cancel) are **not** lineage — they are rows on the `appointment_events` timeline (§3.8a). See [APPOINTMENT_FLOW.md](./APPOINTMENT_FLOW.md) §6, §6a.
+
+### 3.8a `appointment_events` — append-only lifecycle timeline
+
+```sql
+-- V19. One row per lifecycle action on an appointment; never updated or deleted.
+CREATE TYPE appointment_event_type AS ENUM (
+    'CREATED', 'SCHEDULED', 'STARTED', 'COMPLETED',
+    'CANCELLED', 'NO_SHOW', 'RESCHEDULED', 'REJECTED');  -- REJECTED emitted since V20
+
+CREATE TABLE appointment_events (
+    id                      BIGSERIAL PRIMARY KEY,
+    appointment_id          UUID NOT NULL REFERENCES appointments(id) ON DELETE RESTRICT,
+    event_type              appointment_event_type NOT NULL,
+    occurred_at             TIMESTAMPTZ NOT NULL DEFAULT now(),
+    actor_account_id        UUID REFERENCES accounts(id) ON DELETE RESTRICT,  -- NULL when unknowable (backfill)
+    actor_role              account_role,
+    related_appointment_id  UUID REFERENCES appointments(id) ON DELETE RESTRICT,  -- reschedule child / creation source
+    child_kind              appointment_child_kind,
+    cancel_reason           appointment_cancel_reason
+);
+
+CREATE INDEX idx_appointment_events_appointment
+    ON appointment_events(appointment_id, occurred_at, id);
+CREATE INDEX idx_appointment_events_actor
+    ON appointment_events(actor_account_id) WHERE actor_account_id IS NOT NULL;
+CREATE INDEX idx_appointment_events_related
+    ON appointment_events(related_appointment_id) WHERE related_appointment_id IS NOT NULL;
+```
+
+The realization of the Phase-3 enabler *"all clinical writes already produce a domain event"* ([FEATURE_ROADMAP.md](./FEATURE_ROADMAP.md) §4) for the appointments module. Written by `AppointmentEventRecorder` inside the same transaction as the action it describes; the only writer, and nothing updates or deletes a row. **PHI-free by construction**: IDs, enums and timestamps only — free text (reason, cancel note) stays on `appointments`. There is no `deleted_at`: events are history, and their visibility follows the (soft-deletable) appointments row. `GET /appointments/{id}/timeline` returns the events of every live appointment sharing the row's `root_appointment_id`, oldest first — the unified lineage timeline. V19 backfills events for pre-existing appointments from their lifecycle timestamps (best-effort actors; `NO_SHOW` uses `updated_at`).
 
 ### 3.9 `treatment_notes`
 
@@ -483,6 +597,8 @@ DB role `healyn_app` is granted `INSERT, SELECT` on `audit.*`. There is no `UPDA
                   │                                          │
                   ├── device_sessions                        │
                   │                                          │
+                  ├── account_addresses (1:1 household)      │
+                  │                                          │
                   ├── otp_challenges                         │
                   │                                          │
                   ├── availability_rules (physio only)       │
@@ -507,6 +623,7 @@ DB role `healyn_app` is granted `INSERT, SELECT` on `audit.*`. There is no `UPDA
 | Patient history newest-first | `idx_appt_patient_scheduled` |
 | Pending bookings sweeper | `idx_appt_status_scheduled` |
 | Patient name autocomplete | `idx_patients_name_trgm` (GIN trigram) |
+| Appointment / patient number prefix search | `idx_appointments_number_pattern`, `idx_patients_number_pattern` (`text_pattern_ops`, partial) |
 | Outbox poller | `idx_notif_due` (partial) |
 | Active sessions for account | `idx_device_sessions_account` (partial) |
 | Open OTP per target | `idx_otp_target_purpose_open` (partial) |
@@ -553,6 +670,14 @@ V11__notification_outbox.sql      -- transactional outbox (enqueue side)
 V12__audit_log.sql                -- audit schema + append-only audit_log
 V13__fcm_tokens.sql               -- device push tokens (dispatch side, registration API)
 V14__notification_preferences.sql -- per-account push opt-outs (API_STANDARDS §9.8)
+V15__appointments_request_first.sql -- request-first booking: nullable scheduled_at, requested_date, preferred_time, is_follow_up
+```
+
+Migrations V16–V23 landed as features were added (human-friendly ids, appointment
+lineage/events, search indexes, device-session revoke reason). The most recent:
+
+```
+V23__account_addresses.sql        -- one household postal address per account (§3.5a)
 ```
 
 Still pending: nothing schema-side remaining for Phase 1 notifications. The outbox poller +
