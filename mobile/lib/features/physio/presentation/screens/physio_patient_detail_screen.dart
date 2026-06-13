@@ -122,6 +122,15 @@ class PhysioPatientDetailScreen extends ConsumerWidget {
                 extra: patient.fullName,
               ),
             ),
+            const SizedBox(height: HealynSpacing.s3),
+            NavCard(
+              icon: Icons.folder_outlined,
+              label: 'Documents',
+              onTap: () => context.push(
+                '/physio/patients/${patient.id}/documents',
+                extra: patient.fullName,
+              ),
+            ),
           ],
         ),
       ),

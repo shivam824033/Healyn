@@ -390,8 +390,9 @@ Rules:
 
 | Method | Path | Purpose | Body |
 |---|---|---|---|
-| `POST` | `/api/v1/files/presign` | Create a `PENDING_UPLOAD` record + presigned PUT URL | `{ patientId, appointmentId, kind, mimeType, sizeBytes, originalFilename }` |
+| `POST` | `/api/v1/files/presign` | Create a `PENDING_UPLOAD` record + presigned PUT URL | `{ patientId, appointmentId?, kind, context?, uploadSource?, mimeType, sizeBytes, originalFilename }` |
 | `POST` | `/api/v1/files/{id}/complete` | Client signals upload done; server verifies size + magic bytes, promotes to `AVAILABLE` | — |
+| `GET`  | `/api/v1/files` | List a patient's library documents (`?patient_id=&uploader=PATIENT\|PHYSIO&cursor=&limit=`), cursor-paginated, newest-first | — |
 | `GET`  | `/api/v1/files/{id}/download` | Short-lived presigned GET URL (TTL ≤ 5 min, `Content-Disposition` set) | — |
 | `GET`  | `/api/v1/files/{id}` | File metadata | — |
 | `DELETE` | `/api/v1/files/{id}` | Soft-delete (only if not referenced) | — |
@@ -404,10 +405,12 @@ Presign response (bare, consistent with the rest of the API):
 
 Rules:
 - `mimeType` whitelist: `application/pdf`, `image/jpeg`, `image/png` (`files.unsupported_mime`, 422). Per-type size caps: PDF 20 MB, JPEG/PNG 10 MB (`files.too_large`, 422).
-- Write (presign / complete / delete) needs write access to `patientId`; `appointmentId` is required in Phase 1 and must belong to that patient (`files.appointment_required` / `files.patient_mismatch`, 422). Per-account cap 100 files/day (`files.daily_cap_exceeded`, 409).
+- Write (presign / complete / delete) needs write access to `patientId`. `appointmentId` is **optional**: present → it must belong to that patient (`files.patient_mismatch`, 422) and the file nests under that appointment; absent → a standalone **library document** under the patient's standalone prefix. Per-account cap 100 files/day (`files.daily_cap_exceeded`, 409).
+- `context` is `LIBRARY` (default) for document-library uploads or `DISCUSSION` for chat attachments; `uploadSource` is an optional client hint (`CAMERA`/`GALLERY`/`FILE`/`CONVERTED_PDF`). The server records the uploader's role on each file.
+- `GET /files` lists `AVAILABLE` `LIBRARY` documents for `patient_id`, filtered by `uploader` (`PATIENT` → account-uploaded, `PHYSIO` → physiotherapist-uploaded); discussion attachments are excluded. Needs read access to the patient (`403` otherwise). Each item carries `uploadedByRole` and, when appointment-linked, `appointmentNumber`.
 - `complete` requires `PENDING_UPLOAD` (`files.invalid_state`, 409) and the uploaded object present (`files.object_missing`, 409). Size/magic-byte mismatch moves the file to `QUARANTINED` and returns `files.magic_byte_mismatch` (422). Download requires `AVAILABLE`.
 - The server never streams bytes: upload is direct-to-S3 via the presigned PUT, download via the presigned GET. Keys are UUID-based; user filenames are display-only.
-- `DELETE` is blocked while any discussion message references the file (`files.referenced`, 409); detach/soft-delete the message first.
+- `DELETE` is blocked while any discussion message references the file (`files.referenced`, 409); detach/soft-delete the message first. A patient-side account may not delete a physiotherapist-uploaded library document (`403`); the physiotherapist may delete any.
 
 ### 9.7 Treatment Notes
 

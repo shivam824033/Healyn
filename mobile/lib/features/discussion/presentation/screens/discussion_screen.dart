@@ -281,6 +281,7 @@ class _DiscussionScreenState extends ConsumerState<DiscussionScreen> {
             patientId: _appt.patientId,
             appointmentId: _appointmentId,
             kind: FileKind.other,
+            context: FileUploadContext.discussion,
             mimeType: type.mimeType,
             originalFilename: picked.filename,
             bytes: picked.bytes,

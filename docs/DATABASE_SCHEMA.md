@@ -54,6 +54,7 @@ CREATE TYPE discussion_sender_role AS ENUM ('PATIENT_SIDE', 'PHYSIO');
 CREATE TYPE file_kind     AS ENUM ('REPORT', 'MRI', 'XRAY', 'PRESCRIPTION', 'EXERCISE_PLAN', 'OTHER');
 CREATE TYPE file_mime     AS ENUM ('application/pdf', 'image/jpeg', 'image/png');
 CREATE TYPE file_status   AS ENUM ('PENDING_UPLOAD', 'AVAILABLE', 'QUARANTINED', 'DELETED');
+CREATE TYPE file_context  AS ENUM ('DISCUSSION', 'LIBRARY');  -- chat attachment vs document-library upload (V24)
 
 CREATE TYPE notification_channel AS ENUM ('FCM');  -- email/APNs added Phase 2
 CREATE TYPE notification_status  AS ENUM ('PENDING', 'SENT', 'FAILED', 'DEAD');
@@ -457,7 +458,11 @@ CREATE TABLE file_objects (
     id                  UUID PRIMARY KEY,
     owner_account_id    UUID NOT NULL REFERENCES accounts(id),
     patient_id          UUID NOT NULL REFERENCES patients(id),
+    appointment_id      UUID REFERENCES appointments(id),     -- V24: optional; null = standalone library document
     kind                file_kind NOT NULL,
+    uploaded_by_role    account_role NOT NULL,                -- V24: drives the patient/physio split in the library
+    upload_context      file_context NOT NULL DEFAULT 'LIBRARY',  -- V24: DISCUSSION (chat attachment) vs LIBRARY (document)
+    upload_source       VARCHAR(16),                          -- V24: optional client hint (CAMERA/GALLERY/FILE/CONVERTED_PDF)
     mime_type           VARCHAR(64) NOT NULL,                 -- value set mirrors the file_mime enum (see note)
     original_filename   VARCHAR(255) NOT NULL,
     storage_key         VARCHAR(512) NOT NULL UNIQUE,         -- S3 key
@@ -470,12 +475,18 @@ CREATE TABLE file_objects (
 
     CHECK (size_bytes > 0 AND size_bytes <= 20 * 1024 * 1024),
     CONSTRAINT file_mime_whitelist
-        CHECK (mime_type IN ('application/pdf', 'image/jpeg', 'image/png'))
+        CHECK (mime_type IN ('application/pdf', 'image/jpeg', 'image/png')),
+    CONSTRAINT file_upload_source_whitelist
+        CHECK (upload_source IS NULL OR upload_source IN ('CAMERA', 'GALLERY', 'FILE', 'CONVERTED_PDF'))
 );
 
 CREATE INDEX idx_file_patient ON file_objects(patient_id) WHERE deleted_at IS NULL;
 CREATE INDEX idx_file_status ON file_objects(status) WHERE status = 'PENDING_UPLOAD';
 CREATE INDEX idx_file_owner_created ON file_objects(owner_account_id, created_at);  -- daily upload-cap count
+CREATE INDEX idx_file_appointment ON file_objects(appointment_id) WHERE appointment_id IS NOT NULL AND deleted_at IS NULL;
+-- Per-patient, per-uploader, newest-first listing of library documents (V24).
+CREATE INDEX idx_file_library ON file_objects(patient_id, uploaded_by_role, created_at DESC, id DESC)
+    WHERE deleted_at IS NULL AND upload_context = 'LIBRARY';
 ```
 
 > **`mime_type` storage note (V9).** The `file_mime` enum's labels contain `/`
@@ -673,11 +684,13 @@ V14__notification_preferences.sql -- per-account push opt-outs (API_STANDARDS §
 V15__appointments_request_first.sql -- request-first booking: nullable scheduled_at, requested_date, preferred_time, is_follow_up
 ```
 
-Migrations V16–V23 landed as features were added (human-friendly ids, appointment
-lineage/events, search indexes, device-session revoke reason). The most recent:
+Migrations V16–V24 landed as features were added (human-friendly ids, appointment
+lineage/events, search indexes, device-session revoke reason, household address). The most recent:
 
 ```
 V23__account_addresses.sql        -- one household postal address per account (§3.5a)
+V24__file_documents.sql           -- standalone document library: file_objects gains appointment_id,
+                                  -- uploaded_by_role, upload_context, upload_source (§3.12, FILE_STORAGE_GUIDELINES §3)
 ```
 
 Still pending: nothing schema-side remaining for Phase 1 notifications. The outbox poller +

@@ -12,6 +12,7 @@ import '../../availability/presentation/screens/availability_blackout_form_scree
 import '../../availability/presentation/screens/availability_rule_form_screen.dart';
 import '../../discussion/presentation/screens/discussion_screen.dart';
 import '../../discussion/presentation/screens/unread_discussions_screen.dart';
+import '../../files/presentation/screens/patient_documents_screen.dart';
 import '../../auth/domain/auth_status.dart';
 import '../../auth/presentation/controllers/auth_controller.dart';
 import '../../auth/presentation/screens/login_screen.dart';
@@ -283,6 +284,16 @@ final routerProvider = Provider<GoRouter>((ref) {
           viewer: TreatmentHistoryViewer.physio,
         ),
       ),
+      // The physiotherapist's view of a patient's document library. A distinct
+      // literal under /physio/patients/:id/*, matched before the bare detail.
+      GoRoute(
+        path: '/physio/patients/:id/documents',
+        builder: (_, state) => PatientDocumentsScreen(
+          patientId: state.pathParameters['id']!,
+          patientName: state.extra is String ? state.extra as String : null,
+          viewer: DocumentsViewer.physio,
+        ),
+      ),
       GoRoute(
         path: '/physio/patients/:id',
         builder: (_, state) {
@@ -327,6 +338,15 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/patients/:id/treatment_notes',
         builder: (_, state) => TreatmentNotesTimelineScreen(
+          patientId: state.pathParameters['id']!,
+          patientName: state.extra is String ? state.extra as String : null,
+        ),
+      ),
+      // A patient's document library (self or family member). `extra` carries the
+      // patient's name for the header.
+      GoRoute(
+        path: '/patients/:id/documents',
+        builder: (_, state) => PatientDocumentsScreen(
           patientId: state.pathParameters['id']!,
           patientName: state.extra is String ? state.extra as String : null,
         ),

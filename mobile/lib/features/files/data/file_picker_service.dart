@@ -20,6 +20,11 @@ enum PickSource { camera, gallery, file }
 abstract interface class FilePickerService {
   /// Returns the picked file, or `null` if the user cancelled.
   Future<PickedFile?> pick(PickSource source);
+
+  /// Picks one or more images from the gallery (multi-select). Returns an empty
+  /// list if the user cancelled. Used by the document library's "Choose photos"
+  /// flow, where two or more images are merged into a single PDF.
+  Future<List<PickedFile>> pickImages();
 }
 
 /// Real implementation backed by image_picker + file_picker.
@@ -48,6 +53,21 @@ class PluginFilePickerService implements FilePickerService {
         if (bytes == null) return null;
         return PickedFile(bytes: bytes, filename: files.first.name);
     }
+  }
+
+  @override
+  Future<List<PickedFile>> pickImages() async {
+    // Downscale at the source so several photos merge into a PDF that stays under
+    // the 20 MB cap, while keeping scanned text legible.
+    final picked = await _imagePicker.pickMultiImage(
+      maxWidth: 2400,
+      imageQuality: 85,
+    );
+    final files = <PickedFile>[];
+    for (final image in picked) {
+      files.add(PickedFile(bytes: await image.readAsBytes(), filename: image.name));
+    }
+    return files;
   }
 
   Future<PickedFile?> _fromImage(ImageSource source) async {

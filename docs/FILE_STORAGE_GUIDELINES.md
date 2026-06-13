@@ -36,8 +36,8 @@ Per-message attachment cap: **10 files**. Per-day cap per account: **100 files**
 Object keys follow a strict structure:
 
 ```
-patients/{patient_id}/appointments/{appointment_id}/{file_id}.{ext}
-patients/{patient_id}/standalone/{file_id}.{ext}        ← not used in Phase 1
+patients/{patient_id}/appointments/{appointment_id}/{file_id}.{ext}   ← appointment-scoped (discussion attachments, files filed against a visit)
+patients/{patient_id}/standalone/{file_id}.{ext}                      ← standalone library document (no appointment)
 ```
 
 | Segment | Notes |
@@ -86,13 +86,20 @@ Mobile                  API                       S3
 POST /api/v1/files/presign
 {
   "patient_id": "8a7b6c5d-...",
-  "appointment_id": "3d2c1b0a-...",
+  "appointment_id": "3d2c1b0a-...",   // optional — omit for a standalone library document
   "kind": "REPORT",
+  "context": "LIBRARY",               // optional — LIBRARY (default) or DISCUSSION (chat attachment)
+  "upload_source": "CONVERTED_PDF",   // optional client hint: CAMERA / GALLERY / FILE / CONVERTED_PDF
   "mime_type": "application/pdf",
   "size_bytes": 1843204,
   "original_filename": "spine-mri-2026-05.pdf"
 }
 ```
+
+The server stamps each file with the uploader's role (`uploaded_by_role`) and the
+`upload_context`. A patient's **document library** is the set of `AVAILABLE`,
+`LIBRARY`-context files for that patient, listed via `GET /files` and split by
+uploader (patient vs physiotherapist); `DISCUSSION` attachments are excluded.
 
 ### 4.2 Presign Response
 
@@ -209,12 +216,20 @@ Filename sanitization rules for display:
 
 ## 9. Mobile-Side Behavior
 
-- Selection via `image_picker` (camera + gallery) and `file_picker` (PDFs).
+- Selection via `image_picker` (camera + single/multi gallery) and `file_picker` (PDFs).
+- **Multi-image → single PDF:** when the user selects two or more images for a document, the
+  app converts them client-side into one PDF (one image per page, downscaled to stay under the
+  20 MB PDF cap) via the `pdf` package and uploads that as `application/pdf` with
+  `upload_source = CONVERTED_PDF`. A single selected image is uploaded as-is (no conversion).
 - Pre-flight size check before requesting a presign.
 - HEIC photos (from iOS users in Phase 2) are converted to JPEG on-device.
 - Uploads happen in foreground with a progress bar; background upload is Phase 2.
 - Failed uploads retry up to 3× with exponential backoff at 2/4/8 seconds.
-- Files never cached longer than the active appointment view; cleared on logout.
+- **Preview:** a document opens either in-app or in the device's default viewer. In-app preview
+  fetches the presigned URL's bytes and holds them **in memory only** (images via
+  `InteractiveViewer`, PDFs via `pdfx` `openData`) — no PHI bytes are written to device storage,
+  and the buffer is released when the viewer closes. Files are never cached longer than the
+  active view; cleared on logout.
 
 ---
 

@@ -127,6 +127,15 @@ class _ProfileBody extends ConsumerWidget {
             extra: patient.fullName,
           ),
         ),
+        const SizedBox(height: HealynSpacing.s3),
+        NavCard(
+          icon: Icons.folder_outlined,
+          label: 'Documents',
+          onTap: () => context.push(
+            '/patients/${patient.id}/documents',
+            extra: patient.fullName,
+          ),
+        ),
         const SizedBox(height: HealynSpacing.s6),
         const HealynSectionHeader(title: 'Settings'),
         const SizedBox(height: HealynSpacing.s3),

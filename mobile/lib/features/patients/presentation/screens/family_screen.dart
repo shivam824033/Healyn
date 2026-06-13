@@ -84,6 +84,17 @@ class _FamilyTile extends StatelessWidget {
       leading: HealynAvatar(name: patient.fullName, seed: patient.id, size: 44),
       title: patient.fullName,
       subtitle: subtitle,
+      trailing: IconButton(
+        tooltip: 'Documents',
+        icon: const Icon(
+          Icons.folder_outlined,
+          color: HealynColors.textMuted,
+        ),
+        onPressed: () => context.push(
+          '/patients/${patient.id}/documents',
+          extra: patient.fullName,
+        ),
+      ),
       onTap: () =>
           context.push('/patients/${patient.id}/edit', extra: patient),
     );
