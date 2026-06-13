@@ -19,6 +19,9 @@ _Patient _$PatientFromJson(Map<String, dynamic> json) => _Patient(
   bloodGroup: json['blood_group'] as String?,
   allergies: json['allergies'] as String?,
   notes: json['notes'] as String?,
+  address: json['address'] == null
+      ? null
+      : Address.fromJson(json['address'] as Map<String, dynamic>),
   relationship: $enumDecodeNullable(
     _$PatientRelationshipEnumMap,
     json['relationship'],
@@ -44,6 +47,7 @@ Map<String, dynamic> _$PatientToJson(_Patient instance) => <String, dynamic>{
   'blood_group': ?instance.bloodGroup,
   'allergies': ?instance.allergies,
   'notes': ?instance.notes,
+  'address': ?instance.address?.toJson(),
   'relationship': ?_$PatientRelationshipEnumMap[instance.relationship],
   'primary': instance.primary,
   'can_manage': instance.canManage,

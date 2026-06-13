@@ -310,6 +310,12 @@ class FileIntegrationTest {
                 "full_name", tag + " Person",
                 "date_of_birth", "1991-05-20",
                 "sex", "UNDISCLOSED"));
+        body.put("address", Map.of(
+                "line1", "1 Test Street",
+                "city", "Pune",
+                "state", "Maharashtra",
+                "postal_code", "411001",
+                "country", "India"));
 
         MvcResult tokensRes = mvc.perform(post("/auth/register/complete")
                         .contentType(MediaType.APPLICATION_JSON)

@@ -21,3 +21,9 @@ Patient? primaryPatientOf(List<Patient> patients) {
 /// Patients other than the account's own — i.e. the managed family members.
 List<Patient> familyMembersOf(List<Patient> patients) =>
     patients.where((p) => !p.primary).toList();
+
+/// The signed-in account's household address (shared across all its patients),
+/// or null when none is set. Backs the Profile address section and its edit form.
+final accountAddressProvider = FutureProvider.autoDispose<Address?>(
+  (ref) => ref.watch(patientsRepositoryProvider).accountAddress(),
+);

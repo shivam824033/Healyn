@@ -40,6 +40,22 @@ class PatientsApi {
   Future<void> delete(String id) async {
     await _dio.delete<void>('/patients/$id');
   }
+
+  /// The signed-in account's household address, or null when none is set.
+  Future<Address?> getAccountAddress() async {
+    final res = await _dio.get<Map<String, dynamic>>('/account/address');
+    final addr = res.data!['address'];
+    return addr == null ? null : Address.fromJson(addr as Map<String, dynamic>);
+  }
+
+  /// Creates or replaces the household address; returns the saved address.
+  Future<Address> putAccountAddress(Address body) async {
+    final res = await _dio.put<Map<String, dynamic>>(
+      '/account/address',
+      data: body.toJson(),
+    );
+    return Address.fromJson(res.data!);
+  }
 }
 
 final patientsApiProvider = Provider<PatientsApi>(

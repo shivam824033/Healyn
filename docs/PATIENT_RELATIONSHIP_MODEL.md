@@ -51,8 +51,16 @@ This separation is what makes "one app, whole family" possible without hacky dup
 3. Backend creates `accounts` row (status `ACTIVE`, role `ROLE_ACCOUNT`).
 4. Backend creates `patients` row with the user-supplied profile (name, DOB, sex).
 5. Backend creates `account_patients(account_id, patient_id, relationship='SELF', is_primary=TRUE, can_manage=TRUE)`.
+6. Backend creates the `account_addresses` row from the user-supplied household address (required at signup).
 
-These four steps happen inside **one DB transaction**. If any step fails, the Account does not exist.
+These steps happen inside **one DB transaction**. If any step fails, the Account does not exist.
+
+> **Household address is account-level, not per-patient.** It is captured once at
+> registration and shared across the account's primary patient and every family member —
+> a property of the household login, not a clinical field on each `patients` row. The
+> physiotherapist resolves a patient's address through `account_patients`. Editing it is
+> a single `PUT /account/address`, not a per-patient edit. See
+> [DATABASE_SCHEMA.md §3.5a](./DATABASE_SCHEMA.md).
 
 ### 3.2 Adding a Family Member Patient
 

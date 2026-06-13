@@ -1100,7 +1100,7 @@ $ContactTargetCopyWith<$Res> get target {
 /// @nodoc
 mixin _$RegisterCompleteRequest {
 
- String get challengeId; String get code; String get password; DeviceRequest get device; PrimaryPatientProfile get profile;
+ String get challengeId; String get code; String get password; DeviceRequest get device; PrimaryPatientProfile get profile; Address get address;
 /// Create a copy of RegisterCompleteRequest
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -1113,16 +1113,16 @@ $RegisterCompleteRequestCopyWith<RegisterCompleteRequest> get copyWith => _$Regi
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is RegisterCompleteRequest&&(identical(other.challengeId, challengeId) || other.challengeId == challengeId)&&(identical(other.code, code) || other.code == code)&&(identical(other.password, password) || other.password == password)&&(identical(other.device, device) || other.device == device)&&(identical(other.profile, profile) || other.profile == profile));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is RegisterCompleteRequest&&(identical(other.challengeId, challengeId) || other.challengeId == challengeId)&&(identical(other.code, code) || other.code == code)&&(identical(other.password, password) || other.password == password)&&(identical(other.device, device) || other.device == device)&&(identical(other.profile, profile) || other.profile == profile)&&(identical(other.address, address) || other.address == address));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,challengeId,code,password,device,profile);
+int get hashCode => Object.hash(runtimeType,challengeId,code,password,device,profile,address);
 
 @override
 String toString() {
-  return 'RegisterCompleteRequest(challengeId: $challengeId, code: $code, password: $password, device: $device, profile: $profile)';
+  return 'RegisterCompleteRequest(challengeId: $challengeId, code: $code, password: $password, device: $device, profile: $profile, address: $address)';
 }
 
 
@@ -1133,11 +1133,11 @@ abstract mixin class $RegisterCompleteRequestCopyWith<$Res>  {
   factory $RegisterCompleteRequestCopyWith(RegisterCompleteRequest value, $Res Function(RegisterCompleteRequest) _then) = _$RegisterCompleteRequestCopyWithImpl;
 @useResult
 $Res call({
- String challengeId, String code, String password, DeviceRequest device, PrimaryPatientProfile profile
+ String challengeId, String code, String password, DeviceRequest device, PrimaryPatientProfile profile, Address address
 });
 
 
-$DeviceRequestCopyWith<$Res> get device;$PrimaryPatientProfileCopyWith<$Res> get profile;
+$DeviceRequestCopyWith<$Res> get device;$PrimaryPatientProfileCopyWith<$Res> get profile;$AddressCopyWith<$Res> get address;
 
 }
 /// @nodoc
@@ -1150,14 +1150,15 @@ class _$RegisterCompleteRequestCopyWithImpl<$Res>
 
 /// Create a copy of RegisterCompleteRequest
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? challengeId = null,Object? code = null,Object? password = null,Object? device = null,Object? profile = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? challengeId = null,Object? code = null,Object? password = null,Object? device = null,Object? profile = null,Object? address = null,}) {
   return _then(_self.copyWith(
 challengeId: null == challengeId ? _self.challengeId : challengeId // ignore: cast_nullable_to_non_nullable
 as String,code: null == code ? _self.code : code // ignore: cast_nullable_to_non_nullable
 as String,password: null == password ? _self.password : password // ignore: cast_nullable_to_non_nullable
 as String,device: null == device ? _self.device : device // ignore: cast_nullable_to_non_nullable
 as DeviceRequest,profile: null == profile ? _self.profile : profile // ignore: cast_nullable_to_non_nullable
-as PrimaryPatientProfile,
+as PrimaryPatientProfile,address: null == address ? _self.address : address // ignore: cast_nullable_to_non_nullable
+as Address,
   ));
 }
 /// Create a copy of RegisterCompleteRequest
@@ -1177,6 +1178,15 @@ $PrimaryPatientProfileCopyWith<$Res> get profile {
   
   return $PrimaryPatientProfileCopyWith<$Res>(_self.profile, (value) {
     return _then(_self.copyWith(profile: value));
+  });
+}/// Create a copy of RegisterCompleteRequest
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$AddressCopyWith<$Res> get address {
+  
+  return $AddressCopyWith<$Res>(_self.address, (value) {
+    return _then(_self.copyWith(address: value));
   });
 }
 }
@@ -1260,10 +1270,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String challengeId,  String code,  String password,  DeviceRequest device,  PrimaryPatientProfile profile)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String challengeId,  String code,  String password,  DeviceRequest device,  PrimaryPatientProfile profile,  Address address)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _RegisterCompleteRequest() when $default != null:
-return $default(_that.challengeId,_that.code,_that.password,_that.device,_that.profile);case _:
+return $default(_that.challengeId,_that.code,_that.password,_that.device,_that.profile,_that.address);case _:
   return orElse();
 
 }
@@ -1281,10 +1291,10 @@ return $default(_that.challengeId,_that.code,_that.password,_that.device,_that.p
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String challengeId,  String code,  String password,  DeviceRequest device,  PrimaryPatientProfile profile)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String challengeId,  String code,  String password,  DeviceRequest device,  PrimaryPatientProfile profile,  Address address)  $default,) {final _that = this;
 switch (_that) {
 case _RegisterCompleteRequest():
-return $default(_that.challengeId,_that.code,_that.password,_that.device,_that.profile);case _:
+return $default(_that.challengeId,_that.code,_that.password,_that.device,_that.profile,_that.address);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -1301,10 +1311,10 @@ return $default(_that.challengeId,_that.code,_that.password,_that.device,_that.p
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String challengeId,  String code,  String password,  DeviceRequest device,  PrimaryPatientProfile profile)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String challengeId,  String code,  String password,  DeviceRequest device,  PrimaryPatientProfile profile,  Address address)?  $default,) {final _that = this;
 switch (_that) {
 case _RegisterCompleteRequest() when $default != null:
-return $default(_that.challengeId,_that.code,_that.password,_that.device,_that.profile);case _:
+return $default(_that.challengeId,_that.code,_that.password,_that.device,_that.profile,_that.address);case _:
   return null;
 
 }
@@ -1316,7 +1326,7 @@ return $default(_that.challengeId,_that.code,_that.password,_that.device,_that.p
 @JsonSerializable()
 
 class _RegisterCompleteRequest implements RegisterCompleteRequest {
-  const _RegisterCompleteRequest({required this.challengeId, required this.code, required this.password, required this.device, required this.profile});
+  const _RegisterCompleteRequest({required this.challengeId, required this.code, required this.password, required this.device, required this.profile, required this.address});
   factory _RegisterCompleteRequest.fromJson(Map<String, dynamic> json) => _$RegisterCompleteRequestFromJson(json);
 
 @override final  String challengeId;
@@ -1324,6 +1334,7 @@ class _RegisterCompleteRequest implements RegisterCompleteRequest {
 @override final  String password;
 @override final  DeviceRequest device;
 @override final  PrimaryPatientProfile profile;
+@override final  Address address;
 
 /// Create a copy of RegisterCompleteRequest
 /// with the given fields replaced by the non-null parameter values.
@@ -1338,16 +1349,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _RegisterCompleteRequest&&(identical(other.challengeId, challengeId) || other.challengeId == challengeId)&&(identical(other.code, code) || other.code == code)&&(identical(other.password, password) || other.password == password)&&(identical(other.device, device) || other.device == device)&&(identical(other.profile, profile) || other.profile == profile));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _RegisterCompleteRequest&&(identical(other.challengeId, challengeId) || other.challengeId == challengeId)&&(identical(other.code, code) || other.code == code)&&(identical(other.password, password) || other.password == password)&&(identical(other.device, device) || other.device == device)&&(identical(other.profile, profile) || other.profile == profile)&&(identical(other.address, address) || other.address == address));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,challengeId,code,password,device,profile);
+int get hashCode => Object.hash(runtimeType,challengeId,code,password,device,profile,address);
 
 @override
 String toString() {
-  return 'RegisterCompleteRequest(challengeId: $challengeId, code: $code, password: $password, device: $device, profile: $profile)';
+  return 'RegisterCompleteRequest(challengeId: $challengeId, code: $code, password: $password, device: $device, profile: $profile, address: $address)';
 }
 
 
@@ -1358,11 +1369,11 @@ abstract mixin class _$RegisterCompleteRequestCopyWith<$Res> implements $Registe
   factory _$RegisterCompleteRequestCopyWith(_RegisterCompleteRequest value, $Res Function(_RegisterCompleteRequest) _then) = __$RegisterCompleteRequestCopyWithImpl;
 @override @useResult
 $Res call({
- String challengeId, String code, String password, DeviceRequest device, PrimaryPatientProfile profile
+ String challengeId, String code, String password, DeviceRequest device, PrimaryPatientProfile profile, Address address
 });
 
 
-@override $DeviceRequestCopyWith<$Res> get device;@override $PrimaryPatientProfileCopyWith<$Res> get profile;
+@override $DeviceRequestCopyWith<$Res> get device;@override $PrimaryPatientProfileCopyWith<$Res> get profile;@override $AddressCopyWith<$Res> get address;
 
 }
 /// @nodoc
@@ -1375,14 +1386,15 @@ class __$RegisterCompleteRequestCopyWithImpl<$Res>
 
 /// Create a copy of RegisterCompleteRequest
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? challengeId = null,Object? code = null,Object? password = null,Object? device = null,Object? profile = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? challengeId = null,Object? code = null,Object? password = null,Object? device = null,Object? profile = null,Object? address = null,}) {
   return _then(_RegisterCompleteRequest(
 challengeId: null == challengeId ? _self.challengeId : challengeId // ignore: cast_nullable_to_non_nullable
 as String,code: null == code ? _self.code : code // ignore: cast_nullable_to_non_nullable
 as String,password: null == password ? _self.password : password // ignore: cast_nullable_to_non_nullable
 as String,device: null == device ? _self.device : device // ignore: cast_nullable_to_non_nullable
 as DeviceRequest,profile: null == profile ? _self.profile : profile // ignore: cast_nullable_to_non_nullable
-as PrimaryPatientProfile,
+as PrimaryPatientProfile,address: null == address ? _self.address : address // ignore: cast_nullable_to_non_nullable
+as Address,
   ));
 }
 
@@ -1403,6 +1415,15 @@ $PrimaryPatientProfileCopyWith<$Res> get profile {
   
   return $PrimaryPatientProfileCopyWith<$Res>(_self.profile, (value) {
     return _then(_self.copyWith(profile: value));
+  });
+}/// Create a copy of RegisterCompleteRequest
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$AddressCopyWith<$Res> get address {
+  
+  return $AddressCopyWith<$Res>(_self.address, (value) {
+    return _then(_self.copyWith(address: value));
   });
 }
 }

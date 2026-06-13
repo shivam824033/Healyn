@@ -226,7 +226,7 @@ GET /api/v1/appointments?cursor=eyJpZCI6Ii4uLiJ9&limit=20
 | Method | Path | Purpose |
 |---|---|---|
 | `POST` | `/api/v1/auth/register/start` | Begin registration, send OTP |
-| `POST` | `/api/v1/auth/register/verify` | Verify OTP, create account + primary patient |
+| `POST` | `/api/v1/auth/register/verify` | Verify OTP, create account + primary patient + household address |
 | `POST` | `/api/v1/auth/login` | Email/phone + password, returns tokens |
 | `POST` | `/api/v1/auth/refresh` | Single-use refresh, rotates tokens |
 | `POST` | `/api/v1/auth/logout` | Revoke current session |
@@ -242,15 +242,31 @@ GET /api/v1/appointments?cursor=eyJpZCI6Ii4uLiJ9&limit=20
 > resource is owned by the notifications module; the controller lives there but serves the
 > `/auth/fcm_tokens` path (served unprefixed by the running backend — see §9.4 note).
 
+> **`register/complete` (the running backend's path for register/verify) body** carries
+> `{ challenge_id, code, password, device, profile, address }`. `address` is **required**
+> at signup: `{ line1 (required), line2?, city (required), state (required), postal_code
+> (required), country? (defaults "India") }`. It is the **account household** address,
+> shared across every patient on the account (see §9.2 `/account/address`).
+
 ### 9.2 Patients
 
 | Method | Path | Purpose |
 |---|---|---|
-| `GET`  | `/api/v1/patients` | List patients linked to me |
+| `GET`  | `/api/v1/patients` | List patients linked to me (each carries the household `address`) |
 | `POST` | `/api/v1/patients` | Add a family member patient |
-| `GET`  | `/api/v1/patients/{id}` | Get a patient |
+| `GET`  | `/api/v1/patients/{id}` | Get a patient (includes resolved household `address`) |
 | `PATCH` | `/api/v1/patients/{id}` | Update a patient |
 | `DELETE` | `/api/v1/patients/{id}` | Remove link (and soft-delete if last link) |
+| `GET`  | `/api/v1/account/address` | The signed-in account's household address — `{ address }`, null when unset |
+| `PUT`  | `/api/v1/account/address` | Create / replace the household address (one per account, shared by all its patients) |
+
+> The household **address** is account-level, not per-patient: one row per account
+> (`account_addresses`), captured at signup and editable via `PUT /account/address`. It
+> appears on every `PatientView` (the patient app shows the account's own; the
+> physiotherapist sees each patient's resolved through its managing account). `PUT` body:
+> `{ line1, line2?, city, state, postal_code, country? }` — `line1`/`city`/`state`/
+> `postal_code` required, `country` defaults `"India"`. There is no per-patient address
+> field on `PATCH /patients/{id}`. See [DATABASE_SCHEMA.md §3.5a](./DATABASE_SCHEMA.md).
 
 ### 9.3 Availability
 

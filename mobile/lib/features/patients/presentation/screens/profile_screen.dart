@@ -114,6 +114,8 @@ class _ProfileBody extends ConsumerWidget {
           _DetailCard(rows: medical),
         ],
         const SizedBox(height: HealynSpacing.s6),
+        _AddressSection(address: patient.address),
+        const SizedBox(height: HealynSpacing.s6),
         const HealynSectionHeader(title: 'Care'),
         const SizedBox(height: HealynSpacing.s3),
         NavCard(
@@ -151,6 +153,55 @@ class _ProfileBody extends ConsumerWidget {
   }
 
   static bool _has(String? s) => s != null && s.trim().isNotEmpty;
+}
+
+/// The account's household address — shared across the family and visible to the
+/// physiotherapist. Edited via the household-address form (the same address for
+/// every patient on the account, so it is not part of the per-patient edit).
+class _AddressSection extends StatelessWidget {
+  const _AddressSection({required this.address});
+
+  final Address? address;
+
+  @override
+  Widget build(BuildContext context) {
+    final addr = address;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        HealynSectionHeader(
+          title: 'Address',
+          trailing: TextButton(
+            onPressed: () =>
+                context.push('/account/address/edit', extra: addr),
+            child: Text(addr == null ? 'Add' : 'Edit'),
+          ),
+        ),
+        const SizedBox(height: HealynSpacing.s3),
+        SectionCard(
+          child: addr == null
+              ? Text(
+                  'No address added yet.',
+                  style: HealynTypography.body.copyWith(
+                    color: HealynColors.textMuted,
+                  ),
+                )
+              : Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    for (final line in addr.displayLines)
+                      Padding(
+                        padding: const EdgeInsets.only(
+                          bottom: HealynSpacing.s1,
+                        ),
+                        child: Text(line, style: HealynTypography.body),
+                      ),
+                  ],
+                ),
+        ),
+      ],
+    );
+  }
 }
 
 class _Header extends StatelessWidget {

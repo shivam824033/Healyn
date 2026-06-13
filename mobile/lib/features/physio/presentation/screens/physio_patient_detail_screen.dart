@@ -60,6 +60,25 @@ class PhysioPatientDetailScreen extends ConsumerWidget {
               const SizedBox(height: HealynSpacing.s3),
               _DetailCard(rows: medical),
             ],
+            if (patient.address != null) ...[
+              const SizedBox(height: HealynSpacing.s6),
+              const HealynSectionHeader(title: 'Address'),
+              const SizedBox(height: HealynSpacing.s3),
+              SectionCard(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    for (final line in patient.address!.displayLines)
+                      Padding(
+                        padding: const EdgeInsets.only(
+                          bottom: HealynSpacing.s1,
+                        ),
+                        child: Text(line, style: HealynTypography.body),
+                      ),
+                  ],
+                ),
+              ),
+            ],
             if (_has(patient.notes)) ...[
               const SizedBox(height: HealynSpacing.s6),
               const HealynSectionHeader(title: 'Notes'),

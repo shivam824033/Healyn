@@ -74,6 +74,7 @@ _RegisterCompleteRequest _$RegisterCompleteRequestFromJson(
   profile: PrimaryPatientProfile.fromJson(
     json['profile'] as Map<String, dynamic>,
   ),
+  address: Address.fromJson(json['address'] as Map<String, dynamic>),
 );
 
 Map<String, dynamic> _$RegisterCompleteRequestToJson(
@@ -84,6 +85,7 @@ Map<String, dynamic> _$RegisterCompleteRequestToJson(
   'password': instance.password,
   'device': instance.device.toJson(),
   'profile': instance.profile.toJson(),
+  'address': instance.address.toJson(),
 };
 
 _PasswordResetStartRequest _$PasswordResetStartRequestFromJson(

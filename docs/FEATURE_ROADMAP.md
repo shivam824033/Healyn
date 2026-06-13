@@ -54,6 +54,13 @@ Architecture in Phase 1 must **enable** Phase 2 and Phase 3 without rewrites. It
 
 > **Booking model note (F1.8–F1.13):** booking is **request-first** — the patient requests a date (no self-assigned time) and the physiotherapist assigns/confirms the final date and time, reschedules, and creates follow-ups. This refines the listed features; it does not add new scope. See [APPOINTMENT_FLOW.md](./APPOINTMENT_FLOW.md).
 >
+> **Household address note (F1.5–F1.6):** the account captures one **household postal
+> address** at registration (`account_addresses`, keyed by account), shared across the
+> primary patient and every family member and surfaced to the physiotherapist for
+> communication and records. This refines the existing profile-capture P0 features
+> (F1.5 primary profile, F1.6 family members); it adds a field, **not** new scope. See
+> [DATABASE_SCHEMA.md §3.5a](./DATABASE_SCHEMA.md) and [API_STANDARDS.md §9.2](./API_STANDARDS.md#92-patients).
+>
 > **Identifiers & lifecycle note (F1.5–F1.6, F1.9–F1.13, F1.21–F1.22):** appointments and patients carry human-readable **business IDs** (Appointment Number `PHY-YYYYMMDD-NNNN`, Patient ID `PAT-NNNNNN`) alongside their UUID primary keys; the UUID is never exposed to users. Appointments gain **parent-child lineage** (reschedules / follow-ups / reviews link to a lineage root) and an append-only **`appointment_events`** timeline. The ID and lineage work refines existing P0 features; the events table is the realization of the §4 Phase-3 enabler *"all clinical writes already produce a domain event"* (pulled forward, **not** new scope). The unified timeline (F1.21) and Appointment-Number search (F1.22) are new P1/P2 surfaces over that data. See [APPOINTMENT_FLOW.md](./APPOINTMENT_FLOW.md).
 
 ### 2.2 Phase 1 Acceptance Criteria

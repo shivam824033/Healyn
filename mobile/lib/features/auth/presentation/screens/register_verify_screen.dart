@@ -40,6 +40,12 @@ class _RegisterVerifyScreenState extends ConsumerState<RegisterVerifyScreen> {
   final _password = TextEditingController();
   final _fullName = TextEditingController();
   final _dobField = TextEditingController();
+  final _line1 = TextEditingController();
+  final _line2 = TextEditingController();
+  final _city = TextEditingController();
+  final _state = TextEditingController();
+  final _postalCode = TextEditingController();
+  final _country = TextEditingController(text: 'India');
   bool _obscure = true;
   bool _submitting = false;
   String? _error;
@@ -52,6 +58,12 @@ class _RegisterVerifyScreenState extends ConsumerState<RegisterVerifyScreen> {
     _password.dispose();
     _fullName.dispose();
     _dobField.dispose();
+    _line1.dispose();
+    _line2.dispose();
+    _city.dispose();
+    _state.dispose();
+    _postalCode.dispose();
+    _country.dispose();
     super.dispose();
   }
 
@@ -99,6 +111,16 @@ class _RegisterVerifyScreenState extends ConsumerState<RegisterVerifyScreen> {
               fullName: _fullName.text.trim(),
               dateOfBirth: _dob!,
               sex: _sex,
+            ),
+            address: Address(
+              line1: _line1.text.trim(),
+              line2: _line2.text.trim().isEmpty ? null : _line2.text.trim(),
+              city: _city.text.trim(),
+              state: _state.text.trim(),
+              postalCode: _postalCode.text.trim(),
+              country: _country.text.trim().isEmpty
+                  ? 'India'
+                  : _country.text.trim(),
             ),
           );
       if (!mounted) return;
@@ -208,6 +230,72 @@ class _RegisterVerifyScreenState extends ConsumerState<RegisterVerifyScreen> {
                           : (v) => setState(() => _sex = v),
                     ),
                   ],
+                ),
+                const SizedBox(height: HealynSpacing.s6),
+                const Text('Your address', style: HealynTypography.h3),
+                const SizedBox(height: HealynSpacing.s1),
+                const Text(
+                  'Shared across your family and used by your physiotherapist '
+                  'for communication and records.',
+                  style: HealynTypography.caption,
+                ),
+                const SizedBox(height: HealynSpacing.s4),
+                AppTextField(
+                  label: 'Address line 1',
+                  controller: _line1,
+                  textInputAction: TextInputAction.next,
+                  autofillHints: const [AutofillHints.streetAddressLine1],
+                  validator: (v) => (v == null || v.trim().isEmpty)
+                      ? 'Enter your address'
+                      : null,
+                ),
+                const SizedBox(height: HealynSpacing.s4),
+                AppTextField(
+                  label: 'Address line 2 (optional)',
+                  controller: _line2,
+                  textInputAction: TextInputAction.next,
+                  autofillHints: const [AutofillHints.streetAddressLine2],
+                ),
+                const SizedBox(height: HealynSpacing.s4),
+                AppTextField(
+                  label: 'City',
+                  controller: _city,
+                  textInputAction: TextInputAction.next,
+                  autofillHints: const [AutofillHints.addressCity],
+                  validator: (v) => (v == null || v.trim().isEmpty)
+                      ? 'Enter your city'
+                      : null,
+                ),
+                const SizedBox(height: HealynSpacing.s4),
+                AppTextField(
+                  label: 'State',
+                  controller: _state,
+                  textInputAction: TextInputAction.next,
+                  autofillHints: const [AutofillHints.addressState],
+                  validator: (v) => (v == null || v.trim().isEmpty)
+                      ? 'Enter your state'
+                      : null,
+                ),
+                const SizedBox(height: HealynSpacing.s4),
+                AppTextField(
+                  label: 'PIN / postal code',
+                  controller: _postalCode,
+                  keyboardType: TextInputType.streetAddress,
+                  textInputAction: TextInputAction.next,
+                  autofillHints: const [AutofillHints.postalCode],
+                  validator: (v) => (v == null || v.trim().isEmpty)
+                      ? 'Enter your PIN code'
+                      : null,
+                ),
+                const SizedBox(height: HealynSpacing.s4),
+                AppTextField(
+                  label: 'Country',
+                  controller: _country,
+                  textInputAction: TextInputAction.done,
+                  autofillHints: const [AutofillHints.countryName],
+                  validator: (v) => (v == null || v.trim().isEmpty)
+                      ? 'Enter your country'
+                      : null,
                 ),
                 const SizedBox(height: HealynSpacing.s7),
                 PrimaryButton(

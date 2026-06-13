@@ -235,8 +235,34 @@ class AuthIntegrationTest {
                                 "code", "000000",
                                 "password", "valid-password-3",
                                 "device", deviceBody(),
-                                "profile", profileBody()))))
+                                "profile", profileBody(),
+                                "address", addressBody()))))
                 .andExpect(status().isUnprocessableEntity());
+    }
+
+    @Test
+    void register_complete_without_address_returns_400() throws Exception {
+        String email = "noaddr+" + UUID.randomUUID() + "@example.com";
+        Map<String, Object> startResp = body(mvc.perform(post("/auth/register/start")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json.writeValueAsBytes(Map.of("target", Map.of("email", email)))))
+                .andExpect(status().isAccepted())
+                .andReturn());
+        String code = otpSender.latestByTarget.get(email);
+        assertThat(code).isNotNull();
+
+        Map<String, Object> body = new HashMap<>();
+        body.put("challenge_id", startResp.get("challenge_id"));
+        body.put("code", code);
+        body.put("password", "valid-password-9");
+        body.put("device", deviceBody());
+        body.put("profile", profileBody());
+        // address deliberately omitted — it is required at signup.
+
+        mvc.perform(post("/auth/register/complete")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json.writeValueAsBytes(body)))
+                .andExpect(status().isBadRequest());
     }
 
     @Test
@@ -269,6 +295,7 @@ class AuthIntegrationTest {
         body.put("password", password);
         body.put("device", deviceBody());
         body.put("profile", profileBody());
+        body.put("address", addressBody());
 
         return body(mvc.perform(post("/auth/register/complete")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -298,6 +325,15 @@ class AuthIntegrationTest {
                 "full_name", "Test Person",
                 "date_of_birth", "1990-01-15",
                 "sex", "UNDISCLOSED");
+    }
+
+    private static Map<String, Object> addressBody() {
+        return Map.of(
+                "line1", "1 Test Street",
+                "city", "Pune",
+                "state", "Maharashtra",
+                "postal_code", "411001",
+                "country", "India");
     }
 
     private Map<String, Object> body(MvcResult result) throws Exception {

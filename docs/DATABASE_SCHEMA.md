@@ -199,6 +199,34 @@ CREATE INDEX idx_account_patients_patient ON account_patients(patient_id);
 
 See [PATIENT_RELATIONSHIP_MODEL.md](./PATIENT_RELATIONSHIP_MODEL.md) for ownership semantics.
 
+### 3.5a `account_addresses` — one household postal address per account
+
+```sql
+CREATE TABLE account_addresses (
+    account_id   UUID PRIMARY KEY REFERENCES accounts(id) ON DELETE CASCADE,
+    line1        VARCHAR(160) NOT NULL,
+    line2        VARCHAR(160),
+    city         VARCHAR(80)  NOT NULL,
+    state        VARCHAR(80)  NOT NULL,
+    postal_code  VARCHAR(16)  NOT NULL,
+    country      VARCHAR(60)  NOT NULL DEFAULT 'India',
+    created_at   TIMESTAMPTZ  NOT NULL DEFAULT now(),
+    updated_at   TIMESTAMPTZ  NOT NULL DEFAULT now()
+);
+```
+
+The address belongs to the **Account** (the household login), not to an individual
+Patient: it is captured once at registration and shared across the account's primary
+patient and every family member. `account_id` is the primary key, so the relation is
+1:1 with `accounts` and a row exists only when an address is set — accounts created
+before V23 simply have none, and the read layer tolerates its absence (the address is
+required at *signup* only). The physiotherapist resolves a patient's address through
+`account_patients` (preferring the link where the patient is that account's primary,
+then by account id) for communication and records. Account contact data, not clinical
+PHI in the audit sense (mirrors `notification_preferences`): no soft-delete column,
+`ON DELETE CASCADE` with the account. Owned by the `patients` module (entity
+`AccountAddress`). See [API_STANDARDS.md §9.2](./API_STANDARDS.md#92-patients).
+
 ### 3.6 `availability_rules` — physiotherapist's recurring schedule
 
 ```sql
@@ -569,6 +597,8 @@ DB role `healyn_app` is granted `INSERT, SELECT` on `audit.*`. There is no `UPDA
                   │                                          │
                   ├── device_sessions                        │
                   │                                          │
+                  ├── account_addresses (1:1 household)      │
+                  │                                          │
                   ├── otp_challenges                         │
                   │                                          │
                   ├── availability_rules (physio only)       │
@@ -641,6 +671,13 @@ V12__audit_log.sql                -- audit schema + append-only audit_log
 V13__fcm_tokens.sql               -- device push tokens (dispatch side, registration API)
 V14__notification_preferences.sql -- per-account push opt-outs (API_STANDARDS §9.8)
 V15__appointments_request_first.sql -- request-first booking: nullable scheduled_at, requested_date, preferred_time, is_follow_up
+```
+
+Migrations V16–V23 landed as features were added (human-friendly ids, appointment
+lineage/events, search indexes, device-session revoke reason). The most recent:
+
+```
+V23__account_addresses.sql        -- one household postal address per account (§3.5a)
 ```
 
 Still pending: nothing schema-side remaining for Phase 1 notifications. The outbox poller +

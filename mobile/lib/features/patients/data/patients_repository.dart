@@ -28,6 +28,14 @@ class PatientsRepository {
     return _guard(() => _api.delete(id));
   }
 
+  Future<Address?> accountAddress() async {
+    return _guard(() => _api.getAccountAddress());
+  }
+
+  Future<Address> saveAccountAddress(Address body) async {
+    return _guard(() => _api.putAccountAddress(body));
+  }
+
   Future<T> _guard<T>(Future<T> Function() body) async {
     try {
       return await body();

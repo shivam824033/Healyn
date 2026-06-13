@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$Patient {
 
- String get id; String? get patientNumber; String get fullName;@LocalDateConverter() DateTime get dateOfBirth; PatientSex? get sex; String? get phoneE164; String? get email; String? get bloodGroup; String? get allergies; String? get notes; PatientRelationship? get relationship; bool get primary; bool get canManage; DateTime? get createdAt; DateTime? get updatedAt;
+ String get id; String? get patientNumber; String get fullName;@LocalDateConverter() DateTime get dateOfBirth; PatientSex? get sex; String? get phoneE164; String? get email; String? get bloodGroup; String? get allergies; String? get notes; Address? get address; PatientRelationship? get relationship; bool get primary; bool get canManage; DateTime? get createdAt; DateTime? get updatedAt;
 /// Create a copy of Patient
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,16 +28,16 @@ $PatientCopyWith<Patient> get copyWith => _$PatientCopyWithImpl<Patient>(this as
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is Patient&&(identical(other.id, id) || other.id == id)&&(identical(other.patientNumber, patientNumber) || other.patientNumber == patientNumber)&&(identical(other.fullName, fullName) || other.fullName == fullName)&&(identical(other.dateOfBirth, dateOfBirth) || other.dateOfBirth == dateOfBirth)&&(identical(other.sex, sex) || other.sex == sex)&&(identical(other.phoneE164, phoneE164) || other.phoneE164 == phoneE164)&&(identical(other.email, email) || other.email == email)&&(identical(other.bloodGroup, bloodGroup) || other.bloodGroup == bloodGroup)&&(identical(other.allergies, allergies) || other.allergies == allergies)&&(identical(other.notes, notes) || other.notes == notes)&&(identical(other.relationship, relationship) || other.relationship == relationship)&&(identical(other.primary, primary) || other.primary == primary)&&(identical(other.canManage, canManage) || other.canManage == canManage)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is Patient&&(identical(other.id, id) || other.id == id)&&(identical(other.patientNumber, patientNumber) || other.patientNumber == patientNumber)&&(identical(other.fullName, fullName) || other.fullName == fullName)&&(identical(other.dateOfBirth, dateOfBirth) || other.dateOfBirth == dateOfBirth)&&(identical(other.sex, sex) || other.sex == sex)&&(identical(other.phoneE164, phoneE164) || other.phoneE164 == phoneE164)&&(identical(other.email, email) || other.email == email)&&(identical(other.bloodGroup, bloodGroup) || other.bloodGroup == bloodGroup)&&(identical(other.allergies, allergies) || other.allergies == allergies)&&(identical(other.notes, notes) || other.notes == notes)&&(identical(other.address, address) || other.address == address)&&(identical(other.relationship, relationship) || other.relationship == relationship)&&(identical(other.primary, primary) || other.primary == primary)&&(identical(other.canManage, canManage) || other.canManage == canManage)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,patientNumber,fullName,dateOfBirth,sex,phoneE164,email,bloodGroup,allergies,notes,relationship,primary,canManage,createdAt,updatedAt);
+int get hashCode => Object.hash(runtimeType,id,patientNumber,fullName,dateOfBirth,sex,phoneE164,email,bloodGroup,allergies,notes,address,relationship,primary,canManage,createdAt,updatedAt);
 
 @override
 String toString() {
-  return 'Patient(id: $id, patientNumber: $patientNumber, fullName: $fullName, dateOfBirth: $dateOfBirth, sex: $sex, phoneE164: $phoneE164, email: $email, bloodGroup: $bloodGroup, allergies: $allergies, notes: $notes, relationship: $relationship, primary: $primary, canManage: $canManage, createdAt: $createdAt, updatedAt: $updatedAt)';
+  return 'Patient(id: $id, patientNumber: $patientNumber, fullName: $fullName, dateOfBirth: $dateOfBirth, sex: $sex, phoneE164: $phoneE164, email: $email, bloodGroup: $bloodGroup, allergies: $allergies, notes: $notes, address: $address, relationship: $relationship, primary: $primary, canManage: $canManage, createdAt: $createdAt, updatedAt: $updatedAt)';
 }
 
 
@@ -48,11 +48,11 @@ abstract mixin class $PatientCopyWith<$Res>  {
   factory $PatientCopyWith(Patient value, $Res Function(Patient) _then) = _$PatientCopyWithImpl;
 @useResult
 $Res call({
- String id, String? patientNumber, String fullName,@LocalDateConverter() DateTime dateOfBirth, PatientSex? sex, String? phoneE164, String? email, String? bloodGroup, String? allergies, String? notes, PatientRelationship? relationship, bool primary, bool canManage, DateTime? createdAt, DateTime? updatedAt
+ String id, String? patientNumber, String fullName,@LocalDateConverter() DateTime dateOfBirth, PatientSex? sex, String? phoneE164, String? email, String? bloodGroup, String? allergies, String? notes, Address? address, PatientRelationship? relationship, bool primary, bool canManage, DateTime? createdAt, DateTime? updatedAt
 });
 
 
-
+$AddressCopyWith<$Res>? get address;
 
 }
 /// @nodoc
@@ -65,7 +65,7 @@ class _$PatientCopyWithImpl<$Res>
 
 /// Create a copy of Patient
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? patientNumber = freezed,Object? fullName = null,Object? dateOfBirth = null,Object? sex = freezed,Object? phoneE164 = freezed,Object? email = freezed,Object? bloodGroup = freezed,Object? allergies = freezed,Object? notes = freezed,Object? relationship = freezed,Object? primary = null,Object? canManage = null,Object? createdAt = freezed,Object? updatedAt = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? patientNumber = freezed,Object? fullName = null,Object? dateOfBirth = null,Object? sex = freezed,Object? phoneE164 = freezed,Object? email = freezed,Object? bloodGroup = freezed,Object? allergies = freezed,Object? notes = freezed,Object? address = freezed,Object? relationship = freezed,Object? primary = null,Object? canManage = null,Object? createdAt = freezed,Object? updatedAt = freezed,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,patientNumber: freezed == patientNumber ? _self.patientNumber : patientNumber // ignore: cast_nullable_to_non_nullable
@@ -77,7 +77,8 @@ as String?,email: freezed == email ? _self.email : email // ignore: cast_nullabl
 as String?,bloodGroup: freezed == bloodGroup ? _self.bloodGroup : bloodGroup // ignore: cast_nullable_to_non_nullable
 as String?,allergies: freezed == allergies ? _self.allergies : allergies // ignore: cast_nullable_to_non_nullable
 as String?,notes: freezed == notes ? _self.notes : notes // ignore: cast_nullable_to_non_nullable
-as String?,relationship: freezed == relationship ? _self.relationship : relationship // ignore: cast_nullable_to_non_nullable
+as String?,address: freezed == address ? _self.address : address // ignore: cast_nullable_to_non_nullable
+as Address?,relationship: freezed == relationship ? _self.relationship : relationship // ignore: cast_nullable_to_non_nullable
 as PatientRelationship?,primary: null == primary ? _self.primary : primary // ignore: cast_nullable_to_non_nullable
 as bool,canManage: null == canManage ? _self.canManage : canManage // ignore: cast_nullable_to_non_nullable
 as bool,createdAt: freezed == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
@@ -85,7 +86,19 @@ as DateTime?,updatedAt: freezed == updatedAt ? _self.updatedAt : updatedAt // ig
 as DateTime?,
   ));
 }
+/// Create a copy of Patient
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$AddressCopyWith<$Res>? get address {
+    if (_self.address == null) {
+    return null;
+  }
 
+  return $AddressCopyWith<$Res>(_self.address!, (value) {
+    return _then(_self.copyWith(address: value));
+  });
+}
 }
 
 
@@ -167,10 +180,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String? patientNumber,  String fullName, @LocalDateConverter()  DateTime dateOfBirth,  PatientSex? sex,  String? phoneE164,  String? email,  String? bloodGroup,  String? allergies,  String? notes,  PatientRelationship? relationship,  bool primary,  bool canManage,  DateTime? createdAt,  DateTime? updatedAt)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String? patientNumber,  String fullName, @LocalDateConverter()  DateTime dateOfBirth,  PatientSex? sex,  String? phoneE164,  String? email,  String? bloodGroup,  String? allergies,  String? notes,  Address? address,  PatientRelationship? relationship,  bool primary,  bool canManage,  DateTime? createdAt,  DateTime? updatedAt)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _Patient() when $default != null:
-return $default(_that.id,_that.patientNumber,_that.fullName,_that.dateOfBirth,_that.sex,_that.phoneE164,_that.email,_that.bloodGroup,_that.allergies,_that.notes,_that.relationship,_that.primary,_that.canManage,_that.createdAt,_that.updatedAt);case _:
+return $default(_that.id,_that.patientNumber,_that.fullName,_that.dateOfBirth,_that.sex,_that.phoneE164,_that.email,_that.bloodGroup,_that.allergies,_that.notes,_that.address,_that.relationship,_that.primary,_that.canManage,_that.createdAt,_that.updatedAt);case _:
   return orElse();
 
 }
@@ -188,10 +201,10 @@ return $default(_that.id,_that.patientNumber,_that.fullName,_that.dateOfBirth,_t
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String? patientNumber,  String fullName, @LocalDateConverter()  DateTime dateOfBirth,  PatientSex? sex,  String? phoneE164,  String? email,  String? bloodGroup,  String? allergies,  String? notes,  PatientRelationship? relationship,  bool primary,  bool canManage,  DateTime? createdAt,  DateTime? updatedAt)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String? patientNumber,  String fullName, @LocalDateConverter()  DateTime dateOfBirth,  PatientSex? sex,  String? phoneE164,  String? email,  String? bloodGroup,  String? allergies,  String? notes,  Address? address,  PatientRelationship? relationship,  bool primary,  bool canManage,  DateTime? createdAt,  DateTime? updatedAt)  $default,) {final _that = this;
 switch (_that) {
 case _Patient():
-return $default(_that.id,_that.patientNumber,_that.fullName,_that.dateOfBirth,_that.sex,_that.phoneE164,_that.email,_that.bloodGroup,_that.allergies,_that.notes,_that.relationship,_that.primary,_that.canManage,_that.createdAt,_that.updatedAt);case _:
+return $default(_that.id,_that.patientNumber,_that.fullName,_that.dateOfBirth,_that.sex,_that.phoneE164,_that.email,_that.bloodGroup,_that.allergies,_that.notes,_that.address,_that.relationship,_that.primary,_that.canManage,_that.createdAt,_that.updatedAt);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -208,10 +221,10 @@ return $default(_that.id,_that.patientNumber,_that.fullName,_that.dateOfBirth,_t
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String? patientNumber,  String fullName, @LocalDateConverter()  DateTime dateOfBirth,  PatientSex? sex,  String? phoneE164,  String? email,  String? bloodGroup,  String? allergies,  String? notes,  PatientRelationship? relationship,  bool primary,  bool canManage,  DateTime? createdAt,  DateTime? updatedAt)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String? patientNumber,  String fullName, @LocalDateConverter()  DateTime dateOfBirth,  PatientSex? sex,  String? phoneE164,  String? email,  String? bloodGroup,  String? allergies,  String? notes,  Address? address,  PatientRelationship? relationship,  bool primary,  bool canManage,  DateTime? createdAt,  DateTime? updatedAt)?  $default,) {final _that = this;
 switch (_that) {
 case _Patient() when $default != null:
-return $default(_that.id,_that.patientNumber,_that.fullName,_that.dateOfBirth,_that.sex,_that.phoneE164,_that.email,_that.bloodGroup,_that.allergies,_that.notes,_that.relationship,_that.primary,_that.canManage,_that.createdAt,_that.updatedAt);case _:
+return $default(_that.id,_that.patientNumber,_that.fullName,_that.dateOfBirth,_that.sex,_that.phoneE164,_that.email,_that.bloodGroup,_that.allergies,_that.notes,_that.address,_that.relationship,_that.primary,_that.canManage,_that.createdAt,_that.updatedAt);case _:
   return null;
 
 }
@@ -223,7 +236,7 @@ return $default(_that.id,_that.patientNumber,_that.fullName,_that.dateOfBirth,_t
 @JsonSerializable()
 
 class _Patient implements Patient {
-  const _Patient({required this.id, this.patientNumber, required this.fullName, @LocalDateConverter() required this.dateOfBirth, this.sex, this.phoneE164, this.email, this.bloodGroup, this.allergies, this.notes, this.relationship, this.primary = false, this.canManage = false, this.createdAt, this.updatedAt});
+  const _Patient({required this.id, this.patientNumber, required this.fullName, @LocalDateConverter() required this.dateOfBirth, this.sex, this.phoneE164, this.email, this.bloodGroup, this.allergies, this.notes, this.address, this.relationship, this.primary = false, this.canManage = false, this.createdAt, this.updatedAt});
   factory _Patient.fromJson(Map<String, dynamic> json) => _$PatientFromJson(json);
 
 @override final  String id;
@@ -236,6 +249,7 @@ class _Patient implements Patient {
 @override final  String? bloodGroup;
 @override final  String? allergies;
 @override final  String? notes;
+@override final  Address? address;
 @override final  PatientRelationship? relationship;
 @override@JsonKey() final  bool primary;
 @override@JsonKey() final  bool canManage;
@@ -255,16 +269,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Patient&&(identical(other.id, id) || other.id == id)&&(identical(other.patientNumber, patientNumber) || other.patientNumber == patientNumber)&&(identical(other.fullName, fullName) || other.fullName == fullName)&&(identical(other.dateOfBirth, dateOfBirth) || other.dateOfBirth == dateOfBirth)&&(identical(other.sex, sex) || other.sex == sex)&&(identical(other.phoneE164, phoneE164) || other.phoneE164 == phoneE164)&&(identical(other.email, email) || other.email == email)&&(identical(other.bloodGroup, bloodGroup) || other.bloodGroup == bloodGroup)&&(identical(other.allergies, allergies) || other.allergies == allergies)&&(identical(other.notes, notes) || other.notes == notes)&&(identical(other.relationship, relationship) || other.relationship == relationship)&&(identical(other.primary, primary) || other.primary == primary)&&(identical(other.canManage, canManage) || other.canManage == canManage)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Patient&&(identical(other.id, id) || other.id == id)&&(identical(other.patientNumber, patientNumber) || other.patientNumber == patientNumber)&&(identical(other.fullName, fullName) || other.fullName == fullName)&&(identical(other.dateOfBirth, dateOfBirth) || other.dateOfBirth == dateOfBirth)&&(identical(other.sex, sex) || other.sex == sex)&&(identical(other.phoneE164, phoneE164) || other.phoneE164 == phoneE164)&&(identical(other.email, email) || other.email == email)&&(identical(other.bloodGroup, bloodGroup) || other.bloodGroup == bloodGroup)&&(identical(other.allergies, allergies) || other.allergies == allergies)&&(identical(other.notes, notes) || other.notes == notes)&&(identical(other.address, address) || other.address == address)&&(identical(other.relationship, relationship) || other.relationship == relationship)&&(identical(other.primary, primary) || other.primary == primary)&&(identical(other.canManage, canManage) || other.canManage == canManage)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,patientNumber,fullName,dateOfBirth,sex,phoneE164,email,bloodGroup,allergies,notes,relationship,primary,canManage,createdAt,updatedAt);
+int get hashCode => Object.hash(runtimeType,id,patientNumber,fullName,dateOfBirth,sex,phoneE164,email,bloodGroup,allergies,notes,address,relationship,primary,canManage,createdAt,updatedAt);
 
 @override
 String toString() {
-  return 'Patient(id: $id, patientNumber: $patientNumber, fullName: $fullName, dateOfBirth: $dateOfBirth, sex: $sex, phoneE164: $phoneE164, email: $email, bloodGroup: $bloodGroup, allergies: $allergies, notes: $notes, relationship: $relationship, primary: $primary, canManage: $canManage, createdAt: $createdAt, updatedAt: $updatedAt)';
+  return 'Patient(id: $id, patientNumber: $patientNumber, fullName: $fullName, dateOfBirth: $dateOfBirth, sex: $sex, phoneE164: $phoneE164, email: $email, bloodGroup: $bloodGroup, allergies: $allergies, notes: $notes, address: $address, relationship: $relationship, primary: $primary, canManage: $canManage, createdAt: $createdAt, updatedAt: $updatedAt)';
 }
 
 
@@ -275,11 +289,11 @@ abstract mixin class _$PatientCopyWith<$Res> implements $PatientCopyWith<$Res> {
   factory _$PatientCopyWith(_Patient value, $Res Function(_Patient) _then) = __$PatientCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String? patientNumber, String fullName,@LocalDateConverter() DateTime dateOfBirth, PatientSex? sex, String? phoneE164, String? email, String? bloodGroup, String? allergies, String? notes, PatientRelationship? relationship, bool primary, bool canManage, DateTime? createdAt, DateTime? updatedAt
+ String id, String? patientNumber, String fullName,@LocalDateConverter() DateTime dateOfBirth, PatientSex? sex, String? phoneE164, String? email, String? bloodGroup, String? allergies, String? notes, Address? address, PatientRelationship? relationship, bool primary, bool canManage, DateTime? createdAt, DateTime? updatedAt
 });
 
 
-
+@override $AddressCopyWith<$Res>? get address;
 
 }
 /// @nodoc
@@ -292,7 +306,7 @@ class __$PatientCopyWithImpl<$Res>
 
 /// Create a copy of Patient
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? patientNumber = freezed,Object? fullName = null,Object? dateOfBirth = null,Object? sex = freezed,Object? phoneE164 = freezed,Object? email = freezed,Object? bloodGroup = freezed,Object? allergies = freezed,Object? notes = freezed,Object? relationship = freezed,Object? primary = null,Object? canManage = null,Object? createdAt = freezed,Object? updatedAt = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? patientNumber = freezed,Object? fullName = null,Object? dateOfBirth = null,Object? sex = freezed,Object? phoneE164 = freezed,Object? email = freezed,Object? bloodGroup = freezed,Object? allergies = freezed,Object? notes = freezed,Object? address = freezed,Object? relationship = freezed,Object? primary = null,Object? canManage = null,Object? createdAt = freezed,Object? updatedAt = freezed,}) {
   return _then(_Patient(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,patientNumber: freezed == patientNumber ? _self.patientNumber : patientNumber // ignore: cast_nullable_to_non_nullable
@@ -304,7 +318,8 @@ as String?,email: freezed == email ? _self.email : email // ignore: cast_nullabl
 as String?,bloodGroup: freezed == bloodGroup ? _self.bloodGroup : bloodGroup // ignore: cast_nullable_to_non_nullable
 as String?,allergies: freezed == allergies ? _self.allergies : allergies // ignore: cast_nullable_to_non_nullable
 as String?,notes: freezed == notes ? _self.notes : notes // ignore: cast_nullable_to_non_nullable
-as String?,relationship: freezed == relationship ? _self.relationship : relationship // ignore: cast_nullable_to_non_nullable
+as String?,address: freezed == address ? _self.address : address // ignore: cast_nullable_to_non_nullable
+as Address?,relationship: freezed == relationship ? _self.relationship : relationship // ignore: cast_nullable_to_non_nullable
 as PatientRelationship?,primary: null == primary ? _self.primary : primary // ignore: cast_nullable_to_non_nullable
 as bool,canManage: null == canManage ? _self.canManage : canManage // ignore: cast_nullable_to_non_nullable
 as bool,createdAt: freezed == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
@@ -313,7 +328,19 @@ as DateTime?,
   ));
 }
 
+/// Create a copy of Patient
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$AddressCopyWith<$Res>? get address {
+    if (_self.address == null) {
+    return null;
+  }
 
+  return $AddressCopyWith<$Res>(_self.address!, (value) {
+    return _then(_self.copyWith(address: value));
+  });
+}
 }
 
 

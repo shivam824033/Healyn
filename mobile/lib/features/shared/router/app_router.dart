@@ -40,6 +40,7 @@ import '../widgets/app_bar.dart';
 import '../../patients/data/models/patient_models.dart';
 import '../../patients/presentation/patients_providers.dart';
 import '../../patients/presentation/screens/family_screen.dart';
+import '../../patients/presentation/screens/household_address_form_screen.dart';
 import '../../patients/presentation/screens/patient_form_screen.dart';
 import '../../patients/presentation/screens/profile_screen.dart';
 import '../../treatment_notes/presentation/screens/treatment_notes_timeline_screen.dart';
@@ -327,6 +328,14 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/notifications/preferences',
         builder: (_, _) => const NotificationPreferencesScreen(),
+      ),
+      // The account's household address editor, reached from Profile. `extra`
+      // carries the current Address to prefill; absent when adding the first one.
+      GoRoute(
+        path: '/account/address/edit',
+        builder: (_, state) => HouseholdAddressFormScreen(
+          initial: state.extra is Address ? state.extra as Address : null,
+        ),
       ),
       // Index of appointments with unread messages, reached from Home.
       GoRoute(

@@ -1,11 +1,13 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
+import '../../../shared/domain/address.dart';
 import '../../../shared/domain/patient_sex.dart';
 import '../../../shared/network/json_converters.dart';
 
-// PatientSex and LocalDateConverter moved to shared/ (also used by the patients
-// feature). Re-exported so existing `import auth_models.dart` consumers are
-// unaffected.
+// PatientSex, Address and LocalDateConverter live in shared/ (also used by the
+// patients feature). Re-exported so existing `import auth_models.dart` consumers
+// are unaffected.
+export '../../../shared/domain/address.dart';
 export '../../../shared/domain/patient_sex.dart';
 export '../../../shared/network/json_converters.dart';
 
@@ -62,6 +64,7 @@ abstract class RegisterCompleteRequest with _$RegisterCompleteRequest {
     required String password,
     required DeviceRequest device,
     required PrimaryPatientProfile profile,
+    required Address address,
   }) = _RegisterCompleteRequest;
 
   factory RegisterCompleteRequest.fromJson(Map<String, dynamic> json) =>

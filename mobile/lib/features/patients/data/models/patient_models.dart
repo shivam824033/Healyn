@@ -1,7 +1,10 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
+import '../../../shared/domain/address.dart';
 import '../../../shared/domain/patient_sex.dart';
 import '../../../shared/network/json_converters.dart';
+
+export '../../../shared/domain/address.dart';
 
 part 'patient_models.freezed.dart';
 part 'patient_models.g.dart';
@@ -58,6 +61,9 @@ abstract class Patient with _$Patient {
     String? bloodGroup,
     String? allergies,
     String? notes,
+    // The account's household address, shared across all its patients. Null when
+    // the account has none set (legacy accounts created before addresses landed).
+    Address? address,
     PatientRelationship? relationship,
     @Default(false) bool primary,
     @Default(false) bool canManage,
