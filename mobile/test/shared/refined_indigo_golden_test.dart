@@ -90,6 +90,14 @@ void main() {
 
     testWidgets('splash screen', (tester) async {
       await pumpAt360(tester, const SplashScreen());
+      // Decode the brand PNGs for real, then run the entrance reveal to its end
+      // so the golden captures the settled frame rather than a blank first one.
+      await tester.runAsync(() async {
+        for (final element in find.byType(Image).evaluate()) {
+          await precacheImage((element.widget as Image).image, element);
+        }
+      });
+      await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
       await expectLater(
         find.byType(MaterialApp),

@@ -1,0 +1,4 @@
+# Staging output of generate_app_icon.py — regenerable, and the installed
+# platform assets are what actually ship. Re-create with:
+#   python tool/generate_app_icon.py && python tool/install_brand_assets.py
+icon_gen/
