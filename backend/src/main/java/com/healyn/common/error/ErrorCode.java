@@ -59,5 +59,11 @@ public final class ErrorCode {
     public static final String FILE_MAGIC_BYTE_MISMATCH = "files.magic_byte_mismatch";
     public static final String FILE_REFERENCED = "files.referenced";
 
+    public static final String PHYSIO_FORBIDDEN = "physio.forbidden";
+    public static final String PHYSIO_AVATAR_UNSUPPORTED_MIME = "physio.avatar_unsupported_mime";
+    public static final String PHYSIO_AVATAR_TOO_LARGE = "physio.avatar_too_large";
+    public static final String PHYSIO_AVATAR_KEY_INVALID = "physio.avatar_key_invalid";
+    public static final String PHYSIO_AVATAR_INVALID = "physio.avatar_invalid";
+
     private ErrorCode() {}
 }

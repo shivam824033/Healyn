@@ -71,6 +71,7 @@ Each module is a top-level Java package: `com.healyn.<module>`.
 | `discussion` | Appointment-scoped messages, 5-min edit/delete window, cursor list, per-account read markers, unread count | `DiscussionMessage`, `DiscussionReadMarker` | `appointments`, `patients` (access policy), `files` (attachments — deferred), `notifications` |
 | `files` | Presigned upload/download URLs, file validation | `FileObject` | S3 adapter, `discussion`, `treatment-notes` |
 | `treatment-notes` | Physiotherapist's clinical notes per appointment | `TreatmentNote` | `appointments`, `files` |
+| `physio` | The single physiotherapist's public profile: personal/clinic/social details + avatar (read by patients, edited by the physiotherapist). Avatar reuses the S3 presign mechanism under its own key prefix | `PhysioProfile` | `auth` (physio account), S3 adapter (`files.port` / `files.domain`) |
 | `notifications` | Outbound notification dispatch (FCM in Phase 1) | `NotificationOutbox`, `FcmToken` | FCM adapter, all modules (via events) |
 | `audit` | Clinical access audit log (append-only) | `AuditLogEntry` | Called explicitly by modules via `AuditLogger` (REQUIRES_NEW); a web interceptor for READ paths is a later add |
 | `common` | Shared types, exception mapper, JSON config, validation | (cross-cutting) | — |
