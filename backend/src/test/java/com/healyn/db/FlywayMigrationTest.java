@@ -31,7 +31,7 @@ class FlywayMigrationTest {
 
         // Pins the latest migration version as a tripwire — bump it with every new migration.
         MigrationInfo current = flyway.info().current();
-        assertThat(current.getVersion().getVersion()).isEqualTo("24");
+        assertThat(current.getVersion().getVersion()).isEqualTo("26");
         assertThat(flyway.info().applied()).hasSizeGreaterThanOrEqualTo(24);
 
         DataSource ds = flyway.getConfiguration().getDataSource();
@@ -193,6 +193,11 @@ class FlywayMigrationTest {
             try (ResultSet rs = st.executeQuery(
                     "select 1 from pg_indexes where indexname = 'idx_file_appointment'")) {
                 assertThat(rs.next()).as("idx_file_appointment partial index exists").isTrue();
+            }
+            // V26: the keyset index backing the physiotherapist's patient roster.
+            try (ResultSet rs = st.executeQuery(
+                    "select 1 from pg_indexes where indexname = 'idx_patients_created_id'")) {
+                assertThat(rs.next()).as("idx_patients_created_id roster index exists").isTrue();
             }
         }
     }
