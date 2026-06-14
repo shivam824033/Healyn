@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -18,11 +20,13 @@ class FilesRepository {
   /// file; its [FileObjectView.id] is what a message references via `file_ids`.
   Future<FileObjectView> upload({
     required String patientId,
-    required String appointmentId,
+    String? appointmentId,
     required FileKind kind,
     required String mimeType,
     required String originalFilename,
     required List<int> bytes,
+    String context = FileUploadContext.library,
+    String? uploadSource,
   }) async {
     final presigned = await _guard(
       () => _api.presign(
@@ -30,6 +34,8 @@ class FilesRepository {
           patientId: patientId,
           appointmentId: appointmentId,
           kind: kind,
+          context: context,
+          uploadSource: uploadSource,
           mimeType: mimeType,
           sizeBytes: bytes.length,
           originalFilename: originalFilename,
@@ -43,9 +49,40 @@ class FilesRepository {
     return _guard(() => _api.complete(presigned.fileId));
   }
 
+  /// One page of a patient's library documents for the given uploader (the
+  /// patient/physio split), newest-first.
+  Future<DocumentPage> listDocuments({
+    required String patientId,
+    required DocumentUploader uploader,
+    String? cursor,
+    int limit = 20,
+  }) {
+    return _guard(
+      () => _api.listDocuments(
+        patientId: patientId,
+        uploader: uploader,
+        cursor: cursor,
+        limit: limit,
+      ),
+    );
+  }
+
+  /// Soft-deletes a document (server enforces the reference + role rules).
+  Future<void> delete(String fileId) {
+    return _guard(() => _api.deleteFile(fileId));
+  }
+
   /// Resolves a stored file to a short-lived presigned GET URL the caller opens.
   Future<DownloadTarget> download(String fileId) {
     return _guard(() => _api.download(fileId));
+  }
+
+  /// Pulls a file's bytes into memory for in-app preview (PDF via pdfx, images
+  /// via Image.memory). Nothing is written to disk; the caller drops the buffer
+  /// when the viewer closes.
+  Future<Uint8List> previewBytes(String fileId) async {
+    final target = await _guard(() => _api.download(fileId));
+    return _guardStorage(() => _api.fetchBytes(target.url));
   }
 
   Future<T> _guard<T>(Future<T> Function() body) async {
@@ -67,6 +104,21 @@ class FilesRepository {
         code: 'upload_failed',
         message:
             "Couldn't upload the file to storage. Check your connection and try again.",
+        statusCode: e.response?.statusCode,
+      );
+    }
+  }
+
+  /// Like [_guardUpload] but for reading bytes back from storage (preview): the
+  /// presigned GET hits the storage host, so map its failures to a clear message.
+  Future<T> _guardStorage<T>(Future<T> Function() body) async {
+    try {
+      return await body();
+    } on DioException catch (e) {
+      throw ApiException(
+        code: 'download_failed',
+        message:
+            "Couldn't load the file from storage. Check your connection and try again.",
         statusCode: e.response?.statusCode,
       );
     }

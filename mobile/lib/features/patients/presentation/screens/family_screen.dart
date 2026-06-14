@@ -3,12 +3,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../shared/design/colors.dart';
+import '../../../shared/widgets/healyn_state_switcher.dart';
 import '../../../shared/design/spacing.dart';
 import '../../../shared/design/typography.dart';
 import '../../../shared/widgets/app_bar.dart';
 import '../../../shared/widgets/error_banner.dart';
 import '../../../shared/widgets/healyn_avatar.dart';
 import '../../../shared/widgets/healyn_list_row.dart';
+import '../../../shared/widgets/healyn_reveal.dart';
+import '../../../shared/widgets/healyn_skeletons.dart';
 import '../../data/models/patient_models.dart';
 import '../patient_format.dart';
 import '../patients_providers.dart';
@@ -39,27 +42,41 @@ class FamilyScreen extends ConsumerWidget {
             ref.invalidate(patientsProvider);
             await ref.read(patientsProvider.future);
           },
-          child: patients.when(
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (_, _) => ListView(
-              padding: const EdgeInsets.all(HealynSpacing.screenEdge),
-              children: const [
-                ErrorBanner(
-                  message: 'Could not load your family. Pull down to retry.',
-                ),
-              ],
-            ),
-            data: (all) {
-              final family = familyMembersOf(all);
-              if (family.isEmpty) return const _EmptyFamily();
-              return ListView.separated(
+          child: HealynStateSwitcher(
+            child: patients.when(
+              loading: () => const HealynListSkeleton(
+                key: ValueKey('family-loading'),
+                hasFooter: false,
+              ),
+              error: (_, _) => ListView(
+                key: const ValueKey('family-error'),
                 padding: const EdgeInsets.all(HealynSpacing.screenEdge),
-                itemCount: family.length,
-                separatorBuilder: (_, _) =>
-                    const SizedBox(height: HealynSpacing.s3),
-                itemBuilder: (_, i) => _FamilyTile(patient: family[i]),
-              );
-            },
+                children: const [
+                  ErrorBanner(
+                    message: 'Could not load your family. Pull down to retry.',
+                  ),
+                ],
+              ),
+              data: (all) {
+                final family = familyMembersOf(all);
+                if (family.isEmpty) {
+                  return const _EmptyFamily(key: ValueKey('family-empty'));
+                }
+                return ListView.separated(
+                  key: const ValueKey('family-data'),
+                  padding: const EdgeInsets.all(HealynSpacing.screenEdge),
+                  itemCount: family.length,
+                  separatorBuilder: (_, _) =>
+                      const SizedBox(height: HealynSpacing.s3),
+                  // Cap the stagger so rows scrolled into view later (lazily
+                  // built) reveal immediately rather than after a long delay.
+                  itemBuilder: (_, i) => HealynReveal.staggered(
+                    index: i < 6 ? i : 6,
+                    child: _FamilyTile(patient: family[i]),
+                  ),
+                );
+              },
+            ),
           ),
         ),
       ),
@@ -84,6 +101,17 @@ class _FamilyTile extends StatelessWidget {
       leading: HealynAvatar(name: patient.fullName, seed: patient.id, size: 44),
       title: patient.fullName,
       subtitle: subtitle,
+      trailing: IconButton(
+        tooltip: 'Documents',
+        icon: const Icon(
+          Icons.folder_outlined,
+          color: HealynColors.textMuted,
+        ),
+        onPressed: () => context.push(
+          '/patients/${patient.id}/documents',
+          extra: patient.fullName,
+        ),
+      ),
       onTap: () =>
           context.push('/patients/${patient.id}/edit', extra: patient),
     );
@@ -91,7 +119,7 @@ class _FamilyTile extends StatelessWidget {
 }
 
 class _EmptyFamily extends StatelessWidget {
-  const _EmptyFamily();
+  const _EmptyFamily({super.key});
 
   @override
   Widget build(BuildContext context) {

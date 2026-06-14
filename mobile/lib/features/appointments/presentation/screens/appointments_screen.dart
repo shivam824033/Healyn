@@ -9,7 +9,11 @@ import '../../../shared/design/typography.dart';
 import '../../../shared/widgets/app_bar.dart';
 import '../../../shared/widgets/error_banner.dart';
 import '../../../shared/widgets/healyn_list_row.dart';
+import '../../../shared/widgets/healyn_reveal.dart';
 import '../../../shared/widgets/healyn_section_header.dart';
+import '../../../shared/widgets/healyn_shimmer.dart';
+import '../../../shared/widgets/healyn_skeletons.dart';
+import '../../../shared/widgets/healyn_state_switcher.dart';
 import '../../data/models/appointment_models.dart';
 import '../appointment_format.dart';
 import '../appointments_providers.dart';
@@ -50,10 +54,12 @@ class AppointmentsScreen extends ConsumerWidget {
                   ref.invalidate(appointmentsProvider);
                   await ref.read(appointmentsProvider.future);
                 },
-                child: appointments.when(
+                child: HealynStateSwitcher(
+                  child: appointments.when(
                   loading: () =>
-                      const Center(child: CircularProgressIndicator()),
+                      const _AppointmentsSkeleton(key: ValueKey('appts-loading')),
                   error: (_, _) => ListView(
+                    key: const ValueKey('appts-error'),
                     padding: const EdgeInsets.all(HealynSpacing.screenEdge),
                     children: const [
                       ErrorBanner(
@@ -66,13 +72,20 @@ class AppointmentsScreen extends ConsumerWidget {
                     final all = state.items;
                     if (all.isEmpty) {
                       return filter.isDefault
-                          ? const _EmptyAppointments()
-                          : const _NoMatchingAppointments();
+                          ? const _EmptyAppointments(key: ValueKey('appts-empty'))
+                          : const _NoMatchingAppointments(
+                              key: ValueKey('appts-nomatch'),
+                            );
                     }
               final upcoming = upcomingOf(all);
               final past = pastOf(all);
+              // A capped running index so the first rows reveal in a gentle
+              // stagger; later rows (and paged-in ones) arrive without delay.
+              var revealIndex = 0;
+              int nextReveal() => revealIndex < 6 ? revealIndex++ : 6;
               // Auto-load the next cursor page as the list nears its bottom.
               return NotificationListener<ScrollNotification>(
+                key: const ValueKey('appts-data'),
                 onNotification: (n) {
                   if (state.hasMore &&
                       !state.isLoadingMore &&
@@ -88,7 +101,13 @@ class AppointmentsScreen extends ConsumerWidget {
                       const HealynSectionHeader(title: 'Upcoming'),
                       const SizedBox(height: HealynSpacing.s3),
                       for (final a in upcoming) ...[
-                        _AppointmentTile(appointment: a, patientName: names[a.patientId]),
+                        HealynReveal.staggered(
+                          index: nextReveal(),
+                          child: _AppointmentTile(
+                            appointment: a,
+                            patientName: names[a.patientId],
+                          ),
+                        ),
                         const SizedBox(height: HealynSpacing.s3),
                       ],
                     ],
@@ -98,7 +117,13 @@ class AppointmentsScreen extends ConsumerWidget {
                       const HealynSectionHeader(title: 'Past'),
                       const SizedBox(height: HealynSpacing.s3),
                       for (final a in past) ...[
-                        _AppointmentTile(appointment: a, patientName: names[a.patientId]),
+                        HealynReveal.staggered(
+                          index: nextReveal(),
+                          child: _AppointmentTile(
+                            appointment: a,
+                            patientName: names[a.patientId],
+                          ),
+                        ),
                         const SizedBox(height: HealynSpacing.s3),
                       ],
                     ],
@@ -112,11 +137,40 @@ class AppointmentsScreen extends ConsumerWidget {
                 ),
               );
                   },
+                  ),
                 ),
               ),
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// First-load placeholder for the timeline: a section title and a few shimmering
+/// appointment rows in the same footprint as the real list, kept scrollable so
+/// pull-to-refresh still works on a cold load.
+class _AppointmentsSkeleton extends StatelessWidget {
+  const _AppointmentsSkeleton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return HealynShimmer(
+      child: ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.all(HealynSpacing.screenEdge),
+        children: const [
+          HealynSkeletonLine(widthFactor: 0.3, height: 20),
+          SizedBox(height: HealynSpacing.s4),
+          HealynListRowSkeleton(),
+          SizedBox(height: HealynSpacing.s3),
+          HealynListRowSkeleton(),
+          SizedBox(height: HealynSpacing.s3),
+          HealynListRowSkeleton(),
+          SizedBox(height: HealynSpacing.s3),
+          HealynListRowSkeleton(),
+        ],
       ),
     );
   }
@@ -151,7 +205,7 @@ class _AppointmentTile extends StatelessWidget {
 /// Shown when a filter is active but nothing matches — distinct from the
 /// first-run [_EmptyAppointments] onboarding (which invites a first booking).
 class _NoMatchingAppointments extends StatelessWidget {
-  const _NoMatchingAppointments();
+  const _NoMatchingAppointments({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -210,7 +264,7 @@ class _LoadMoreFooter extends StatelessWidget {
 }
 
 class _EmptyAppointments extends StatelessWidget {
-  const _EmptyAppointments();
+  const _EmptyAppointments({super.key});
 
   @override
   Widget build(BuildContext context) {

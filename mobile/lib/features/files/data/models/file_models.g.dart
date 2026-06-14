@@ -9,8 +9,10 @@ part of 'file_models.dart';
 _PresignRequest _$PresignRequestFromJson(Map<String, dynamic> json) =>
     _PresignRequest(
       patientId: json['patient_id'] as String,
-      appointmentId: json['appointment_id'] as String,
+      appointmentId: json['appointment_id'] as String?,
       kind: $enumDecode(_$FileKindEnumMap, json['kind']),
+      context: json['context'] as String?,
+      uploadSource: json['upload_source'] as String?,
       mimeType: json['mime_type'] as String,
       sizeBytes: (json['size_bytes'] as num).toInt(),
       originalFilename: json['original_filename'] as String,
@@ -19,8 +21,10 @@ _PresignRequest _$PresignRequestFromJson(Map<String, dynamic> json) =>
 Map<String, dynamic> _$PresignRequestToJson(_PresignRequest instance) =>
     <String, dynamic>{
       'patient_id': instance.patientId,
-      'appointment_id': instance.appointmentId,
+      'appointment_id': ?instance.appointmentId,
       'kind': _$FileKindEnumMap[instance.kind]!,
+      'context': ?instance.context,
+      'upload_source': ?instance.uploadSource,
       'mime_type': instance.mimeType,
       'size_bytes': instance.sizeBytes,
       'original_filename': instance.originalFilename,
@@ -34,6 +38,61 @@ const _$FileKindEnumMap = {
   FileKind.exercisePlan: 'EXERCISE_PLAN',
   FileKind.other: 'OTHER',
 };
+
+_FileDocument _$FileDocumentFromJson(Map<String, dynamic> json) =>
+    _FileDocument(
+      id: json['id'] as String,
+      patientId: json['patient_id'] as String,
+      kind: $enumDecode(_$FileKindEnumMap, json['kind']),
+      mimeType: json['mime_type'] as String,
+      originalFilename: json['original_filename'] as String,
+      sizeBytes: (json['size_bytes'] as num).toInt(),
+      uploadedByRole: $enumDecode(
+        _$DocumentUploaderRoleEnumMap,
+        json['uploaded_by_role'],
+      ),
+      appointmentId: json['appointment_id'] as String?,
+      appointmentNumber: json['appointment_number'] as String?,
+      createdAt: json['created_at'] == null
+          ? null
+          : DateTime.parse(json['created_at'] as String),
+    );
+
+Map<String, dynamic> _$FileDocumentToJson(
+  _FileDocument instance,
+) => <String, dynamic>{
+  'id': instance.id,
+  'patient_id': instance.patientId,
+  'kind': _$FileKindEnumMap[instance.kind]!,
+  'mime_type': instance.mimeType,
+  'original_filename': instance.originalFilename,
+  'size_bytes': instance.sizeBytes,
+  'uploaded_by_role': _$DocumentUploaderRoleEnumMap[instance.uploadedByRole]!,
+  'appointment_id': ?instance.appointmentId,
+  'appointment_number': ?instance.appointmentNumber,
+  'created_at': ?instance.createdAt?.toIso8601String(),
+};
+
+const _$DocumentUploaderRoleEnumMap = {
+  DocumentUploaderRole.patient: 'ROLE_ACCOUNT',
+  DocumentUploaderRole.physiotherapist: 'ROLE_PHYSIO',
+};
+
+_DocumentPage _$DocumentPageFromJson(Map<String, dynamic> json) =>
+    _DocumentPage(
+      items:
+          (json['items'] as List<dynamic>?)
+              ?.map((e) => FileDocument.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const <FileDocument>[],
+      nextCursor: json['next_cursor'] as String?,
+    );
+
+Map<String, dynamic> _$DocumentPageToJson(_DocumentPage instance) =>
+    <String, dynamic>{
+      'items': instance.items.map((e) => e.toJson()).toList(),
+      'next_cursor': ?instance.nextCursor,
+    };
 
 _UploadTarget _$UploadTargetFromJson(Map<String, dynamic> json) =>
     _UploadTarget(

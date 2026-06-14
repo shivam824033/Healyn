@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$PresignRequest {
 
- String get patientId; String get appointmentId; FileKind get kind; String get mimeType; int get sizeBytes; String get originalFilename;
+ String get patientId; String? get appointmentId; FileKind get kind; String? get context; String? get uploadSource; String get mimeType; int get sizeBytes; String get originalFilename;
 /// Create a copy of PresignRequest
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,16 +28,16 @@ $PresignRequestCopyWith<PresignRequest> get copyWith => _$PresignRequestCopyWith
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is PresignRequest&&(identical(other.patientId, patientId) || other.patientId == patientId)&&(identical(other.appointmentId, appointmentId) || other.appointmentId == appointmentId)&&(identical(other.kind, kind) || other.kind == kind)&&(identical(other.mimeType, mimeType) || other.mimeType == mimeType)&&(identical(other.sizeBytes, sizeBytes) || other.sizeBytes == sizeBytes)&&(identical(other.originalFilename, originalFilename) || other.originalFilename == originalFilename));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is PresignRequest&&(identical(other.patientId, patientId) || other.patientId == patientId)&&(identical(other.appointmentId, appointmentId) || other.appointmentId == appointmentId)&&(identical(other.kind, kind) || other.kind == kind)&&(identical(other.context, context) || other.context == context)&&(identical(other.uploadSource, uploadSource) || other.uploadSource == uploadSource)&&(identical(other.mimeType, mimeType) || other.mimeType == mimeType)&&(identical(other.sizeBytes, sizeBytes) || other.sizeBytes == sizeBytes)&&(identical(other.originalFilename, originalFilename) || other.originalFilename == originalFilename));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,patientId,appointmentId,kind,mimeType,sizeBytes,originalFilename);
+int get hashCode => Object.hash(runtimeType,patientId,appointmentId,kind,context,uploadSource,mimeType,sizeBytes,originalFilename);
 
 @override
 String toString() {
-  return 'PresignRequest(patientId: $patientId, appointmentId: $appointmentId, kind: $kind, mimeType: $mimeType, sizeBytes: $sizeBytes, originalFilename: $originalFilename)';
+  return 'PresignRequest(patientId: $patientId, appointmentId: $appointmentId, kind: $kind, context: $context, uploadSource: $uploadSource, mimeType: $mimeType, sizeBytes: $sizeBytes, originalFilename: $originalFilename)';
 }
 
 
@@ -48,7 +48,7 @@ abstract mixin class $PresignRequestCopyWith<$Res>  {
   factory $PresignRequestCopyWith(PresignRequest value, $Res Function(PresignRequest) _then) = _$PresignRequestCopyWithImpl;
 @useResult
 $Res call({
- String patientId, String appointmentId, FileKind kind, String mimeType, int sizeBytes, String originalFilename
+ String patientId, String? appointmentId, FileKind kind, String? context, String? uploadSource, String mimeType, int sizeBytes, String originalFilename
 });
 
 
@@ -65,12 +65,14 @@ class _$PresignRequestCopyWithImpl<$Res>
 
 /// Create a copy of PresignRequest
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? patientId = null,Object? appointmentId = null,Object? kind = null,Object? mimeType = null,Object? sizeBytes = null,Object? originalFilename = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? patientId = null,Object? appointmentId = freezed,Object? kind = null,Object? context = freezed,Object? uploadSource = freezed,Object? mimeType = null,Object? sizeBytes = null,Object? originalFilename = null,}) {
   return _then(_self.copyWith(
 patientId: null == patientId ? _self.patientId : patientId // ignore: cast_nullable_to_non_nullable
-as String,appointmentId: null == appointmentId ? _self.appointmentId : appointmentId // ignore: cast_nullable_to_non_nullable
-as String,kind: null == kind ? _self.kind : kind // ignore: cast_nullable_to_non_nullable
-as FileKind,mimeType: null == mimeType ? _self.mimeType : mimeType // ignore: cast_nullable_to_non_nullable
+as String,appointmentId: freezed == appointmentId ? _self.appointmentId : appointmentId // ignore: cast_nullable_to_non_nullable
+as String?,kind: null == kind ? _self.kind : kind // ignore: cast_nullable_to_non_nullable
+as FileKind,context: freezed == context ? _self.context : context // ignore: cast_nullable_to_non_nullable
+as String?,uploadSource: freezed == uploadSource ? _self.uploadSource : uploadSource // ignore: cast_nullable_to_non_nullable
+as String?,mimeType: null == mimeType ? _self.mimeType : mimeType // ignore: cast_nullable_to_non_nullable
 as String,sizeBytes: null == sizeBytes ? _self.sizeBytes : sizeBytes // ignore: cast_nullable_to_non_nullable
 as int,originalFilename: null == originalFilename ? _self.originalFilename : originalFilename // ignore: cast_nullable_to_non_nullable
 as String,
@@ -158,10 +160,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String patientId,  String appointmentId,  FileKind kind,  String mimeType,  int sizeBytes,  String originalFilename)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String patientId,  String? appointmentId,  FileKind kind,  String? context,  String? uploadSource,  String mimeType,  int sizeBytes,  String originalFilename)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _PresignRequest() when $default != null:
-return $default(_that.patientId,_that.appointmentId,_that.kind,_that.mimeType,_that.sizeBytes,_that.originalFilename);case _:
+return $default(_that.patientId,_that.appointmentId,_that.kind,_that.context,_that.uploadSource,_that.mimeType,_that.sizeBytes,_that.originalFilename);case _:
   return orElse();
 
 }
@@ -179,10 +181,10 @@ return $default(_that.patientId,_that.appointmentId,_that.kind,_that.mimeType,_t
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String patientId,  String appointmentId,  FileKind kind,  String mimeType,  int sizeBytes,  String originalFilename)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String patientId,  String? appointmentId,  FileKind kind,  String? context,  String? uploadSource,  String mimeType,  int sizeBytes,  String originalFilename)  $default,) {final _that = this;
 switch (_that) {
 case _PresignRequest():
-return $default(_that.patientId,_that.appointmentId,_that.kind,_that.mimeType,_that.sizeBytes,_that.originalFilename);case _:
+return $default(_that.patientId,_that.appointmentId,_that.kind,_that.context,_that.uploadSource,_that.mimeType,_that.sizeBytes,_that.originalFilename);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -199,10 +201,10 @@ return $default(_that.patientId,_that.appointmentId,_that.kind,_that.mimeType,_t
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String patientId,  String appointmentId,  FileKind kind,  String mimeType,  int sizeBytes,  String originalFilename)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String patientId,  String? appointmentId,  FileKind kind,  String? context,  String? uploadSource,  String mimeType,  int sizeBytes,  String originalFilename)?  $default,) {final _that = this;
 switch (_that) {
 case _PresignRequest() when $default != null:
-return $default(_that.patientId,_that.appointmentId,_that.kind,_that.mimeType,_that.sizeBytes,_that.originalFilename);case _:
+return $default(_that.patientId,_that.appointmentId,_that.kind,_that.context,_that.uploadSource,_that.mimeType,_that.sizeBytes,_that.originalFilename);case _:
   return null;
 
 }
@@ -214,12 +216,14 @@ return $default(_that.patientId,_that.appointmentId,_that.kind,_that.mimeType,_t
 @JsonSerializable()
 
 class _PresignRequest implements PresignRequest {
-  const _PresignRequest({required this.patientId, required this.appointmentId, required this.kind, required this.mimeType, required this.sizeBytes, required this.originalFilename});
+  const _PresignRequest({required this.patientId, this.appointmentId, required this.kind, this.context, this.uploadSource, required this.mimeType, required this.sizeBytes, required this.originalFilename});
   factory _PresignRequest.fromJson(Map<String, dynamic> json) => _$PresignRequestFromJson(json);
 
 @override final  String patientId;
-@override final  String appointmentId;
+@override final  String? appointmentId;
 @override final  FileKind kind;
+@override final  String? context;
+@override final  String? uploadSource;
 @override final  String mimeType;
 @override final  int sizeBytes;
 @override final  String originalFilename;
@@ -237,16 +241,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _PresignRequest&&(identical(other.patientId, patientId) || other.patientId == patientId)&&(identical(other.appointmentId, appointmentId) || other.appointmentId == appointmentId)&&(identical(other.kind, kind) || other.kind == kind)&&(identical(other.mimeType, mimeType) || other.mimeType == mimeType)&&(identical(other.sizeBytes, sizeBytes) || other.sizeBytes == sizeBytes)&&(identical(other.originalFilename, originalFilename) || other.originalFilename == originalFilename));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _PresignRequest&&(identical(other.patientId, patientId) || other.patientId == patientId)&&(identical(other.appointmentId, appointmentId) || other.appointmentId == appointmentId)&&(identical(other.kind, kind) || other.kind == kind)&&(identical(other.context, context) || other.context == context)&&(identical(other.uploadSource, uploadSource) || other.uploadSource == uploadSource)&&(identical(other.mimeType, mimeType) || other.mimeType == mimeType)&&(identical(other.sizeBytes, sizeBytes) || other.sizeBytes == sizeBytes)&&(identical(other.originalFilename, originalFilename) || other.originalFilename == originalFilename));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,patientId,appointmentId,kind,mimeType,sizeBytes,originalFilename);
+int get hashCode => Object.hash(runtimeType,patientId,appointmentId,kind,context,uploadSource,mimeType,sizeBytes,originalFilename);
 
 @override
 String toString() {
-  return 'PresignRequest(patientId: $patientId, appointmentId: $appointmentId, kind: $kind, mimeType: $mimeType, sizeBytes: $sizeBytes, originalFilename: $originalFilename)';
+  return 'PresignRequest(patientId: $patientId, appointmentId: $appointmentId, kind: $kind, context: $context, uploadSource: $uploadSource, mimeType: $mimeType, sizeBytes: $sizeBytes, originalFilename: $originalFilename)';
 }
 
 
@@ -257,7 +261,7 @@ abstract mixin class _$PresignRequestCopyWith<$Res> implements $PresignRequestCo
   factory _$PresignRequestCopyWith(_PresignRequest value, $Res Function(_PresignRequest) _then) = __$PresignRequestCopyWithImpl;
 @override @useResult
 $Res call({
- String patientId, String appointmentId, FileKind kind, String mimeType, int sizeBytes, String originalFilename
+ String patientId, String? appointmentId, FileKind kind, String? context, String? uploadSource, String mimeType, int sizeBytes, String originalFilename
 });
 
 
@@ -274,15 +278,579 @@ class __$PresignRequestCopyWithImpl<$Res>
 
 /// Create a copy of PresignRequest
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? patientId = null,Object? appointmentId = null,Object? kind = null,Object? mimeType = null,Object? sizeBytes = null,Object? originalFilename = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? patientId = null,Object? appointmentId = freezed,Object? kind = null,Object? context = freezed,Object? uploadSource = freezed,Object? mimeType = null,Object? sizeBytes = null,Object? originalFilename = null,}) {
   return _then(_PresignRequest(
 patientId: null == patientId ? _self.patientId : patientId // ignore: cast_nullable_to_non_nullable
-as String,appointmentId: null == appointmentId ? _self.appointmentId : appointmentId // ignore: cast_nullable_to_non_nullable
-as String,kind: null == kind ? _self.kind : kind // ignore: cast_nullable_to_non_nullable
-as FileKind,mimeType: null == mimeType ? _self.mimeType : mimeType // ignore: cast_nullable_to_non_nullable
+as String,appointmentId: freezed == appointmentId ? _self.appointmentId : appointmentId // ignore: cast_nullable_to_non_nullable
+as String?,kind: null == kind ? _self.kind : kind // ignore: cast_nullable_to_non_nullable
+as FileKind,context: freezed == context ? _self.context : context // ignore: cast_nullable_to_non_nullable
+as String?,uploadSource: freezed == uploadSource ? _self.uploadSource : uploadSource // ignore: cast_nullable_to_non_nullable
+as String?,mimeType: null == mimeType ? _self.mimeType : mimeType // ignore: cast_nullable_to_non_nullable
 as String,sizeBytes: null == sizeBytes ? _self.sizeBytes : sizeBytes // ignore: cast_nullable_to_non_nullable
 as int,originalFilename: null == originalFilename ? _self.originalFilename : originalFilename // ignore: cast_nullable_to_non_nullable
 as String,
+  ));
+}
+
+
+}
+
+
+/// @nodoc
+mixin _$FileDocument {
+
+ String get id; String get patientId; FileKind get kind; String get mimeType; String get originalFilename; int get sizeBytes; DocumentUploaderRole get uploadedByRole; String? get appointmentId; String? get appointmentNumber; DateTime? get createdAt;
+/// Create a copy of FileDocument
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$FileDocumentCopyWith<FileDocument> get copyWith => _$FileDocumentCopyWithImpl<FileDocument>(this as FileDocument, _$identity);
+
+  /// Serializes this FileDocument to a JSON map.
+  Map<String, dynamic> toJson();
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is FileDocument&&(identical(other.id, id) || other.id == id)&&(identical(other.patientId, patientId) || other.patientId == patientId)&&(identical(other.kind, kind) || other.kind == kind)&&(identical(other.mimeType, mimeType) || other.mimeType == mimeType)&&(identical(other.originalFilename, originalFilename) || other.originalFilename == originalFilename)&&(identical(other.sizeBytes, sizeBytes) || other.sizeBytes == sizeBytes)&&(identical(other.uploadedByRole, uploadedByRole) || other.uploadedByRole == uploadedByRole)&&(identical(other.appointmentId, appointmentId) || other.appointmentId == appointmentId)&&(identical(other.appointmentNumber, appointmentNumber) || other.appointmentNumber == appointmentNumber)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,id,patientId,kind,mimeType,originalFilename,sizeBytes,uploadedByRole,appointmentId,appointmentNumber,createdAt);
+
+@override
+String toString() {
+  return 'FileDocument(id: $id, patientId: $patientId, kind: $kind, mimeType: $mimeType, originalFilename: $originalFilename, sizeBytes: $sizeBytes, uploadedByRole: $uploadedByRole, appointmentId: $appointmentId, appointmentNumber: $appointmentNumber, createdAt: $createdAt)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $FileDocumentCopyWith<$Res>  {
+  factory $FileDocumentCopyWith(FileDocument value, $Res Function(FileDocument) _then) = _$FileDocumentCopyWithImpl;
+@useResult
+$Res call({
+ String id, String patientId, FileKind kind, String mimeType, String originalFilename, int sizeBytes, DocumentUploaderRole uploadedByRole, String? appointmentId, String? appointmentNumber, DateTime? createdAt
+});
+
+
+
+
+}
+/// @nodoc
+class _$FileDocumentCopyWithImpl<$Res>
+    implements $FileDocumentCopyWith<$Res> {
+  _$FileDocumentCopyWithImpl(this._self, this._then);
+
+  final FileDocument _self;
+  final $Res Function(FileDocument) _then;
+
+/// Create a copy of FileDocument
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? patientId = null,Object? kind = null,Object? mimeType = null,Object? originalFilename = null,Object? sizeBytes = null,Object? uploadedByRole = null,Object? appointmentId = freezed,Object? appointmentNumber = freezed,Object? createdAt = freezed,}) {
+  return _then(_self.copyWith(
+id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as String,patientId: null == patientId ? _self.patientId : patientId // ignore: cast_nullable_to_non_nullable
+as String,kind: null == kind ? _self.kind : kind // ignore: cast_nullable_to_non_nullable
+as FileKind,mimeType: null == mimeType ? _self.mimeType : mimeType // ignore: cast_nullable_to_non_nullable
+as String,originalFilename: null == originalFilename ? _self.originalFilename : originalFilename // ignore: cast_nullable_to_non_nullable
+as String,sizeBytes: null == sizeBytes ? _self.sizeBytes : sizeBytes // ignore: cast_nullable_to_non_nullable
+as int,uploadedByRole: null == uploadedByRole ? _self.uploadedByRole : uploadedByRole // ignore: cast_nullable_to_non_nullable
+as DocumentUploaderRole,appointmentId: freezed == appointmentId ? _self.appointmentId : appointmentId // ignore: cast_nullable_to_non_nullable
+as String?,appointmentNumber: freezed == appointmentNumber ? _self.appointmentNumber : appointmentNumber // ignore: cast_nullable_to_non_nullable
+as String?,createdAt: freezed == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
+as DateTime?,
+  ));
+}
+
+}
+
+
+/// Adds pattern-matching-related methods to [FileDocument].
+extension FileDocumentPatterns on FileDocument {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _FileDocument value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _FileDocument() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _FileDocument value)  $default,){
+final _that = this;
+switch (_that) {
+case _FileDocument():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _FileDocument value)?  $default,){
+final _that = this;
+switch (_that) {
+case _FileDocument() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String patientId,  FileKind kind,  String mimeType,  String originalFilename,  int sizeBytes,  DocumentUploaderRole uploadedByRole,  String? appointmentId,  String? appointmentNumber,  DateTime? createdAt)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _FileDocument() when $default != null:
+return $default(_that.id,_that.patientId,_that.kind,_that.mimeType,_that.originalFilename,_that.sizeBytes,_that.uploadedByRole,_that.appointmentId,_that.appointmentNumber,_that.createdAt);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String patientId,  FileKind kind,  String mimeType,  String originalFilename,  int sizeBytes,  DocumentUploaderRole uploadedByRole,  String? appointmentId,  String? appointmentNumber,  DateTime? createdAt)  $default,) {final _that = this;
+switch (_that) {
+case _FileDocument():
+return $default(_that.id,_that.patientId,_that.kind,_that.mimeType,_that.originalFilename,_that.sizeBytes,_that.uploadedByRole,_that.appointmentId,_that.appointmentNumber,_that.createdAt);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String patientId,  FileKind kind,  String mimeType,  String originalFilename,  int sizeBytes,  DocumentUploaderRole uploadedByRole,  String? appointmentId,  String? appointmentNumber,  DateTime? createdAt)?  $default,) {final _that = this;
+switch (_that) {
+case _FileDocument() when $default != null:
+return $default(_that.id,_that.patientId,_that.kind,_that.mimeType,_that.originalFilename,_that.sizeBytes,_that.uploadedByRole,_that.appointmentId,_that.appointmentNumber,_that.createdAt);case _:
+  return null;
+
+}
+}
+
+}
+
+/// @nodoc
+@JsonSerializable()
+
+class _FileDocument implements FileDocument {
+  const _FileDocument({required this.id, required this.patientId, required this.kind, required this.mimeType, required this.originalFilename, required this.sizeBytes, required this.uploadedByRole, this.appointmentId, this.appointmentNumber, this.createdAt});
+  factory _FileDocument.fromJson(Map<String, dynamic> json) => _$FileDocumentFromJson(json);
+
+@override final  String id;
+@override final  String patientId;
+@override final  FileKind kind;
+@override final  String mimeType;
+@override final  String originalFilename;
+@override final  int sizeBytes;
+@override final  DocumentUploaderRole uploadedByRole;
+@override final  String? appointmentId;
+@override final  String? appointmentNumber;
+@override final  DateTime? createdAt;
+
+/// Create a copy of FileDocument
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$FileDocumentCopyWith<_FileDocument> get copyWith => __$FileDocumentCopyWithImpl<_FileDocument>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$FileDocumentToJson(this, );
+}
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _FileDocument&&(identical(other.id, id) || other.id == id)&&(identical(other.patientId, patientId) || other.patientId == patientId)&&(identical(other.kind, kind) || other.kind == kind)&&(identical(other.mimeType, mimeType) || other.mimeType == mimeType)&&(identical(other.originalFilename, originalFilename) || other.originalFilename == originalFilename)&&(identical(other.sizeBytes, sizeBytes) || other.sizeBytes == sizeBytes)&&(identical(other.uploadedByRole, uploadedByRole) || other.uploadedByRole == uploadedByRole)&&(identical(other.appointmentId, appointmentId) || other.appointmentId == appointmentId)&&(identical(other.appointmentNumber, appointmentNumber) || other.appointmentNumber == appointmentNumber)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,id,patientId,kind,mimeType,originalFilename,sizeBytes,uploadedByRole,appointmentId,appointmentNumber,createdAt);
+
+@override
+String toString() {
+  return 'FileDocument(id: $id, patientId: $patientId, kind: $kind, mimeType: $mimeType, originalFilename: $originalFilename, sizeBytes: $sizeBytes, uploadedByRole: $uploadedByRole, appointmentId: $appointmentId, appointmentNumber: $appointmentNumber, createdAt: $createdAt)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$FileDocumentCopyWith<$Res> implements $FileDocumentCopyWith<$Res> {
+  factory _$FileDocumentCopyWith(_FileDocument value, $Res Function(_FileDocument) _then) = __$FileDocumentCopyWithImpl;
+@override @useResult
+$Res call({
+ String id, String patientId, FileKind kind, String mimeType, String originalFilename, int sizeBytes, DocumentUploaderRole uploadedByRole, String? appointmentId, String? appointmentNumber, DateTime? createdAt
+});
+
+
+
+
+}
+/// @nodoc
+class __$FileDocumentCopyWithImpl<$Res>
+    implements _$FileDocumentCopyWith<$Res> {
+  __$FileDocumentCopyWithImpl(this._self, this._then);
+
+  final _FileDocument _self;
+  final $Res Function(_FileDocument) _then;
+
+/// Create a copy of FileDocument
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? patientId = null,Object? kind = null,Object? mimeType = null,Object? originalFilename = null,Object? sizeBytes = null,Object? uploadedByRole = null,Object? appointmentId = freezed,Object? appointmentNumber = freezed,Object? createdAt = freezed,}) {
+  return _then(_FileDocument(
+id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as String,patientId: null == patientId ? _self.patientId : patientId // ignore: cast_nullable_to_non_nullable
+as String,kind: null == kind ? _self.kind : kind // ignore: cast_nullable_to_non_nullable
+as FileKind,mimeType: null == mimeType ? _self.mimeType : mimeType // ignore: cast_nullable_to_non_nullable
+as String,originalFilename: null == originalFilename ? _self.originalFilename : originalFilename // ignore: cast_nullable_to_non_nullable
+as String,sizeBytes: null == sizeBytes ? _self.sizeBytes : sizeBytes // ignore: cast_nullable_to_non_nullable
+as int,uploadedByRole: null == uploadedByRole ? _self.uploadedByRole : uploadedByRole // ignore: cast_nullable_to_non_nullable
+as DocumentUploaderRole,appointmentId: freezed == appointmentId ? _self.appointmentId : appointmentId // ignore: cast_nullable_to_non_nullable
+as String?,appointmentNumber: freezed == appointmentNumber ? _self.appointmentNumber : appointmentNumber // ignore: cast_nullable_to_non_nullable
+as String?,createdAt: freezed == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
+as DateTime?,
+  ));
+}
+
+
+}
+
+
+/// @nodoc
+mixin _$DocumentPage {
+
+ List<FileDocument> get items; String? get nextCursor;
+/// Create a copy of DocumentPage
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$DocumentPageCopyWith<DocumentPage> get copyWith => _$DocumentPageCopyWithImpl<DocumentPage>(this as DocumentPage, _$identity);
+
+  /// Serializes this DocumentPage to a JSON map.
+  Map<String, dynamic> toJson();
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is DocumentPage&&const DeepCollectionEquality().equals(other.items, items)&&(identical(other.nextCursor, nextCursor) || other.nextCursor == nextCursor));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,const DeepCollectionEquality().hash(items),nextCursor);
+
+@override
+String toString() {
+  return 'DocumentPage(items: $items, nextCursor: $nextCursor)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $DocumentPageCopyWith<$Res>  {
+  factory $DocumentPageCopyWith(DocumentPage value, $Res Function(DocumentPage) _then) = _$DocumentPageCopyWithImpl;
+@useResult
+$Res call({
+ List<FileDocument> items, String? nextCursor
+});
+
+
+
+
+}
+/// @nodoc
+class _$DocumentPageCopyWithImpl<$Res>
+    implements $DocumentPageCopyWith<$Res> {
+  _$DocumentPageCopyWithImpl(this._self, this._then);
+
+  final DocumentPage _self;
+  final $Res Function(DocumentPage) _then;
+
+/// Create a copy of DocumentPage
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? items = null,Object? nextCursor = freezed,}) {
+  return _then(_self.copyWith(
+items: null == items ? _self.items : items // ignore: cast_nullable_to_non_nullable
+as List<FileDocument>,nextCursor: freezed == nextCursor ? _self.nextCursor : nextCursor // ignore: cast_nullable_to_non_nullable
+as String?,
+  ));
+}
+
+}
+
+
+/// Adds pattern-matching-related methods to [DocumentPage].
+extension DocumentPagePatterns on DocumentPage {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _DocumentPage value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _DocumentPage() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _DocumentPage value)  $default,){
+final _that = this;
+switch (_that) {
+case _DocumentPage():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _DocumentPage value)?  $default,){
+final _that = this;
+switch (_that) {
+case _DocumentPage() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( List<FileDocument> items,  String? nextCursor)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _DocumentPage() when $default != null:
+return $default(_that.items,_that.nextCursor);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( List<FileDocument> items,  String? nextCursor)  $default,) {final _that = this;
+switch (_that) {
+case _DocumentPage():
+return $default(_that.items,_that.nextCursor);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( List<FileDocument> items,  String? nextCursor)?  $default,) {final _that = this;
+switch (_that) {
+case _DocumentPage() when $default != null:
+return $default(_that.items,_that.nextCursor);case _:
+  return null;
+
+}
+}
+
+}
+
+/// @nodoc
+@JsonSerializable()
+
+class _DocumentPage implements DocumentPage {
+  const _DocumentPage({final  List<FileDocument> items = const <FileDocument>[], this.nextCursor}): _items = items;
+  factory _DocumentPage.fromJson(Map<String, dynamic> json) => _$DocumentPageFromJson(json);
+
+ final  List<FileDocument> _items;
+@override@JsonKey() List<FileDocument> get items {
+  if (_items is EqualUnmodifiableListView) return _items;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_items);
+}
+
+@override final  String? nextCursor;
+
+/// Create a copy of DocumentPage
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$DocumentPageCopyWith<_DocumentPage> get copyWith => __$DocumentPageCopyWithImpl<_DocumentPage>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$DocumentPageToJson(this, );
+}
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _DocumentPage&&const DeepCollectionEquality().equals(other._items, _items)&&(identical(other.nextCursor, nextCursor) || other.nextCursor == nextCursor));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,const DeepCollectionEquality().hash(_items),nextCursor);
+
+@override
+String toString() {
+  return 'DocumentPage(items: $items, nextCursor: $nextCursor)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$DocumentPageCopyWith<$Res> implements $DocumentPageCopyWith<$Res> {
+  factory _$DocumentPageCopyWith(_DocumentPage value, $Res Function(_DocumentPage) _then) = __$DocumentPageCopyWithImpl;
+@override @useResult
+$Res call({
+ List<FileDocument> items, String? nextCursor
+});
+
+
+
+
+}
+/// @nodoc
+class __$DocumentPageCopyWithImpl<$Res>
+    implements _$DocumentPageCopyWith<$Res> {
+  __$DocumentPageCopyWithImpl(this._self, this._then);
+
+  final _DocumentPage _self;
+  final $Res Function(_DocumentPage) _then;
+
+/// Create a copy of DocumentPage
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? items = null,Object? nextCursor = freezed,}) {
+  return _then(_DocumentPage(
+items: null == items ? _self._items : items // ignore: cast_nullable_to_non_nullable
+as List<FileDocument>,nextCursor: freezed == nextCursor ? _self.nextCursor : nextCursor // ignore: cast_nullable_to_non_nullable
+as String?,
   ));
 }
 

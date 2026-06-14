@@ -61,6 +61,16 @@ Architecture in Phase 1 must **enable** Phase 2 and Phase 3 without rewrites. It
 > (F1.5 primary profile, F1.6 family members); it adds a field, **not** new scope. See
 > [DATABASE_SCHEMA.md §3.5a](./DATABASE_SCHEMA.md) and [API_STANDARDS.md §9.2](./API_STANDARDS.md#92-patients).
 >
+> **Document library note (F1.15):** the file-attachment capability is extended with a
+> standalone per-patient **document library** — a patient can upload medical documents for
+> themselves and their family members, and the physiotherapist can upload documents against a
+> patient, **without** an appointment. Files carry an `uploaded_by_role` and an `upload_context`
+> (`LIBRARY` vs `DISCUSSION`); the library is listed per patient, split by uploader, and reuses
+> the existing presign → magic-byte-validate → presigned-download → audit pipeline. This refines
+> F1.15 (it lifts the appointment-required restriction and adds a listing surface); it is **not**
+> new Phase-2 scope. See [FILE_STORAGE_GUIDELINES.md](./FILE_STORAGE_GUIDELINES.md) and
+> [API_STANDARDS.md §9.6](./API_STANDARDS.md).
+>
 > **Identifiers & lifecycle note (F1.5–F1.6, F1.9–F1.13, F1.21–F1.22):** appointments and patients carry human-readable **business IDs** (Appointment Number `PHY-YYYYMMDD-NNNN`, Patient ID `PAT-NNNNNN`) alongside their UUID primary keys; the UUID is never exposed to users. Appointments gain **parent-child lineage** (reschedules / follow-ups / reviews link to a lineage root) and an append-only **`appointment_events`** timeline. The ID and lineage work refines existing P0 features; the events table is the realization of the §4 Phase-3 enabler *"all clinical writes already produce a domain event"* (pulled forward, **not** new scope). The unified timeline (F1.21) and Appointment-Number search (F1.22) are new P1/P2 surfaces over that data. See [APPOINTMENT_FLOW.md](./APPOINTMENT_FLOW.md).
 
 ### 2.2 Phase 1 Acceptance Criteria

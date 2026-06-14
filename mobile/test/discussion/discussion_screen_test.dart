@@ -61,6 +61,10 @@ class _FakePicker implements FilePickerService {
 
   @override
   Future<PickedFile?> pick(PickSource source) async => result;
+
+  @override
+  Future<List<PickedFile>> pickImages() async =>
+      result == null ? const [] : [result!];
 }
 
 /// Returns a fixed AVAILABLE file / download target without the network.
@@ -72,11 +76,13 @@ class _FakeFilesRepo extends FilesRepository {
   @override
   Future<FileObjectView> upload({
     required String patientId,
-    required String appointmentId,
+    String? appointmentId,
     required FileKind kind,
     required String mimeType,
     required String originalFilename,
     required List<int> bytes,
+    String context = 'LIBRARY',
+    String? uploadSource,
   }) async => FileObjectView(
     id: 'file-1',
     patientId: patientId,

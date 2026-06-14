@@ -119,9 +119,9 @@ void main() {
     final todayMidnight = DateTime(today.year, today.month, today.day);
     expect(find.text(formatDateLong(todayMidnight)), findsOneWidget);
 
-    // The month grid now lives in a sheet reached from the hero's calendar
-    // action; open it, then pick a day.
-    await tester.tap(find.byTooltip('Open calendar'));
+    // The month grid lives in a sheet reached from the "Appointments" stat
+    // card (its calendar icon is unique on the screen); open it, then pick a day.
+    await tester.tap(find.byIcon(Icons.calendar_month_outlined));
     await tester.pumpAndSettle();
 
     // The 15th (or 16th, to avoid landing on today) is always present in the
@@ -145,8 +145,9 @@ void main() {
     await _pump(tester, appointments: const []);
     await tester.pumpAndSettle();
 
-    // The month grid + its arrows live in a sheet reached from the hero.
-    await tester.tap(find.byTooltip('Open calendar'));
+    // The month grid + its arrows live in a sheet reached from the
+    // "Appointments" stat card.
+    await tester.tap(find.byIcon(Icons.calendar_month_outlined));
     await tester.pumpAndSettle();
 
     final today = DateTime.now();

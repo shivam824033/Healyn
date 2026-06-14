@@ -34,14 +34,33 @@ enum FileStatus {
   deleted,
 }
 
+/// Whether a file is a chat attachment or a document-library upload. Wire values
+/// are the backend `file_context` enum; sent as `context` on presign.
+abstract final class FileUploadContext {
+  static const library = 'LIBRARY';
+  static const discussion = 'DISCUSSION';
+}
+
+/// Optional client hint for how the file was sourced (backend `upload_source`).
+abstract final class FileUploadSource {
+  static const camera = 'CAMERA';
+  static const gallery = 'GALLERY';
+  static const file = 'FILE';
+  static const convertedPdf = 'CONVERTED_PDF';
+}
+
 /// Body for `POST /files/presign`. [sizeBytes] is the exact byte length the
 /// client will PUT — the backend signs it and rejects a mismatch at complete.
+/// [appointmentId] is optional: null means a standalone library document.
+/// Null [appointmentId]/[context]/[uploadSource] are omitted from the JSON.
 @freezed
 abstract class PresignRequest with _$PresignRequest {
   const factory PresignRequest({
     required String patientId,
-    required String appointmentId,
+    String? appointmentId,
     required FileKind kind,
+    String? context,
+    String? uploadSource,
     required String mimeType,
     required int sizeBytes,
     required String originalFilename,
@@ -49,6 +68,60 @@ abstract class PresignRequest with _$PresignRequest {
 
   factory PresignRequest.fromJson(Map<String, dynamic> json) =>
       _$PresignRequestFromJson(json);
+}
+
+/// Who uploaded a library document (the backend `account_role`). Drives the
+/// two-section split: [patient] files vs [physiotherapist] files.
+enum DocumentUploaderRole {
+  @JsonValue('ROLE_ACCOUNT')
+  patient,
+  @JsonValue('ROLE_PHYSIO')
+  physiotherapist,
+}
+
+/// The uploader filter for `GET /files`. [query] is the wire value.
+enum DocumentUploader {
+  patient('PATIENT'),
+  physio('PHYSIO');
+
+  const DocumentUploader(this.query);
+
+  final String query;
+}
+
+/// One library document for the per-patient listing (the backend `FileDocumentView`).
+/// [appointmentNumber] is the human-friendly id of the linked appointment, when any.
+/// [originalFilename] is display-only PHI — never log it.
+@freezed
+abstract class FileDocument with _$FileDocument {
+  const factory FileDocument({
+    required String id,
+    required String patientId,
+    required FileKind kind,
+    required String mimeType,
+    required String originalFilename,
+    required int sizeBytes,
+    required DocumentUploaderRole uploadedByRole,
+    String? appointmentId,
+    String? appointmentNumber,
+    DateTime? createdAt,
+  }) = _FileDocument;
+
+  factory FileDocument.fromJson(Map<String, dynamic> json) =>
+      _$FileDocumentFromJson(json);
+}
+
+/// A cursor page of library documents (the backend `DocumentPage`). [nextCursor]
+/// is null on the last page.
+@freezed
+abstract class DocumentPage with _$DocumentPage {
+  const factory DocumentPage({
+    @Default(<FileDocument>[]) List<FileDocument> items,
+    String? nextCursor,
+  }) = _DocumentPage;
+
+  factory DocumentPage.fromJson(Map<String, dynamic> json) =>
+      _$DocumentPageFromJson(json);
 }
 
 /// The presigned PUT instruction from `/files/presign`. The client must PUT the

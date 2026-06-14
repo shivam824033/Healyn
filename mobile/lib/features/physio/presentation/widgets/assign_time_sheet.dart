@@ -6,6 +6,7 @@ import '../../../appointments/data/appointments_repository.dart';
 import '../../../appointments/data/models/appointment_models.dart';
 import '../../../appointments/presentation/appointment_format.dart';
 import '../../../appointments/presentation/widgets/slot_picker.dart';
+import '../../../shared/design/colors.dart';
 import '../../../shared/design/spacing.dart';
 import '../../../shared/design/typography.dart';
 import '../../../shared/network/api_exception.dart';
@@ -28,8 +29,9 @@ class AssignTimeResult {
   final String? reason;
 }
 
-/// Common appointment lengths a physiotherapist assigns, in minutes.
-const _durations = [30, 45, 60, 90];
+/// Common appointment lengths a physiotherapist assigns, in minutes. The grid
+/// itself is 15-minute, so a visit occupies `duration / 15` consecutive cells.
+const _durations = [15, 30, 45, 60, 90];
 
 /// Opens the assign-time sheet so the physiotherapist can pick a date, choose
 /// one of that day's open time slots, and set a duration (and, when [showReason],
@@ -102,15 +104,18 @@ class _AssignTimeSheetState extends ConsumerState<_AssignTimeSheet> {
   late DateTime _day;
   late int _duration;
 
-  /// The day's open slots, or null until the first load settles.
+  /// The day's 15-minute grid cells, or null until the first load settles.
   List<Slot>? _slots;
   bool _slotsLoading = false;
   String? _slotsError;
+
+  /// The picked *start* cell. The chosen [_duration] paints the occupied range
+  /// from here (see [_selectedStarts]); reducing it releases trailing cells.
   Slot? _selected;
 
-  /// Start instants already taken on [_day] (excluding the appointment being
-  /// rescheduled) — rendered as non-selectable "booked" chips.
-  Set<DateTime> _bookedStarts = const {};
+  /// Time spans already taken on [_day] (excluding the appointment being
+  /// rescheduled). Their covered cells render as non-selectable "booked" chips.
+  List<BookedRange> _bookedRanges = const [];
 
   @override
   void initState() {
@@ -140,25 +145,25 @@ class _AssignTimeSheetState extends ConsumerState<_AssignTimeSheet> {
       _slotsError = null;
       _selected = null;
       _slots = null;
-      _bookedStarts = const {};
+      _bookedRanges = const [];
     });
     final repo = ref.read(appointmentsRepositoryProvider);
     try {
       final slots = await repo.slotsFor(_day);
       // Booked context is an enhancement: never let it fail the slot load.
-      var booked = const <DateTime>{};
+      var booked = const <BookedRange>[];
       try {
-        booked = await repo.bookedStartsFor(
+        booked = await repo.bookedRangesFor(
           _day,
           excludeAppointmentId: widget.excludeAppointmentId,
         );
       } on ApiException {
-        booked = const {};
+        booked = const [];
       }
       if (!mounted) return;
       setState(() {
         _slots = slots;
-        _bookedStarts = booked;
+        _bookedRanges = booked;
         _selected = _matchInitialTime(slots, booked);
         _slotsLoading = false;
       });
@@ -171,18 +176,54 @@ class _AssignTimeSheetState extends ConsumerState<_AssignTimeSheet> {
     }
   }
 
-  /// The open slot whose local start time equals the sheet's initial time, if
-  /// any — used to pre-highlight the patient's preferred time or the current
-  /// booking. Booked slots are skipped: a taken time is never pre-selected.
-  Slot? _matchInitialTime(List<Slot> slots, Set<DateTime> booked) {
+  /// The cell whose local start time equals the sheet's initial time, if any —
+  /// used to pre-highlight the patient's preferred time or, on reschedule, the
+  /// booking's current start (its own range is excluded, so it stays open).
+  /// Booked cells are skipped: a taken time is never pre-selected.
+  Slot? _matchInitialTime(List<Slot> slots, List<BookedRange> booked) {
     final t = widget.initialTime;
     if (t == null) return null;
     for (final s in slots) {
-      if (booked.any((b) => b.isAtSameMomentAs(s.startsAt))) continue;
+      if (booked.any((r) => r.covers(s.startsAt))) continue;
       final local = s.startsAt.toLocal();
       if (local.hour == t.hour && local.minute == t.minute) return s;
     }
     return null;
+  }
+
+  List<Slot> get _slotList => _slots ?? const [];
+
+  /// Cells a different appointment occupies (every covered cell of every booked
+  /// range that falls on the visible grid), greyed out in the picker.
+  Set<DateTime> get _bookedStarts => {
+    for (final s in _slotList)
+      if (_bookedRanges.any((r) => r.covers(s.startsAt))) s.startsAt,
+  };
+
+  /// The cells the current start + duration occupy — the visit's range. Empty
+  /// until a start is picked. Shrinks the moment the duration is reduced.
+  Set<DateTime> get _selectedStarts {
+    final sel = _selected;
+    if (sel == null) return const {};
+    final end = sel.startsAt.add(Duration(minutes: _duration));
+    return {
+      for (final s in _slotList)
+        if (!s.startsAt.isBefore(sel.startsAt) && s.startsAt.isBefore(end))
+          s.startsAt,
+    };
+  }
+
+  /// Whether the chosen range `[start, start + duration)` overlaps a booked one.
+  /// Computed against the booked ranges directly (half-open, like the backend),
+  /// so it catches an overlap even where the run extends past the visible grid.
+  bool get _hasConflict {
+    final sel = _selected;
+    if (sel == null) return false;
+    final start = sel.startsAt;
+    final end = start.add(Duration(minutes: _duration));
+    return _bookedRanges.any(
+      (r) => r.start.isBefore(end) && r.end.isAfter(start),
+    );
   }
 
   Future<void> _pickDay() async {
@@ -206,7 +247,7 @@ class _AssignTimeSheetState extends ConsumerState<_AssignTimeSheet> {
 
   void _confirm() {
     final slot = _selected;
-    if (slot == null) return;
+    if (slot == null || _hasConflict) return;
     final reason = _reason.text.trim();
     Navigator.of(context).pop(
       AssignTimeResult(
@@ -250,11 +291,12 @@ class _AssignTimeSheetState extends ConsumerState<_AssignTimeSheet> {
               loading: _slotsLoading,
               error: _slotsError,
               slots: _slots,
-              selected: _selected,
+              selectedStarts: _selectedStarts,
               enabled: true,
               onSelected: (s) => setState(() => _selected = s),
               onRetry: _loadSlots,
               bookedStarts: _bookedStarts,
+              hasConflict: _hasConflict,
             ),
             const SizedBox(height: HealynSpacing.s4),
             DropdownButtonFormField<int>(
@@ -268,6 +310,16 @@ class _AssignTimeSheetState extends ConsumerState<_AssignTimeSheet> {
                 if (v != null) setState(() => _duration = v);
               },
             ),
+            if (_selected != null) ...[
+              const SizedBox(height: HealynSpacing.s2),
+              Text(
+                'Occupies ${formatTimeOfDay(_selected!.startsAt)} – '
+                '${formatTimeOfDay(_selected!.startsAt.add(Duration(minutes: _duration)))}',
+                style: HealynTypography.caption.copyWith(
+                  color: HealynColors.textSecondary,
+                ),
+              ),
+            ],
             if (widget.showReason) ...[
               const SizedBox(height: HealynSpacing.s4),
               AppTextField(
@@ -284,7 +336,7 @@ class _AssignTimeSheetState extends ConsumerState<_AssignTimeSheet> {
             const SizedBox(height: HealynSpacing.s6),
             PrimaryButton(
               label: widget.confirmLabel,
-              onPressed: _selected == null ? null : _confirm,
+              onPressed: (_selected == null || _hasConflict) ? null : _confirm,
             ),
           ],
         ),

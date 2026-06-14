@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Healyn — Production Readiness Audit</title>
+<style>
+  :root{
+    --bg:#0f1221; --panel:#171a2b; --panel2:#1e2236; --ink:#e8ebf5; --muted:#9aa3c0;
+    --line:#2a2f48; --brand:#5b6cff; --brand2:#8a7bff;
+    --crit:#ff4d5e; --high:#ff8a3d; --med:#ffd24d; --low:#3fcaa0; --info:#4aa8ff;
+    --ok:#34c98a; --warn:#ffce4f; --bad:#ff5d6c; --na:#6b7390;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:linear-gradient(180deg,#0c0f1c,#0f1221 240px);color:var(--ink);
+    font:15px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;}
+  .wrap{max-width:1120px;margin:0 auto;padding:32px 22px 90px;}
+  header.hero{background:radial-gradient(1200px 300px at 20% -40%,rgba(91,108,255,.35),transparent),
+    linear-gradient(135deg,#1a1f38,#141728);border:1px solid var(--line);border-radius:18px;padding:34px 32px;margin-bottom:26px;}
+  header.hero h1{margin:0 0 6px;font-size:30px;letter-spacing:.2px}
+  header.hero .sub{color:var(--muted);font-size:14px}
+  .pill{display:inline-block;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:600;border:1px solid var(--line)}
+  .meta{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}
+  .meta .pill{background:#0e1224}
+  h2{font-size:21px;margin:38px 0 6px;padding-top:14px;border-top:1px solid var(--line)}
+  h2 .num{color:var(--brand2);font-weight:700;margin-right:8px}
+  h3{font-size:16px;margin:22px 0 8px;color:#cdd3ee}
+  h4{font-size:14px;margin:16px 0 6px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px}
+  p{margin:8px 0}
+  .lead{color:var(--muted)}
+  section{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:22px 24px;margin:14px 0 26px}
+  table{width:100%;border-collapse:collapse;margin:12px 0;font-size:13.5px}
+  th,td{text-align:left;padding:9px 11px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{color:#aeb6da;font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.4px;background:#141830}
+  tr:hover td{background:rgba(255,255,255,.015)}
+  code{background:#0c0f20;border:1px solid var(--line);border-radius:6px;padding:1px 6px;font-size:12.5px;color:#cfe0ff}
+  .badge{display:inline-block;padding:2px 9px;border-radius:6px;font-size:11.5px;font-weight:700;letter-spacing:.3px;white-space:nowrap}
+  .b-crit{background:rgba(255,77,94,.16);color:#ff9aa5;border:1px solid rgba(255,77,94,.5)}
+  .b-high{background:rgba(255,138,61,.16);color:#ffc093;border:1px solid rgba(255,138,61,.5)}
+  .b-med{background:rgba(255,210,77,.14);color:#ffe49a;border:1px solid rgba(255,210,77,.45)}
+  .b-low{background:rgba(63,202,160,.16);color:#a9eed4;border:1px solid rgba(63,202,160,.45)}
+  .b-info{background:rgba(74,168,255,.16);color:#aed5ff;border:1px solid rgba(74,168,255,.45)}
+  .b-ok{background:rgba(52,201,138,.16);color:#9eecc6;border:1px solid rgba(52,201,138,.5)}
+  .b-warn{background:rgba(255,206,79,.14);color:#ffe49a;border:1px solid rgba(255,206,79,.45)}
+  .b-bad{background:rgba(255,93,108,.16);color:#ff9aa5;border:1px solid rgba(255,93,108,.5)}
+  .b-na{background:rgba(107,115,144,.16);color:#bcc3df;border:1px solid rgba(107,115,144,.5)}
+  .prog{position:relative;height:10px;background:#0c1020;border:1px solid var(--line);border-radius:999px;overflow:hidden;min-width:120px}
+  .prog > i{position:absolute;left:0;top:0;bottom:0;border-radius:999px;background:linear-gradient(90deg,var(--brand),var(--brand2))}
+  .prog.warn > i{background:linear-gradient(90deg,#ff8a3d,#ffd24d)}
+  .prog.bad > i{background:linear-gradient(90deg,#ff4d5e,#ff8a3d)}
+  .prog.ok > i{background:linear-gradient(90deg,#2bbf86,#39d39b)}
+  .pct{font-variant-numeric:tabular-nums;font-weight:700}
+  ul.clean{list-style:none;padding-left:0;margin:8px 0}
+  ul.clean li{padding:5px 0 5px 26px;position:relative}
+  ul.clean li::before{content:"▹";position:absolute;left:6px;color:var(--brand2)}
+  .chk li{list-style:none;padding:6px 0 6px 30px;position:relative}
+  .chk{padding-left:0}
+  .chk li::before{content:"☐";position:absolute;left:2px;font-size:15px;color:var(--muted)}
+  .chk li.done::before{content:"☑";color:var(--ok)}
+  .chk li.part::before{content:"◧";color:var(--warn)}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+  .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  .card{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:16px}
+  .kpi{font-size:30px;font-weight:800;letter-spacing:.5px}
+  .kpi.small{font-size:22px}
+  .verdict{display:flex;gap:18px;align-items:center;flex-wrap:wrap;background:linear-gradient(135deg,#241326,#1a1422);
+    border:1px solid #4a2330;border-radius:14px;padding:20px 22px;margin:14px 0}
+  .verdict .big{font-size:26px;font-weight:800}
+  .gono{background:linear-gradient(135deg,#2a1620,#1c1322);border:1px solid #5a2b3a}
+  .note{font-size:12.5px;color:var(--muted)}
+  .tag{font-size:11px;color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:1px 7px;margin-left:6px}
+  .legend{display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin:6px 0 0}
+  .legend span{display:inline-flex;align-items:center;gap:6px}
+  .dot{width:10px;height:10px;border-radius:3px;display:inline-block}
+  a{color:#9db4ff}
+  .toc{columns:2;column-gap:30px}
+  .toc a{display:block;padding:3px 0;text-decoration:none}
+  .small{font-size:12.5px}
+  .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+  hr.s{border:none;border-top:1px dashed var(--line);margin:18px 0}
+  .filebox{background:#0c1020;border:1px solid var(--line);border-radius:10px;padding:12px 14px;font-size:12.5px;color:#bcd0ff;margin:8px 0}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <span class="pill" style="background:#23284a;color:#bcd0ff">PRODUCTION READINESS AUDIT · CONFIDENTIAL</span>
+  <h1>Healyn — Deep Production Readiness Audit</h1>
+  <div class="sub">Single-tenant healthcare platform (Account / Patient / Physiotherapist) handling Protected Health Information · Spring Boot 3.3.5 (Java 21) backend + Flutter (Riverpod 2.x) mobile</div>
+  <div class="meta">
+    <span class="pill">Audit date: 2026-06-14</span>
+    <span class="pill">Branch: <span class="mono">feat/medical-document-library</span></span>
+    <span class="pill">Backend: 207 Java files · 24 Flyway migrations</span>
+    <span class="pill">Mobile: 179 Dart files</span>
+    <span class="pill">Tests: 31 backend · 58 mobile</span>
+    <span class="pill">Reviewer role: Architecture · DevOps · Security · Compliance</span>
+  </div>
+</header>
+
+<section>
+  <h4>Contents</h4>
+  <div class="toc small">
+    <a href="#s1">1 · Executive Summary &amp; Milestone Tracker</a>
+    <a href="#s2">2 · Complete Feature Audit</a>
+    <a href="#s3">3 · Code Quality Review</a>
+    <a href="#s4">4 · Security Audit</a>
+    <a href="#s5">5 · Privacy &amp; Data Protection Compliance</a>
+    <a href="#s6">6 · Environment Variables Audit</a>
+    <a href="#s7">7 · Performance Audit</a>
+    <a href="#s8">8 · Production Deployment Checklist</a>
+    <a href="#s9">9 · Testing Audit</a>
+    <a href="#s10">10 · Monitoring &amp; Operations</a>
+    <a href="#s11">11 · Final Production Roadmap</a>
+    <a href="#gono">★ Final GO / NO-GO Recommendation</a>
+  </div>
+  <p class="note" style="margin-top:14px">This report is the result of a static read of the actual repository (source, migrations, configs, docs, and the project's own <code>MODULE_STATUS_TRACKER.md</code>). Findings cite real files. Items that depend on cloud/infra not present in the repo are explicitly marked <span class="badge b-info">Requires manual verification</span>.</p>
+</section>
+
+<!-- ============================ 1 EXEC SUMMARY ============================ -->
+<h2 id="s1"><span class="num">01</span>Executive Summary</h2>
+<section>
+  <div class="grid3">
+    <div class="card">
+      <h4>Overall readiness</h4>
+      <div class="kpi" style="color:#ffd24d">~70%</div>
+      <div class="prog warn" style="margin-top:10px"><i style="width:70%"></i></div>
+      <p class="note">Strong application core; production <em>operationalization</em> and compliance layers incomplete.</p>
+    </div>
+    <div class="card">
+      <h4>Application code health</h4>
+      <div class="kpi" style="color:#39d39b">Strong</div>
+      <div class="prog ok" style="margin-top:10px"><i style="width:86%"></i></div>
+      <p class="note">Clean modular architecture, real security primitives, disciplined conventions.</p>
+    </div>
+    <div class="card">
+      <h4>Launch decision</h4>
+      <div class="kpi small" style="color:#ff8a3d">READY WITH FIXES</div>
+      <p class="note">Not deployable today (no CI/CD, no TLS/infra, compliance gaps). A finite blocker list closes the gap — see §11.</p>
+    </div>
+  </div>
+
+  <h3>Current application status</h3>
+  <p>Healyn is a <strong>feature-rich, well-engineered single-clinic healthcare application</strong>. The backend is a clean Spring Boot modular monolith (12 bounded modules: <code>auth</code>, <code>patients</code>, <code>availability</code>, <code>appointments</code>, <code>discussion</code>, <code>files</code>, <code>treatment_notes</code>, <code>notifications</code>, <code>audit</code>, <code>common</code>). Core flows — registration with OTP, login, RS256 JWT sessions, family-patient management, request-first appointments, appointment-scoped discussion with attachments, treatment notes, a medical document library, and PHI-free push notifications — are implemented end-to-end across backend and mobile.</p>
+  <p>Per the project's own <code>docs/MODULE_STATUS_TRACKER.md</code>, <strong>no module has yet reached the "✅ Released to production" state</strong>. Most modules are <span class="badge b-warn">🟨 code-complete / not device-tested</span> or <span class="badge b-ok">🟩 tested &amp; merged</span>, and the recurring note across modules is <em>"Device testing deferred. Not merged."</em> The gap to production is therefore <strong>operational and compliance maturity, not feature completeness</strong>.</p>
+
+  <h3>Major achievements completed</h3>
+  <ul class="clean">
+    <li><strong>Real security primitives, not stubs:</strong> Argon2id (64&nbsp;MB / t=3) + per-user salt + env pepper (<code>auth/service/PasswordHasher.java</code>); RS256 JWT with issuer/audience/expiry validation, <code>jti</code> blacklist + per-device <code>sid</code> revocation (<code>common/security/SecurityConfig.java</code>); single-use refresh-token rotation with SHA-256-hashed storage.</li>
+    <li><strong>Authorization done correctly:</strong> centralized policy classes (<code>PatientAccessPolicy</code>, <code>FileAccessPolicy</code>, …) invoked from services; <strong>zero</strong> <code>@PreAuthorize</code>/<code>hasRole</code> checks in controllers — exactly the architecture the security guide mandates.</li>
+    <li><strong>Healthcare-grade file handling:</strong> server-side magic-byte verification, per-type size caps, daily caps, SHA-256 content hash, quarantine-on-mismatch, private buckets with 5-minute presigned URLs, soft-delete, and audited downloads (<code>files/service/FileService.java</code>).</li>
+    <li><strong>PHI hygiene by design:</strong> notification payloads carry IDs only; structured JSON logs expose no PHI; append-only audit schema with <code>INSERT/SELECT</code>-only grants.</li>
+    <li><strong>Discipline:</strong> 24 versioned Flyway migrations, Bean Validation on all auth DTOs, fully parameterized SQL (incl. the one native search query), and a thorough living documentation set.</li>
+  </ul>
+
+  <h3>Major risks remaining</h3>
+  <table>
+    <tr><th>#</th><th>Risk</th><th>Severity</th><th>Evidence</th></tr>
+    <tr><td>R1</td><td><strong>No deployment pipeline or infrastructure-as-code.</strong> No <code>Dockerfile</code>, no <code>.github/workflows</code>, no <code>infra/</code>. Cannot build, ship, or reproduce a prod image.</td><td><span class="badge b-crit">CRITICAL</span></td><td>Filesystem scan; tracker: "CI pipeline ⬜ Not started"</td></tr>
+    <tr><td>R2</td><td><strong>TLS, HSTS, and global rate limiting are delegated to a "Gateway" that does not exist yet.</strong> App is plaintext HTTP without it.</td><td><span class="badge b-crit">CRITICAL</span></td><td><code>SECURITY_GUIDELINES.md §8</code>; no infra present</td></tr>
+    <tr><td>R3</td><td><strong>Compliance surface missing:</strong> no consent capture, no Privacy Policy / Terms, no data export, no account self-deletion / right-to-erasure anywhere in code.</td><td><span class="badge b-high">HIGH</span></td><td>Repo-wide grep returned zero matches</td></tr>
+    <tr><td>R4</td><td><strong>Integration / e2e tests not verified in CI.</strong> Many modules "🟨 code-complete, not tested"; integration tests are Docker-gated and "run pending Docker".</td><td><span class="badge b-high">HIGH</span></td><td>Tracker §2; test file headers</td></tr>
+    <tr><td>R5</td><td><strong>No malware/AV scanning on uploads</strong> (only type + size validation) in a PHI file system.</td><td><span class="badge b-med">MEDIUM</span></td><td><code>FileService.complete()</code></td></tr>
+    <tr><td>R6</td><td><strong>No SAST / OWASP dependency-check in CI</strong>; encryption-at-rest (S3 SSE-KMS, DB) depends on un-provisioned cloud infra.</td><td><span class="badge b-med">MEDIUM</span></td><td>Tracker: "OWASP dependency-check ⬜"</td></tr>
+  </table>
+
+  <h3>Milestone tracker</h3>
+  <div class="legend">
+    <span><span class="dot" style="background:var(--ok)"></span>On track / strong</span>
+    <span><span class="dot" style="background:var(--warn)"></span>Needs work</span>
+    <span><span class="dot" style="background:var(--bad)"></span>Blocking</span>
+  </div>
+  <table>
+    <tr><th>Milestone</th><th>Status</th><th style="width:230px">Completion</th><th>Basis</th></tr>
+    <tr><td>Project foundation</td><td><span class="badge b-ok">SOLID</span></td><td><div class="prog ok"><i style="width:95%"></i></div></td><td>Modular layout, error envelope, ID gen, base entity</td></tr>
+    <tr><td>Authentication</td><td><span class="badge b-ok">SOLID</span></td><td><div class="prog ok"><i style="width:90%"></i></div></td><td>Register/OTP/login/refresh/reset/logout; tested</td></tr>
+    <tr><td>Authorization (RBAC + isolation)</td><td><span class="badge b-ok">SOLID</span></td><td><div class="prog ok"><i style="width:90%"></i></div></td><td>Policy-class enforcement; no controller checks</td></tr>
+    <tr><td>Patient management</td><td><span class="badge b-warn">CODE-COMPLETE</span></td><td><div class="prog"><i style="width:85%"></i></div></td><td>Backend tested; mobile not device-tested</td></tr>
+    <tr><td>Physiotherapist workflow</td><td><span class="badge b-warn">CODE-COMPLETE</span></td><td><div class="prog"><i style="width:85%"></i></div></td><td>Schedule, transitions, notes, roster</td></tr>
+    <tr><td>Appointment system</td><td><span class="badge b-warn">CODE-COMPLETE</span></td><td><div class="prog"><i style="width:85%"></i></div></td><td>Request-first, state machine, idempotency</td></tr>
+    <tr><td>Reports / files</td><td><span class="badge b-warn">CODE-COMPLETE</span></td><td><div class="prog"><i style="width:78%"></i></div></td><td>Robust validation; AV scan + integ tests pending</td></tr>
+    <tr><td>Notifications</td><td><span class="badge b-warn">CODE-COMPLETE</span></td><td><div class="prog"><i style="width:80%"></i></div></td><td>Outbox + FCM; integ tests Docker-gated</td></tr>
+    <tr><td>Security</td><td><span class="badge b-warn">PARTIAL</span></td><td><div class="prog warn"><i style="width:70%"></i></div></td><td>Strong app code; TLS/rate-limit/SAST/secrets infra absent</td></tr>
+    <tr><td>Testing</td><td><span class="badge b-warn">PARTIAL</span></td><td><div class="prog warn"><i style="width:55%"></i></div></td><td>Good unit; no CI, integ unverified, no load/security/device</td></tr>
+    <tr><td>Deployment readiness</td><td><span class="badge b-bad">NOT STARTED</span></td><td><div class="prog bad"><i style="width:20%"></i></div></td><td>No Dockerfile / CI / IaC / monitoring</td></tr>
+  </table>
+
+  <div class="verdict">
+    <div>
+      <div class="note">RECOMMENDED LAUNCH DECISION</div>
+      <div class="big" style="color:#ff8a3d">⚠ READY WITH FIXES — not production-ready today</div>
+    </div>
+    <div class="small" style="max-width:430px;color:var(--muted)">
+      The codebase is a credible Phase-1 healthcare product. It is held back from launch by missing <strong>operational infrastructure</strong> (CI/CD, TLS gateway, secret manager, monitoring, backups) and <strong>regulatory plumbing</strong> (consent, privacy policy, data rights). None require a rewrite; all are well-scoped. Estimated effort to GO: see §11 Phase 1.
+    </div>
+  </div>
+</section>
+
+<!-- ============================ 2 FEATURE AUDIT ============================ -->
+<h2 id="s2"><span class="num">02</span>Complete Feature Audit</h2>
+<section>
+  <h3>2.1 Authentication</h3>
+  <table>
+    <tr><th>Capability</th><th>Status</th><th>Evidence / Notes</th></tr>
+    <tr><td>Registration (two-step, OTP)</td><td><span class="badge b-ok">PRESENT</span></td><td><code>auth/service/RegistrationService.java</code>, <code>OtpService.java</code>; OTP 6-digit, rate-limited 3/hour</td></tr>
+    <tr><td>Login (email or E.164 phone)</td><td><span class="badge b-ok">PRESENT</span></td><td><code>LoginService.authenticate()</code></td></tr>
+    <tr><td>Password hashing</td><td><span class="badge b-ok">STRONG</span></td><td>Argon2id 64&nbsp;MB / t=3 / p=1, 16-byte salt + env pepper (<code>PasswordHasher.java</code>)</td></tr>
+    <tr><td>Password policy</td><td><span class="badge b-warn">BASIC</span></td><td>Length 10–128 enforced (<code>AuthDtos</code>); no complexity / breach-list (HIBP) check</td></tr>
+    <tr><td>Password reset</td><td><span class="badge b-ok">PRESENT</span></td><td><code>PasswordResetService.java</code>, OTP-gated <code>/auth/password-reset/**</code></td></tr>
+    <tr><td>Session management (device sessions)</td><td><span class="badge b-ok">STRONG</span></td><td>Per-device sessions, list + revoke; logout revokes server-side (<code>SessionController.java</code>)</td></tr>
+    <tr><td>Access-token expiry</td><td><span class="badge b-ok">PRESENT</span></td><td>15-min TTL (<code>access-token-ttl-seconds: 900</code>)</td></tr>
+    <tr><td>Refresh token</td><td><span class="badge b-ok">STRONG</span></td><td>32-byte random, SHA-256-hashed at rest, single-use rotation (<code>RefreshTokens.java</code>); 30-day TTL</td></tr>
+    <tr><td>Logout / session invalidation</td><td><span class="badge b-ok">PRESENT</span></td><td><code>sid</code>-based immediate device revocation via JWT validator</td></tr>
+    <tr><td>Multi-role auth</td><td><span class="badge b-ok">PRESENT</span></td><td><code>role</code> claim → <code>SimpleGrantedAuthority</code>; mobile partitions patient vs <code>/physio/*</code> shell</td></tr>
+    <tr><td>Brute-force protection</td><td><span class="badge b-ok">PRESENT</span></td><td>5 fails → 15-min lockout (per-account). <em>No IP-level limiter</em> (gateway concern, R2)</td></tr>
+  </table>
+
+  <h3>2.2 Roles &amp; Access Control</h3>
+  <table>
+    <tr><th>Role</th><th>Exists?</th><th>Notes</th></tr>
+    <tr><td>Patient (<code>ROLE_ACCOUNT</code>)</td><td><span class="badge b-ok">YES</span></td><td>Account ↔ Patient link table; <code>canManage</code> flag governs WRITE</td></tr>
+    <tr><td>Physiotherapist (<code>ROLE_PHYSIO</code>)</td><td><span class="badge b-ok">YES</span></td><td>Blanket read of all patients (single-clinic model); provisioned by operator, no self-registration</td></tr>
+    <tr><td>Admin</td><td><span class="badge b-bad">ABSENT</span></td><td><code>AccountRole</code> enum has only <code>ROLE_ACCOUNT</code>, <code>ROLE_PHYSIO</code>. No admin console / operations role. <span class="badge b-info">Requires decision</span> — operator tasks currently rely on DB/seed access.</td></tr>
+    <tr><td>Proper authorization</td><td><span class="badge b-ok">YES</span></td><td>Service-layer policy classes; verified 0 controller-level checks</td></tr>
+    <tr><td>RBAC + data isolation</td><td><span class="badge b-ok">YES</span></td><td><code>PatientAccessPolicy.requireAccess()</code> requires an account↔patient link; cross-account = 403</td></tr>
+  </table>
+  <p class="note"><strong>Finding A-1:</strong> The single-clinic design grants every <code>ROLE_PHYSIO</code> read access to <em>all</em> patients (early-return in <code>PatientAccessPolicy</code>). Correct for Phase 1, but document it as an accepted decision and re-scope before any multi-physio / multi-clinic expansion.</p>
+
+  <h3>2.3 Patient Module</h3>
+  <table>
+    <tr><th>Capability</th><th>Status</th><th>Notes</th></tr>
+    <tr><td>Patient profile (CRUD)</td><td><span class="badge b-ok">PRESENT</span></td><td>Identity, DOB, sex, blood group, allergies; WYSIWYG PATCH semantics</td></tr>
+    <tr><td>Family member patients</td><td><span class="badge b-ok">PRESENT</span></td><td>Add/edit/remove (soft); relationship required ≠ SELF; primary cannot be removed</td></tr>
+    <tr><td>Household address at signup</td><td><span class="badge b-ok">PRESENT</span></td><td>V23 migration; shared across family (recent commit)</td></tr>
+    <tr><td>Appointment history</td><td><span class="badge b-ok">PRESENT</span></td><td>Cursor-paginated timeline; active-patient context</td></tr>
+    <tr><td>Reports / document upload</td><td><span class="badge b-ok">PRESENT</span></td><td>Medical document library; image→PDF conversion in memory (V24)</td></tr>
+    <tr><td>File access (read own only)</td><td><span class="badge b-ok">PRESENT</span></td><td><code>FileAccessPolicy.requireRead/Write</code> per patient</td></tr>
+  </table>
+
+  <h3>2.4 Physiotherapist Module</h3>
+  <table>
+    <tr><th>Capability</th><th>Status</th><th>Notes</th></tr>
+    <tr><td>Patient visibility (roster)</td><td><span class="badge b-ok">PRESENT</span></td><td>Practice roster + search; read-only patient detail</td></tr>
+    <tr><td>Appointment management</td><td><span class="badge b-ok">PRESENT</span></td><td>Day schedule; legal transitions only (REQUESTED→Confirm/Reject, etc.); mandatory cancel note</td></tr>
+    <tr><td>Reports upload (clinical)</td><td><span class="badge b-ok">PRESENT</span></td><td>Physio-uploaded library docs; patient cannot delete physio docs</td></tr>
+    <tr><td>Treatment workflow (notes)</td><td><span class="badge b-ok">PRESENT</span></td><td>One note per appointment, gated on <code>COMPLETED</code>, physio-write / patient-read; next-review follow-ups</td></tr>
+    <tr><td>Availability management</td><td><span class="badge b-ok">PRESENT</span></td><td>Working-hours rules + blackouts; slots computed (never stored) per design</td></tr>
+  </table>
+
+  <h3>2.5 File Management</h3>
+  <table>
+    <tr><th>Control</th><th>Status</th><th>Evidence / Notes</th></tr>
+    <tr><td>Upload (presign → PUT → complete)</td><td><span class="badge b-ok">PRESENT</span></td><td>Direct-to-storage; server verifies on completion</td></tr>
+    <tr><td>Storage strategy</td><td><span class="badge b-ok">SOUND</span></td><td>S3-compatible (MinIO/S3/R2) behind <code>FileStorePort</code>; keyed by patient/appointment</td></tr>
+    <tr><td>Type validation (magic bytes)</td><td><span class="badge b-ok">STRONG</span></td><td><code>FileMime.matchesMagic()</code> — PDF/JPEG/PNG only; client MIME never trusted</td></tr>
+    <tr><td>Size limits</td><td><span class="badge b-ok">PRESENT</span></td><td>PDF 20&nbsp;MB, JPEG/PNG 10&nbsp;MB per type; declared-vs-actual size checked; 100/day cap</td></tr>
+    <tr><td>Access permissions</td><td><span class="badge b-ok">PRESENT</span></td><td>Per-patient policy on every read/write/download</td></tr>
+    <tr><td>Secure download URLs</td><td><span class="badge b-ok">STRONG</span></td><td>Private bucket, presigned GET, TTL 300&nbsp;s (≤5&nbsp;min rule); no bytes touch device</td></tr>
+    <tr><td>Content integrity</td><td><span class="badge b-ok">PRESENT</span></td><td>SHA-256 hash stored on completion; mismatch → quarantine</td></tr>
+    <tr><td>Virus / malware scanning</td><td><span class="badge b-bad">MISSING</span></td><td><strong>Finding F-1:</strong> No AV scan. Recommend ClamAV / cloud malware-scan on the quarantine→available transition before launch.</td></tr>
+    <tr><td>Cold-storage tombstone on delete</td><td><span class="badge b-warn">TODO</span></td><td><code>// TODO move S3 object to cold storage</code> in <code>FileService.delete()</code> — soft-delete leaves bytes in the hot bucket</td></tr>
+  </table>
+</section>
+
+<!-- ============================ 3 CODE QUALITY ============================ -->
+<h2 id="s3"><span class="num">03</span>Code Quality Review</h2>
+<section>
+  <h3>3.1 Architecture</h3>
+  <ul class="clean">
+    <li><strong>Layer separation:</strong> Clean per-module <code>domain / service / repository / web / policy / adapter / port</code> split across 12 modules. Hexagonal seams (<code>FileStorePort</code>, <code>FcmSenderPort</code>, <code>OtpSender</code>) keep external systems behind interfaces — excellent for testing and provider swaps.</li>
+    <li><strong>Controller / service / repository:</strong> Correctly layered; controllers are thin; business rules + authorization live in services/policies.</li>
+    <li><strong>Dependency injection:</strong> Constructor injection throughout; no field injection observed (matches CLAUDE.md §5).</li>
+    <li><strong>Error handling:</strong> Centralized <code>ApiError</code>/<code>ApiErrorResponse</code> envelope, <code>ErrorCode</code> constants, typed <code>DomainException</code> hierarchy (<code>NotFoundException</code>, <code>ForbiddenException</code>, <code>ConflictException</code>, <code>UnprocessableException</code>, <code>RateLimitedException</code>). Server config hides stack traces &amp; messages (<code>server.error.include-* : never</code>).</li>
+    <li><strong>Modern idioms:</strong> Java records for DTOs, sealed interfaces for closed result types (<code>LoginService.Result</code>), <code>Optional</code> at repository edges, UUIDv7 IDs.</li>
+  </ul>
+
+  <h3>3.2 Findings</h3>
+  <table>
+    <tr><th>Finding</th><th>Severity</th><th>Location</th><th>Recommendation</th></tr>
+    <tr><td>FCM token registration is read-then-upsert, "not race-safe under concurrent same-token POSTs"</td><td><span class="badge b-med">MEDIUM</span></td><td><code>notifications/service/FcmTokenService.java</code></td><td>Use an <code>INSERT … ON CONFLICT (token) DO UPDATE</code> upsert to make re-registration atomic</td></tr>
+    <tr><td>READ-path auditing deferred — audit covers writes + DOWNLOAD, but not PHI <em>views</em></td><td><span class="badge b-med">MEDIUM</span></td><td><code>audit/</code> module; tracker note</td><td>Drift vs <code>SECURITY_GUIDELINES §11</code> (lists READ). Add a read-path audit interceptor before HIPAA-style access logging is claimed</td></tr>
+    <tr><td>Cold-storage TODO leaves soft-deleted file bytes in hot bucket</td><td><span class="badge b-low">LOW</span></td><td><code>files/service/FileService.java</code></td><td>Implement tombstone/lifecycle move; add retention policy</td></tr>
+    <tr><td>Mobile unread/activity aggregation fans out N per-thread calls (no server aggregate endpoint)</td><td><span class="badge b-med">MEDIUM</span></td><td><code>unreadSummaryProvider</code>, <code>physioScheduleActivityProvider</code></td><td>Add a backend roll-up endpoint; current design is acknowledged Phase-1 debt</td></tr>
+    <tr><td>JVM crash artifacts committed to working tree</td><td><span class="badge b-low">LOW</span></td><td><code>backend/hs_err_pid22832.log</code>, <code>backend/replay_pid22832.log</code></td><td>Remove; both are covered by <code>.gitignore</code> but present locally</td></tr>
+    <tr><td>Inter font not bundled (system default); golden tests pending</td><td><span class="badge b-low">LOW</span></td><td><code>mobile/lib/features/shared/design/</code></td><td>Bundle font for deterministic rendering before goldens are trusted</td></tr>
+    <tr><td>Generated <code>build/</code> + <code>bin/</code> trees present under <code>backend/</code></td><td><span class="badge b-low">LOW</span></td><td><code>backend/build</code>, <code>backend/bin</code></td><td>Gitignored; ensure clean build context for the (future) Docker image</td></tr>
+  </table>
+
+  <h3>3.3 Duplication, naming, maintainability, scalability, technical debt</h3>
+  <table>
+    <tr><th>Dimension</th><th>Assessment</th><th>Notes</th></tr>
+    <tr><td>Duplicate code</td><td><span class="badge b-ok">LOW</span></td><td>Shared widgets (<code>TreatmentNoteCard</code>, <code>SlotPicker</code>) and parameterized screens (<code>DiscussionViewer</code>, <code>TreatmentHistoryViewer</code>) show deliberate DRY refactoring rather than fork-and-edit</td></tr>
+    <tr><td>Naming conventions</td><td><span class="badge b-ok">STRONG</span></td><td>Canonical vocabulary (Account/Patient/Physiotherapist/Appointment/Discussion/Treatment Note/Attachment) used consistently; <code>analysis_options.yaml</code> enforced</td></tr>
+    <tr><td>Maintainability</td><td><span class="badge b-ok">STRONG</span></td><td>Comments explain <em>why</em>, not <em>what</em>; living docs tightly coupled to code</td></tr>
+    <tr><td>Scalability (architecture)</td><td><span class="badge b-warn">WATCH</span></td><td>Modular monolith is appropriate; main scale risks are the mobile fan-out aggregations and the in-app notification poller (single-instance assumptions — verify before horizontal scaling)</td></tr>
+    <tr><td>Technical debt</td><td><span class="badge b-warn">TRACKED</span></td><td>Debt is explicit and documented (Docker-gated tests, deferred read-audit, deferred cert-pinning) rather than hidden — a healthy sign</td></tr>
+  </table>
+</section>
+
+<!-- ============================ 4 SECURITY ============================ -->
+<h2 id="s4"><span class="num">04</span>Security Audit</h2>
+<section>
+  <h3>4.1 Authentication security</h3>
+  <table>
+    <tr><th>Control</th><th>Severity if absent</th><th>Status</th><th>Evidence</th></tr>
+    <tr><td>Password hashing algorithm</td><td><span class="badge b-crit">CRITICAL</span></td><td><span class="badge b-ok">PASS</span></td><td>Argon2id (memory-hard) — <code>PasswordHasher.java</code></td></tr>
+    <tr><td>Per-user salt</td><td><span class="badge b-high">HIGH</span></td><td><span class="badge b-ok">PASS</span></td><td>16-byte <code>SecureRandom</code> salt per password</td></tr>
+    <tr><td>Server-side pepper</td><td><span class="badge b-high">HIGH</span></td><td><span class="badge b-ok">PASS</span></td><td>Env-injected pepper; app fails fast if blank</td></tr>
+    <tr><td>Password policy</td><td><span class="badge b-med">MEDIUM</span></td><td><span class="badge b-warn">PARTIAL</span></td><td>Min length 10 only; no complexity / breached-password check</td></tr>
+    <tr><td>Brute-force protection</td><td><span class="badge b-high">HIGH</span></td><td><span class="badge b-warn">PARTIAL</span></td><td>Per-account lockout present; <strong>no IP/edge limiter</strong> (R2)</td></tr>
+  </table>
+
+  <h3>4.2 API security</h3>
+  <table>
+    <tr><th>Control</th><th>Status</th><th>Evidence / Notes</th></tr>
+    <tr><td>JWT algorithm</td><td><span class="badge b-ok">RS256</span></td><td>Asymmetric, public-key verification (<code>SecurityConfig.jwtDecoder</code>); HS256 explicitly avoided</td></tr>
+    <tr><td>Token validation chain</td><td><span class="badge b-ok">STRONG</span></td><td>Timestamp + issuer + audience + revocation (jti &amp; sid) validators</td></tr>
+    <tr><td>Token expiration</td><td><span class="badge b-ok">15&nbsp;min</span></td><td>Short access TTL + refresh rotation</td></tr>
+    <tr><td>CSRF</td><td><span class="badge b-ok">N/A (OK)</span></td><td>Disabled deliberately — stateless Bearer auth, no cookies (<code>SECURITY_GUIDELINES §8</code>)</td></tr>
+    <tr><td>CORS</td><td><span class="badge b-warn">DISABLED</span></td><td>Acceptable for native-mobile-only Phase 1; <strong>must configure an allow-list before any web/browser client</strong> ships</td></tr>
+    <tr><td>Rate limiting</td><td><span class="badge b-bad">EDGE-DEPENDENT</span></td><td>Only OTP (3/hr) + login lockout in-app. Global limiter assumed at gateway (R2)</td></tr>
+    <tr><td>API surface exposure</td><td><span class="badge b-warn">REVIEW</span></td><td>Swagger UI &amp; <code>/v3/api-docs</code> are <code>permitAll()</code>. <strong>Finding S-2:</strong> disable/secure OpenAPI UI in prod; expose Actuator <code>prometheus</code> only on an internal port</td></tr>
+  </table>
+
+  <h3>4.3 Database security</h3>
+  <table>
+    <tr><th>Control</th><th>Status</th><th>Evidence</th></tr>
+    <tr><td>SQL injection prevention</td><td><span class="badge b-ok">PASS</span></td><td>JPA + parameterized <code>@Query</code>; the one native search query binds every term via <code>@Param</code> and pre-escapes LIKE input (<code>AppointmentRepository.search</code>, <code>AppointmentService.escapeLike</code>)</td></tr>
+    <tr><td>Query safety / dynamic sort</td><td><span class="badge b-ok">PASS</span></td><td>Cursor pagination; no string-built ORDER BY from user input</td></tr>
+    <tr><td>Schema hygiene</td><td><span class="badge b-ok">PASS</span></td><td>Flyway <code>validate-on-migrate</code>; soft-delete columns on PHI tables; FKs indexed</td></tr>
+    <tr><td>Sensitive data protection</td><td><span class="badge b-warn">PARTIAL</span></td><td>Logical controls strong; <strong>column/disk encryption-at-rest depends on prod DB config</strong> <span class="badge b-info">Requires manual verification</span></td></tr>
+  </table>
+
+  <h3>4.4 Input validation</h3>
+  <ul class="clean">
+    <li><strong>Request validation:</strong> Bean Validation on auth DTOs — <code>@Email</code>, E.164 <code>@Pattern</code>, OTP <code>^\d{6}$</code>, password <code>@Size(min=10,max=128)</code>, length caps on all string inputs (<code>auth/web/AuthDtos.java</code>).</li>
+    <li><strong>File upload validation:</strong> magic-byte + per-type size + filename sanitization (path-strip, control-char strip, leading-dot strip, 255-char cap) in <code>FileValidation.sanitizeFilename()</code>.</li>
+    <li><strong>User input sanitization:</strong> output encoding via JSON; no server-side templating surface.</li>
+  </ul>
+
+  <h3>4.5 Secrets</h3>
+  <table>
+    <tr><th>Check</th><th>Result</th><th>Severity</th><th>Detail</th></tr>
+    <tr><td>Hardcoded prod credentials in source</td><td><span class="badge b-ok">NONE FOUND</span></td><td>—</td><td>All secrets read from <code>HEALYN_*</code> env; <code>.env</code>, <code>secrets/</code>, <code>*.pem</code>, <code>*.key</code> gitignored</td></tr>
+    <tr><td>Real secret committed to git</td><td><span class="badge b-ok">NONE</span></td><td>—</td><td><code>git ls-files</code> confirms no tracked secret; <code>.env.example</code> uses placeholders</td></tr>
+    <tr><td>Real FCM private key in working tree</td><td><span class="badge b-warn">PRESENT (untracked)</span></td><td><span class="badge b-med">MEDIUM</span></td><td><code>backend/secrets/fcm-service-account.json</code> holds a live service-account private key (project <code>com-healyn</code>). Correctly gitignored &amp; <strong>not committed</strong>, but a real key exists on disk — <strong>rotate it before launch</strong> and source it only from the secret manager</td></tr>
+    <tr><td>Dev defaults in <code>application.yml</code></td><td><span class="badge b-warn">PRESENT</span></td><td><span class="badge b-low">LOW</span></td><td>MinIO <code>minioadmin</code>, DB <code>postgres/postgres</code>, dev physio password <code>Physio!Dev123</code> — all local-profile defaults, profile-guarded; ensure none leak into prod env</td></tr>
+    <tr><td>Fail-fast on missing prod secrets</td><td><span class="badge b-ok">YES</span></td><td>—</td><td><code>JwtKeyProvider</code> &amp; <code>NotificationsConfig</code> throw outside <code>local/test</code> when keys/credentials are blank — prevents silent insecure boot</td></tr>
+  </table>
+
+  <h3>4.6 Transport &amp; crypto posture</h3>
+  <table>
+    <tr><th>Control</th><th>Status</th><th>Notes</th></tr>
+    <tr><td>TLS 1.2+ / HSTS</td><td><span class="badge b-bad">NOT IN REPO</span></td><td>Documented at gateway (<code>§8</code>) but no gateway/infra exists yet — <span class="badge b-crit">CRITICAL before launch</span></td></tr>
+    <tr><td>Encryption in transit (storage)</td><td><span class="badge b-info">VERIFY</span></td><td>Presigned URLs must be HTTPS in prod (dev uses <code>http://</code> LAN IP)</td></tr>
+    <tr><td>Encryption at rest</td><td><span class="badge b-info">VERIFY</span></td><td>S3 SSE-KMS + DB encryption are infra-layer; <span class="badge b-info">Requires manual verification</span></td></tr>
+    <tr><td>Mobile certificate pinning</td><td><span class="badge b-warn">DEFERRED</span></td><td>Phase 2 by design (<code>§8</code>); acceptable risk acceptance for limited Phase 1 rollout</td></tr>
+    <tr><td>Mobile token storage</td><td><span class="badge b-ok">PASS</span></td><td><code>flutter_secure_storage</code> (Keystore/Keychain); never SharedPreferences</td></tr>
+  </table>
+</section>
+
+<!-- ============================ 5 PRIVACY ============================ -->
+<h2 id="s5"><span class="num">05</span>Privacy &amp; Data Protection Compliance</h2>
+<section>
+  <p class="lead">Healyn stores Protected Health Information (diagnoses, allergies, treatment notes, medical documents). For India (DPDP Act 2023) and any HIPAA-aligned posture, the following are table-stakes. A repository-wide search for <code>consent</code>, <code>privacy policy</code>, <code>terms</code>, <code>export</code>, <code>erasure/right-to-delete</code> returned <strong>no matches in code</strong>.</p>
+  <table>
+    <tr><th>Requirement</th><th>Status</th><th>Severity</th><th>Notes</th></tr>
+    <tr><td>Privacy Policy (in-app + store listing)</td><td><span class="badge b-bad">MISSING</span></td><td><span class="badge b-high">HIGH</span></td><td>Mandatory for app-store review and lawful processing</td></tr>
+    <tr><td>Terms &amp; Conditions</td><td><span class="badge b-bad">MISSING</span></td><td><span class="badge b-high">HIGH</span></td><td>No T&amp;C surface or acceptance gate</td></tr>
+    <tr><td>Consent capture (processing of health data)</td><td><span class="badge b-bad">MISSING</span></td><td><span class="badge b-high">HIGH</span></td><td>No explicit consent record at signup; DPDP requires demonstrable consent</td></tr>
+    <tr><td>Consent for a Family Member Patient</td><td><span class="badge b-bad">MISSING</span></td><td><span class="badge b-med">MEDIUM</span></td><td>Managing another person's health data needs a guardianship/authority attestation</td></tr>
+    <tr><td>Data export (data portability / DSAR)</td><td><span class="badge b-bad">MISSING</span></td><td><span class="badge b-med">MEDIUM</span></td><td><code>EXPORT</code> audit action is reserved but marked Phase 2 (<code>§11</code>)</td></tr>
+    <tr><td>Account deletion / right-to-erasure</td><td><span class="badge b-bad">MISSING</span></td><td><span class="badge b-high">HIGH</span></td><td>Only family-member soft-delete exists; no account self-deletion or erasure workflow</td></tr>
+    <tr><td>Clinical-data retention policy</td><td><span class="badge b-warn">UNDEFINED</span></td><td><span class="badge b-med">MEDIUM</span></td><td>Hard-delete forbidden by design (good), but no documented retention/legal-hold schedule</td></tr>
+  </table>
+  <h3>Data-protection technical controls</h3>
+  <table>
+    <tr><th>Control</th><th>Status</th><th>Notes</th></tr>
+    <tr><td>PHI storage minimization</td><td><span class="badge b-ok">GOOD</span></td><td>Notification payloads carry IDs only (Hard Rule #4); no PHI in caches/logs</td></tr>
+    <tr><td>Encryption in transit</td><td><span class="badge b-info">VERIFY</span></td><td>Enforce HTTPS end-to-end in prod (see §4.6)</td></tr>
+    <tr><td>Encryption at rest</td><td><span class="badge b-info">VERIFY</span></td><td>DB + object storage encryption is infra-configured; confirm SSE-KMS + encrypted volumes</td></tr>
+    <tr><td>Audit trail of PHI access</td><td><span class="badge b-warn">PARTIAL</span></td><td>Write/download audited; <strong>READ-path auditing deferred</strong> — close before claiming full access logging</td></tr>
+    <tr><td>Logging hygiene</td><td><span class="badge b-ok">GOOD</span></td><td>No PHI in logs by policy and by log pattern (MDC: traceId/requestId/accountId only)</td></tr>
+  </table>
+  <p class="note"><strong>Compliance verdict:</strong> Technical PHI handling is responsible, but the <strong>legal/consent surface is entirely absent</strong>. These are launch blockers for an app-store healthcare release in India/most jurisdictions. None require deep engineering — they require product + legal content plus a consent record table and a delete/export job.</p>
+</section>
+
+<!-- ============================ 6 ENV VARS ============================ -->
+<h2 id="s6"><span class="num">06</span>Environment Variables Audit</h2>
+<section>
+  <p class="lead">The app is fully env-driven via <code>HEALYN_*</code> variables (bound in <code>application.yml</code>). Below: production checklist with what exists vs. what is missing for a real deployment.</p>
+  <table>
+    <tr><th>Group</th><th>Variable</th><th>In repo?</th><th>Prod action</th></tr>
+    <tr><td rowspan="3"><strong>Application</strong></td><td><code>HEALYN_PROFILE</code> (=prod)</td><td><span class="badge b-ok">YES</span></td><td>Set to <code>prod</code> — triggers fail-fast guards</td></tr>
+    <tr><td><code>HEALYN_HTTP_PORT</code></td><td><span class="badge b-ok">YES</span></td><td>Behind TLS gateway</td></tr>
+    <tr><td><code>APP_URL</code> / public base URL</td><td><span class="badge b-bad">MISSING</span></td><td>Add for links / deep-link config</td></tr>
+    <tr><td rowspan="4"><strong>Database</strong></td><td><code>HEALYN_DB_HOST</code> / <code>_PORT</code> / <code>_NAME</code></td><td><span class="badge b-ok">YES</span></td><td>Point to managed PG; enable SSL</td></tr>
+    <tr><td><code>HEALYN_DB_USER</code></td><td><span class="badge b-ok">YES</span></td><td>Least-privilege app role</td></tr>
+    <tr><td><code>HEALYN_DB_PASSWORD</code></td><td><span class="badge b-ok">YES</span></td><td><span class="badge b-crit">NEVER COMMIT</span> — secret manager</td></tr>
+    <tr><td>DB SSL mode</td><td><span class="badge b-bad">MISSING</span></td><td>Append <code>?sslmode=require</code> / configure</td></tr>
+    <tr><td rowspan="4"><strong>Security / JWT</strong></td><td><code>HEALYN_PASSWORD_PEPPER</code></td><td><span class="badge b-ok">YES</span></td><td><span class="badge b-crit">SECRET</span> — 32B random; rotate from dev value</td></tr>
+    <tr><td><code>HEALYN_JWT_PRIVATE_KEY_PATH</code></td><td><span class="badge b-warn">BLANK</span></td><td>Mount real RS256 key from secret manager</td></tr>
+    <tr><td><code>HEALYN_JWT_PUBLIC_KEY_PATH</code></td><td><span class="badge b-warn">BLANK</span></td><td>Mount; app generates ephemeral keys only in local/test</td></tr>
+    <tr><td>JWT TTLs (access 900s / refresh 30d)</td><td><span class="badge b-ok">YES</span></td><td>Configured in <code>application.yml</code></td></tr>
+    <tr><td rowspan="5"><strong>Storage (S3)</strong></td><td><code>HEALYN_S3_ENDPOINT</code> / <code>_PUBLIC_ENDPOINT</code></td><td><span class="badge b-ok">YES</span></td><td>HTTPS endpoints; public = CDN/edge host</td></tr>
+    <tr><td><code>HEALYN_S3_ACCESS_KEY</code></td><td><span class="badge b-ok">YES</span></td><td><span class="badge b-crit">SECRET</span> — prefer IAM role over static key</td></tr>
+    <tr><td><code>HEALYN_S3_SECRET_KEY</code></td><td><span class="badge b-ok">YES</span></td><td><span class="badge b-crit">SECRET</span></td></tr>
+    <tr><td><code>HEALYN_S3_BUCKET</code> / <code>_REGION</code></td><td><span class="badge b-ok">YES</span></td><td>Private bucket; enable SSE-KMS + versioning</td></tr>
+    <tr><td>Presign TTL (300s)</td><td><span class="badge b-ok">YES</span></td><td>Within ≤5-min rule</td></tr>
+    <tr><td rowspan="3"><strong>Redis</strong></td><td><code>HEALYN_REDIS_HOST</code> / <code>_PORT</code></td><td><span class="badge b-ok">YES</span></td><td>Managed Redis</td></tr>
+    <tr><td><code>HEALYN_REDIS_PASSWORD</code></td><td><span class="badge b-warn">BLANK</span></td><td><span class="badge b-high">REQUIRE AUTH</span> + TLS in prod</td></tr>
+    <tr><td><code>HEALYN_REDIS_DB</code></td><td><span class="badge b-ok">YES</span></td><td>—</td></tr>
+    <tr><td rowspan="2"><strong>Push (FCM)</strong></td><td><code>HEALYN_FCM_CREDENTIALS_PATH</code></td><td><span class="badge b-ok">YES</span></td><td><span class="badge b-crit">SECRET FILE</span> — mount from secret manager; rotate current key</td></tr>
+    <tr><td>FCM dispatcher tuning (<code>HEALYN_NOTIFICATIONS_*</code>)</td><td><span class="badge b-ok">YES</span></td><td>Defaults sane</td></tr>
+    <tr><td rowspan="2"><strong>Email / SMS (OTP)</strong></td><td>SMTP / SMS provider creds</td><td><span class="badge b-bad">MISSING</span></td><td><strong>Gap:</strong> OTP delivery uses <code>LoggingOtpSender</code> (console). Real provider (SMS/email) + secrets needed before launch</td></tr>
+    <tr><td>OTP provider API key</td><td><span class="badge b-bad">MISSING</span></td><td>Documented in <code>§12</code> but no adapter/env wired</td></tr>
+    <tr><td><strong>Logging / Clinic</strong></td><td><code>HEALYN_CLINIC_TIMEZONE</code></td><td><span class="badge b-ok">YES</span></td><td>Log level fixed at INFO in <code>logback-spring.xml</code> (no <code>LOG_LEVEL</code> env — add if runtime tuning desired)</td></tr>
+  </table>
+  <h3>Summary</h3>
+  <ul class="clean">
+    <li><strong>Exist &amp; wired:</strong> profile, HTTP port, full DB/Redis/S3/JWT/pepper/FCM/notification configuration.</li>
+    <li><strong>Missing for prod:</strong> real OTP delivery provider (SMS/email) + secrets, Redis password, DB SSL mode, public APP_URL, runtime <code>LOG_LEVEL</code> control.</li>
+    <li><strong>Never commit:</strong> <code>HEALYN_DB_PASSWORD</code>, <code>HEALYN_PASSWORD_PEPPER</code>, JWT private key, <code>HEALYN_S3_SECRET_KEY</code>, FCM service-account JSON, OTP provider key — all via cloud secret manager (already the documented intent in <code>SECURITY_GUIDELINES §12</code>).</li>
+  </ul>
+</section>
+
+<!-- ============================ 7 PERFORMANCE ============================ -->
+<h2 id="s7"><span class="num">07</span>Performance Audit</h2>
+<section>
+  <h3>Backend &amp; Database</h3>
+  <table>
+    <tr><th>Issue</th><th>Impact</th><th>Solution</th></tr>
+    <tr><td>JPA N+1 risk on list endpoints that resolve related entities (e.g. appointment→patient name)</td><td><span class="badge b-med">MEDIUM</span></td><td>Search path already batches via <code>findAllById</code> + map. Audit other list mappers; add fetch-joins / <code>@EntityGraph</code> where lazy associations are read per-row</td></tr>
+    <tr><td>Indexes</td><td><span class="badge b-ok">LOW</span></td><td>Good baseline — V21 adds <code>text_pattern_ops</code> + trigram (gin) indexes for search; FKs indexed by convention. Verify EXPLAIN on the search query at volume</td></tr>
+    <tr><td>Connection pool</td><td><span class="badge b-ok">CONFIGURED</span></td><td>HikariCP max 20 / min-idle 4. Re-tune to DB <code>max_connections</code> and instance count before load</td></tr>
+    <tr><td>Notification outbox poller</td><td><span class="badge b-med">MEDIUM</span></td><td>2s fixed-delay sweep with SKIP-LOCKED + lease — sound, but single-instance assumption. Verify behavior under multiple app replicas (claims are lock-safe; cadence multiplies)</td></tr>
+    <tr><td>Transaction scope on file completion reads</td><td><span class="badge b-low">LOW</span></td><td>Whole-file <code>store.read(size)</code> into memory for SHA-256 (≤20&nbsp;MB cap bounds it). Acceptable; consider streaming digest if caps rise</td></tr>
+    <tr><td>Blocking I/O</td><td><span class="badge b-low">LOW</span></td><td>FCM send moved outside the DB transaction (no row lock during network call) — good design</td></tr>
+  </table>
+  <h3>Mobile</h3>
+  <table>
+    <tr><th>Issue</th><th>Impact</th><th>Solution</th></tr>
+    <tr><td>Unread/activity aggregation fans out N parallel per-thread API calls (Home roll-up, physio Today badges)</td><td><span class="badge b-med">MEDIUM</span></td><td>Acknowledged Phase-1 debt (no server aggregate). Add a backend <code>unread-summary</code> endpoint to collapse N calls into 1</td></tr>
+    <tr><td>Screen loading / API waiting</td><td><span class="badge b-ok">LOW</span></td><td>Cursor pagination + auto-load-more; Riverpod async states. New <code>healyn_loader</code>/<code>healyn_shimmer</code>/<code>healyn_skeletons</code> widgets (uncommitted) improve perceived latency</td></tr>
+    <tr><td>Image / PDF handling</td><td><span class="badge b-ok">LOW</span></td><td>Image→PDF built in memory; rendered via native pdfium; no PHI bytes persisted to disk</td></tr>
+    <tr><td>Lazy loading / memory</td><td><span class="badge b-ok">LOW</span></td><td>List virtualization via paged providers; attachments stream via presigned URLs</td></tr>
+    <tr><td>UI transitions</td><td><span class="badge b-ok">LOW</span></td><td>Custom <code>page_transitions.dart</code> (uncommitted) on this branch</td></tr>
+  </table>
+  <p class="note"><span class="badge b-info">Requires manual verification</span> — No load test exists. The release checklist's own target (<em>p95 &lt; 250&nbsp;ms at 30 concurrent users on staging</em>) is currently unmeasured.</p>
+</section>
+
+<!-- ============================ 8 DEPLOYMENT ============================ -->
+<h2 id="s8"><span class="num">08</span>Production Deployment Checklist</h2>
+<section>
+  <div class="grid2">
+    <div>
+      <h4>Infrastructure</h4>
+      <ul class="chk">
+        <li>Production server / container platform configured</li>
+        <li>HTTPS / TLS termination (gateway)</li>
+        <li>Domain configured</li>
+        <li>SSL certificate + auto-renew</li>
+        <li>HSTS enabled</li>
+        <li>Firewall / security groups (DB/Redis/MinIO private)</li>
+        <li>Backup strategy (PG PITR + object-store versioning)</li>
+        <li>Secret manager wired (no committed secrets)</li>
+      </ul>
+      <h4>Database</h4>
+      <ul class="chk">
+        <li class="part">Migrations authored &amp; validated (24 Flyway scripts; <code>FlywayMigrationTest</code> exists — run in CI)</li>
+        <li>Backup + restore drill on staging</li>
+        <li class="part">Indexes verified (present; confirm under load)</li>
+        <li>Encryption at rest + SSL connections</li>
+        <li>Least-privilege app DB role</li>
+      </ul>
+    </div>
+    <div>
+      <h4>Backend</h4>
+      <ul class="chk">
+        <li>Dockerfile / reproducible image</li>
+        <li>CI/CD pipeline (build → test → scan → deploy)</li>
+        <li class="done">Prod profile fail-fast guards (JWT keys, FCM creds)</li>
+        <li class="done">Error responses hide stack traces / messages</li>
+        <li class="done">Structured JSON logging (prod profile)</li>
+        <li class="part">Health probes (<code>/actuator/health</code> liveness/readiness) — exposed; wire to platform</li>
+        <li>Monitoring / metrics scraping (Prometheus endpoint exists)</li>
+        <li>Real OTP delivery provider (SMS/email)</li>
+        <li>Secure/disable Swagger UI in prod</li>
+      </ul>
+      <h4>Mobile</h4>
+      <ul class="chk">
+        <li>Release (signed) build tested on device</li>
+        <li class="done">App icon (branded — recent commit)</li>
+        <li class="done">Splash screen (animated — recent commit)</li>
+        <li class="part">Versioning (<code>1.0.0+1</code> set; establish bump policy)</li>
+        <li>Crash reporting (Crashlytics/Sentry) — not wired</li>
+        <li>Native Firebase config per environment (google-services.json / APNs)</li>
+        <li>Play/App Store data-safety + privacy disclosures</li>
+      </ul>
+    </div>
+  </div>
+  <p class="note"><span class="badge b-ok">☑ done</span> = present in repo &nbsp; <span class="badge b-warn">◧ part</span> = partially present &nbsp; <span class="badge b-na">☐</span> = not found, action required.</p>
+</section>
+
+<!-- ============================ 9 TESTING ============================ -->
+<h2 id="s9"><span class="num">09</span>Testing Audit</h2>
+<section>
+  <table>
+    <tr><th>Test type</th><th>Status</th><th>Evidence</th></tr>
+    <tr><td>Unit tests (backend)</td><td><span class="badge b-ok">GOOD</span></td><td>31 test classes — password hashing, token issuer, refresh, OTP, slot expansion, outbox dispatcher, FCM, validation, transitions</td></tr>
+    <tr><td>Unit/widget tests (mobile)</td><td><span class="badge b-ok">GOOD</span></td><td>58 test files; <code>flutter analyze</code> clean per module notes; loading-widget tests added</td></tr>
+    <tr><td>Integration tests (backend)</td><td><span class="badge b-warn">UNVERIFIED</span></td><td>Testcontainers suites exist (Auth/Appointment/Discussion/File/Patient/TreatmentNote/Notifications) but many are <strong>Docker-gated and "run pending Docker"</strong></td></tr>
+    <tr><td>API contract tests</td><td><span class="badge b-warn">PARTIAL</span></td><td>Covered indirectly by integration tests; no standalone contract suite</td></tr>
+    <tr><td>End-to-end / device tests</td><td><span class="badge b-bad">NONE</span></td><td>Recurring tracker note: "Device testing deferred. Not merged."</td></tr>
+    <tr><td>Security testing (SAST/DAST/dep-check)</td><td><span class="badge b-bad">NONE</span></td><td>OWASP dependency-check / ZAP listed in docs but <code>⬜ Not started</code></td></tr>
+    <tr><td>Load / performance testing</td><td><span class="badge b-bad">NONE</span></td><td>p95 latency target defined but unmeasured</td></tr>
+    <tr><td>CI execution</td><td><span class="badge b-bad">NONE</span></td><td>No <code>.github/workflows</code>; nothing runs automatically on push</td></tr>
+  </table>
+  <h3>Minimum test gate recommended before launch</h3>
+  <ul class="clean">
+    <li>Full backend integration suite <strong>green in CI</strong> against ephemeral PG+Redis+MinIO (the suites already exist — they just need to run).</li>
+    <li><code>FlywayMigrationTest</code> against a fresh PG container on every PR (prevents migration drift).</li>
+    <li>The documented smoke path on staging: <em>register → add family patient → book → message + attach → physio confirm → complete + note</em>.</li>
+    <li>Authorization tests asserting <strong>403 on every cross-account PHI path</strong> (the security guide claims these — verify they exist and pass).</li>
+    <li>One load profile hitting the p95 &lt; 250&nbsp;ms / 30-concurrent target.</li>
+    <li>Dependency CVE scan + SAST as a release gate.</li>
+  </ul>
+</section>
+
+<!-- ============================ 10 MONITORING ============================ -->
+<h2 id="s10"><span class="num">10</span>Monitoring &amp; Operations</h2>
+<section>
+  <table>
+    <tr><th>Domain</th><th>Recommended tool</th><th>In repo?</th><th>Notes</th></tr>
+    <tr><td>Error monitoring</td><td>Sentry / equivalent (backend + Flutter)</td><td><span class="badge b-bad">NO</span></td><td>No crash/error reporter wired on either side</td></tr>
+    <tr><td>Metrics / performance</td><td>Prometheus + Grafana</td><td><span class="badge b-warn">PARTIAL</span></td><td>Actuator <code>prometheus</code> endpoint enabled — needs a scraper + dashboards + internal-only exposure</td></tr>
+    <tr><td>Server / infra monitoring</td><td>Cloud-native (CloudWatch/GCP Monitoring)</td><td><span class="badge b-bad">NO</span></td><td>No infra ⇒ no host metrics/alerts</td></tr>
+    <tr><td>Database monitoring</td><td>Managed-DB insights + slow-query log</td><td><span class="badge b-bad">NO</span></td><td>Enable slow-query + connection saturation alerts</td></tr>
+    <tr><td>Log aggregation</td><td>ELK / Loki / Cloud Logging</td><td><span class="badge b-warn">READY</span></td><td>JSON logs (LogstashEncoder) are ship-ready; needs a sink</td></tr>
+    <tr><td>Uptime / synthetic checks</td><td>Health-probe pinger</td><td><span class="badge b-warn">READY</span></td><td><code>/actuator/health</code> probes enabled</td></tr>
+    <tr><td>Notification delivery</td><td>Outbox DEAD-row alert</td><td><span class="badge b-warn">READY</span></td><td>Alert when outbox rows hit <code>DEAD</code> (max-attempts) — push silently failing otherwise</td></tr>
+  </table>
+  <h3>What to watch daily after launch</h3>
+  <ul class="clean">
+    <li>5xx rate &amp; latency p95/p99 per endpoint; auth-failure and 401/403 spikes (possible attack or broken client).</li>
+    <li>Login lockouts &amp; OTP rate-limit hits (abuse / delivery failures).</li>
+    <li>Notification outbox: pending depth, retry rate, <code>DEAD</code> count, FCM invalid-token retirements.</li>
+    <li>DB: connection-pool saturation, slow queries, replication/backup lag.</li>
+    <li>Object storage: presign error rate, quarantine count, upload failures.</li>
+    <li>Audit log growth &amp; integrity (append-only); any unexpected <code>UPDATE/DELETE</code> attempts.</li>
+    <li>Backup success + a periodic restore drill; certificate expiry countdown.</li>
+  </ul>
+</section>
+
+<!-- ============================ 11 ROADMAP ============================ -->
+<h2 id="s11"><span class="num">11</span>Final Production Roadmap</h2>
+<section>
+  <h3>Phase 1 — Must fix before launch <span class="tag">blockers</span></h3>
+  <table>
+    <tr><th>#</th><th>Item</th><th>Area</th><th>Severity</th></tr>
+    <tr><td>1</td><td>Build a <code>Dockerfile</code> + CI/CD pipeline (build → unit + integration tests → SAST/dep-check → deploy)</td><td>DevOps</td><td><span class="badge b-crit">CRITICAL</span></td></tr>
+    <tr><td>2</td><td>Stand up the TLS gateway: HTTPS, HSTS, and global/IP rate limiting in front of the API</td><td>Infra/Sec</td><td><span class="badge b-crit">CRITICAL</span></td></tr>
+    <tr><td>3</td><td>Wire the secret manager; mount real RS256 keys, pepper, DB/S3/FCM secrets; <strong>rotate the FCM key</strong> currently on disk</td><td>Security</td><td><span class="badge b-crit">CRITICAL</span></td></tr>
+    <tr><td>4</td><td>Run the full integration suite green in CI; execute the staging smoke path; device-test the mobile apps</td><td>Testing</td><td><span class="badge b-high">HIGH</span></td></tr>
+    <tr><td>5</td><td>Real OTP delivery provider (SMS/email) — replace <code>LoggingOtpSender</code></td><td>Backend</td><td><span class="badge b-high">HIGH</span></td></tr>
+    <tr><td>6</td><td>Compliance surface: Privacy Policy, Terms, consent capture (incl. family-member authority), account deletion / erasure flow</td><td>Legal/Product</td><td><span class="badge b-high">HIGH</span></td></tr>
+    <tr><td>7</td><td>Confirm encryption at rest (DB + SSE-KMS) and HTTPS presigned URLs; enable Redis auth + SSL</td><td>Infra/Sec</td><td><span class="badge b-high">HIGH</span></td></tr>
+    <tr><td>8</td><td>Backup + restore drill; firewall so DB/Redis/object-store are not public</td><td>Infra</td><td><span class="badge b-high">HIGH</span></td></tr>
+    <tr><td>9</td><td>Crash/error monitoring (backend + mobile) + outbox-DEAD &amp; 5xx alerts</td><td>Ops</td><td><span class="badge b-med">MEDIUM</span></td></tr>
+    <tr><td>10</td><td>Disable/secure Swagger UI &amp; restrict Actuator exposure in prod</td><td>Security</td><td><span class="badge b-med">MEDIUM</span></td></tr>
+  </table>
+
+  <h3>Phase 2 — Recommended before scaling</h3>
+  <table>
+    <tr><th>Item</th><th>Why</th></tr>
+    <tr><td>Malware/AV scanning on uploads (ClamAV / cloud scan)</td><td>PHI file safety</td></tr>
+    <tr><td>READ-path audit logging (interceptor) + cold-storage tombstone on file delete</td><td>Full HIPAA-style access trail + retention</td></tr>
+    <tr><td>Server-side unread/activity aggregate endpoint</td><td>Collapse mobile N-call fan-out</td></tr>
+    <tr><td>Mobile certificate pinning; biometric app-lock default-on; FLAG_SECURE on PHI screens</td><td>Mobile hardening (already designed)</td></tr>
+    <tr><td>Atomic FCM-token upsert (ON CONFLICT)</td><td>Remove registration race</td></tr>
+    <tr><td>Stronger password policy (breach-list / complexity); IP-aware throttling</td><td>Credential-stuffing resistance</td></tr>
+    <tr><td>Load testing to the p95 &lt; 250&nbsp;ms / 30-user target; HPA/replica validation of the poller</td><td>Scale confidence</td></tr>
+    <tr><td>Admin/operations role &amp; console (currently no admin role)</td><td>Operability without DB access</td></tr>
+  </table>
+
+  <h3>Phase 3 — Future improvements</h3>
+  <ul class="clean">
+    <li>Data export / portability (DSAR) self-service.</li>
+    <li>Multi-physio / multi-clinic tenancy (re-scope <code>PatientAccessPolicy</code> physio blanket access).</li>
+    <li>Renovate/Dependabot + scheduled CVE gating; ADR set; reproducible-image attestation (A08).</li>
+    <li>Web client (will require CORS allow-list + cert-pinning revisit).</li>
+    <li>Inter font bundling + golden-test baseline lock-in.</li>
+  </ul>
+</section>
+
+<!-- ============================ GO/NO-GO ============================ -->
+<h2 id="gono"><span class="num">★</span>Final Production GO / NO-GO Recommendation</h2>
+<section class="verdict gono">
+  <div style="flex:1 1 320px">
+    <div class="note">DECISION</div>
+    <div class="big" style="color:#ff6b7e">⛔ NO-GO (CONDITIONAL) — launch-blocked on operations &amp; compliance, not on features</div>
+    <p class="small" style="color:var(--muted);margin-top:10px">
+      <strong>Recommendation: do not deploy to production yet.</strong> Healyn's application engineering is genuinely strong — the security primitives, authorization model, file handling, and data hygiene are at or above the bar for a healthcare app, and the team's own status tracking is honest and disciplined. What stands between Healyn and a safe launch is <strong>not code quality</strong>; it is the absence of the production substrate: there is no CI/CD or container image, no TLS/rate-limiting gateway, secrets are not yet sourced from a manager (and a live FCM key sits on disk), the integration tests have never run green in CI, OTP has no real delivery channel, and the legal/consent surface required to lawfully process health data does not exist.
+    </p>
+    <p class="small" style="color:var(--muted)">
+      <strong>Path to GO:</strong> complete the ten <a href="#s11">Phase 1</a> blockers. None are research problems; all are well-understood, finite work on a solid foundation. Once Phase 1 is closed and the staging smoke path + integration suite pass green, this flips to a <span class="badge b-ok">GO</span> for a controlled single-clinic rollout, with Phase 2 hardening to follow before any wider scale.
+    </p>
+    <p class="small" style="color:var(--muted)">
+      <strong>Bottom line:</strong> a high-quality Phase-1 product that is roughly <span class="pct">~70%</span> production-ready. Estimated readiness after Phase 1 blockers: <span class="pct">~90%+</span>.
+    </p>
+  </div>
+</section>
+
+<p class="note" style="text-align:center;margin-top:30px">
+  Generated by static repository audit on 2026-06-14 · Branch <span class="mono">feat/medical-document-library</span> ·
+  Items marked <span class="badge b-info">Requires manual verification</span> depend on cloud infrastructure not present in the repository and must be confirmed in the target environment.
+</p>
+
+</div>
+</body>
+</html>

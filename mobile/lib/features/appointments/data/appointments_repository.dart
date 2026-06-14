@@ -5,6 +5,18 @@ import '../../shared/network/api_exception.dart';
 import 'appointments_api.dart';
 import 'models/appointment_models.dart';
 
+/// A time span already taken on a physiotherapist's day, half-open `[start, end)`
+/// as UTC instants. The assign-time picker uses it to grey out every 15-minute
+/// cell a booked appointment covers, and to flag a duration that would overlap one.
+typedef BookedRange = ({DateTime start, DateTime end});
+
+extension BookedRangeX on BookedRange {
+  /// Whether [instant] falls inside this range (start inclusive, end exclusive) —
+  /// the same half-open rule the backend's overlap constraint uses.
+  bool covers(DateTime instant) =>
+      !instant.isBefore(start) && instant.isBefore(end);
+}
+
 /// The booking flow's data access. Maps transport errors to [ApiException]; the
 /// UI talks only to this class, never to Dio directly.
 class AppointmentsRepository {
@@ -138,25 +150,31 @@ class AppointmentsRepository {
     return _guard(() async => (await _api.slots(from: day, to: day)).slots);
   }
 
-  /// The slot start instants on [day] already taken by this physiotherapist's
-  /// appointments, so the assign-time picker can mark them as booked. Any
-  /// non-cancelled scheduled appointment on the day counts; [excludeAppointmentId]
-  /// is dropped so the appointment being rescheduled never flags its own current
-  /// slot. Returns UTC instants (match against [Slot.startsAt] by moment).
-  Future<Set<DateTime>> bookedStartsFor(
+  /// The time spans on [day] already taken by this physiotherapist's appointments,
+  /// so the assign-time picker can mark every covered 15-minute cell as booked —
+  /// not just the start. Each range is half-open `[start, end)` in UTC; a slot is
+  /// taken when its [Slot.startsAt] falls inside one (see [BookedRange.covers]).
+  /// Any non-cancelled scheduled appointment on the day counts; [excludeAppointmentId]
+  /// is dropped so the appointment being rescheduled never flags its own current time.
+  Future<List<BookedRange>> bookedRangesFor(
     DateTime day, {
     String? excludeAppointmentId,
   }) async {
     final from = DateTime(day.year, day.month, day.day);
     final to = from.add(const Duration(days: 1));
     final appointments = await _guard(() => _api.calendar(from: from, to: to));
-    return {
+    return [
       for (final a in appointments)
         if (a.id != excludeAppointmentId &&
             a.scheduledAt != null &&
             _occupiesSlot(a.status))
-          a.scheduledAt!.toUtc(),
-    };
+          (
+            start: a.scheduledAt!.toUtc(),
+            end: (a.scheduledEndAt ??
+                    a.scheduledAt!.add(Duration(minutes: a.durationMinutes)))
+                .toUtc(),
+          ),
+    ];
   }
 
   /// Whether an appointment in this status still holds its slot. Cancelled and

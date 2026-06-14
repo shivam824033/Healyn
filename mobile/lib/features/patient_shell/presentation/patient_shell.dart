@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../appointments/presentation/appointments_providers.dart';
 import '../../patients/presentation/patients_providers.dart';
+import '../../shared/design/colors.dart';
 
 /// The signed-in patient app frame: a 4-tab bottom nav over the
 /// Home/Appointments/Family/Profile branches (UI_UX_GUIDELINES §8.1). Each tab
@@ -16,6 +17,14 @@ class PatientShell extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
+      // Tabs swap instantly: the shell is an IndexedStack, so every branch keeps
+      // its state and is already built — switching just changes which is shown.
+      // We deliberately don't cross-fade. The branches share one IndexedStack
+      // (and its GlobalKeys), so a real dissolve between the old and new tab
+      // isn't possible; fading the single visible branch in from transparent
+      // briefly exposes the background, which reads as a flash/stutter. An
+      // instant swap is the smoother, native-feeling choice.
+      backgroundColor: HealynColors.surfaceAlt,
       body: navigationShell,
       bottomNavigationBar: NavigationBar(
         selectedIndex: navigationShell.currentIndex,

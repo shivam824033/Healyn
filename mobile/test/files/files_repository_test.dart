@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:healyn/features/files/data/files_api.dart';
@@ -59,6 +61,42 @@ class _FakeFilesApi extends FilesApi {
       sizeBytes: putBytesData?.length ?? 0,
       status: FileStatus.available,
     );
+  }
+
+  DocumentUploader? listedUploader;
+  String? listedPatientId;
+
+  @override
+  Future<DocumentPage> listDocuments({
+    required String patientId,
+    required DocumentUploader uploader,
+    String? cursor,
+    int limit = 20,
+  }) async {
+    calls.add('list');
+    listedPatientId = patientId;
+    listedUploader = uploader;
+    return DocumentPage(
+      items: [
+        FileDocument(
+          id: 'd1',
+          patientId: patientId,
+          kind: FileKind.report,
+          mimeType: 'application/pdf',
+          originalFilename: 'mri.pdf',
+          sizeBytes: 1024,
+          uploadedByRole: uploader == DocumentUploader.physio
+              ? DocumentUploaderRole.physiotherapist
+              : DocumentUploaderRole.patient,
+        ),
+      ],
+    );
+  }
+
+  @override
+  Future<Uint8List> fetchBytes(String url) async {
+    calls.add('fetch');
+    return Uint8List.fromList([1, 2, 3]);
   }
 }
 
@@ -127,5 +165,45 @@ void main() {
     expect(api.downloadedFileId, 'f1');
     expect(target.url, 'https://store.example/get?sig=xyz');
     expect(target.expiresInSeconds, 300);
+  });
+
+  test('upload defaults to a standalone LIBRARY document (no appointment)', () async {
+    final api = _FakeFilesApi();
+
+    await FilesRepository(api).upload(
+      patientId: 'p1',
+      kind: FileKind.report,
+      mimeType: 'application/pdf',
+      originalFilename: 'r.pdf',
+      bytes: const [1, 2, 3, 4],
+      uploadSource: 'FILE',
+    );
+
+    expect(api.presignedWith!.appointmentId, isNull);
+    expect(api.presignedWith!.context, 'LIBRARY');
+    expect(api.presignedWith!.uploadSource, 'FILE');
+  });
+
+  test('listDocuments returns a page for the requested uploader', () async {
+    final api = _FakeFilesApi();
+
+    final page = await FilesRepository(api).listDocuments(
+      patientId: 'p1',
+      uploader: DocumentUploader.physio,
+    );
+
+    expect(api.calls, ['list']);
+    expect(api.listedPatientId, 'p1');
+    expect(api.listedUploader, DocumentUploader.physio);
+    expect(page.items.single.uploadedByRole, DocumentUploaderRole.physiotherapist);
+  });
+
+  test('previewBytes downloads then pulls the bytes into memory', () async {
+    final api = _FakeFilesApi();
+
+    final bytes = await FilesRepository(api).previewBytes('f1');
+
+    expect(api.calls, ['download', 'fetch']);
+    expect(bytes, [1, 2, 3]);
   });
 }

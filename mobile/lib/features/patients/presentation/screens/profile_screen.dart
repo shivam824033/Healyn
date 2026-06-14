@@ -5,14 +5,17 @@ import 'package:go_router/go_router.dart';
 import '../../../auth/presentation/controllers/auth_controller.dart';
 import '../../../auth/presentation/widgets/signed_in_devices.dart';
 import '../../../shared/design/colors.dart';
+import '../../../shared/widgets/healyn_state_switcher.dart';
 import '../../../shared/design/spacing.dart';
 import '../../../shared/design/typography.dart';
 import '../../../shared/domain/patient_sex.dart';
 import '../../../shared/widgets/app_bar.dart';
 import '../../../shared/widgets/error_banner.dart';
 import '../../../shared/widgets/healyn_section_header.dart';
+import '../../../shared/widgets/healyn_skeletons.dart';
 import '../../../shared/widgets/nav_card.dart';
 import '../../../shared/widgets/copyable_id.dart';
+import '../../../shared/widgets/detail_card.dart';
 import '../../../shared/widgets/section_card.dart';
 import '../../data/models/patient_models.dart';
 import '../patient_format.dart';
@@ -49,28 +52,32 @@ class ProfileScreen extends ConsumerWidget {
             ref.invalidate(signedInDevicesProvider);
             await ref.read(patientsProvider.future);
           },
-          child: patients.when(
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (_, _) => ListView(
-              padding: const EdgeInsets.all(HealynSpacing.screenEdge),
-              children: const [
-                ErrorBanner(
-                  message: 'Could not load your profile. Pull down to retry.',
-                ),
-              ],
+          child: HealynStateSwitcher(
+            child: patients.when(
+              loading: () => const _ProfileSkeleton(key: ValueKey('profile-loading')),
+              error: (_, _) => ListView(
+                key: const ValueKey('profile-error'),
+                padding: const EdgeInsets.all(HealynSpacing.screenEdge),
+                children: const [
+                  ErrorBanner(
+                    message: 'Could not load your profile. Pull down to retry.',
+                  ),
+                ],
+              ),
+              data: (all) {
+                final me = primaryPatientOf(all);
+                if (me == null) {
+                  return ListView(
+                    key: const ValueKey('profile-none'),
+                    padding: const EdgeInsets.all(HealynSpacing.screenEdge),
+                    children: const [
+                      ErrorBanner(message: 'No patient profile found.'),
+                    ],
+                  );
+                }
+                return _ProfileBody(key: const ValueKey('profile-data'), patient: me);
+              },
             ),
-            data: (all) {
-              final me = primaryPatientOf(all);
-              if (me == null) {
-                return ListView(
-                  padding: const EdgeInsets.all(HealynSpacing.screenEdge),
-                  children: const [
-                    ErrorBanner(message: 'No patient profile found.'),
-                  ],
-                );
-              }
-              return _ProfileBody(patient: me);
-            },
           ),
         ),
       ),
@@ -78,26 +85,58 @@ class ProfileScreen extends ConsumerWidget {
   }
 }
 
+/// First-load placeholder for Profile: the identity header and a couple of
+/// detail-card skeletons, kept scrollable so pull-to-refresh works on cold load
+/// and matched to the body's footprint so nothing shifts when data arrives.
+class _ProfileSkeleton extends StatelessWidget {
+  const _ProfileSkeleton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return HealynSkeletonGroup(
+      child: ListView(
+        padding: const EdgeInsets.all(HealynSpacing.screenEdge),
+        physics: const AlwaysScrollableScrollPhysics(),
+        children: const [
+          HealynSwitcherSkeleton(),
+          SizedBox(height: HealynSpacing.s6),
+          HealynSkeletonLine(widthFactor: 0.4, height: 18),
+          SizedBox(height: HealynSpacing.s3),
+          HealynListRowSkeleton(hasFooter: false),
+          SizedBox(height: HealynSpacing.s6),
+          HealynSkeletonLine(widthFactor: 0.3, height: 18),
+          SizedBox(height: HealynSpacing.s3),
+          HealynListRowSkeleton(hasFooter: false),
+        ],
+      ),
+    );
+  }
+}
+
 class _ProfileBody extends ConsumerWidget {
-  const _ProfileBody({required this.patient});
+  const _ProfileBody({required this.patient, super.key});
 
   final Patient patient;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final details = <(String, String)>[
-      (
+    final details = <DetailRowData>[
+      DetailRowData(
         'Date of birth',
         '${formatBirthDate(patient.dateOfBirth)} '
             '(age ${patientAgeInYears(patient.dateOfBirth)})',
       ),
-      if (patient.sex != null) ('Sex', patient.sex!.label),
-      if (_has(patient.email)) ('Email', patient.email!),
-      if (_has(patient.phoneE164)) ('Phone', patient.phoneE164!),
+      if (patient.sex != null) DetailRowData('Sex', patient.sex!.label),
+      if (_has(patient.email))
+        DetailRowData('Email', patient.email!, copyable: true),
+      if (_has(patient.phoneE164))
+        DetailRowData('Phone', patient.phoneE164!, copyable: true),
     ];
-    final medical = <(String, String)>[
-      if (_has(patient.bloodGroup)) ('Blood group', patient.bloodGroup!),
-      if (_has(patient.allergies)) ('Allergies', patient.allergies!),
+    final medical = <DetailRowData>[
+      if (_has(patient.bloodGroup))
+        DetailRowData('Blood group', patient.bloodGroup!),
+      if (_has(patient.allergies))
+        DetailRowData('Allergies', patient.allergies!),
     ];
 
     return ListView(
@@ -107,12 +146,12 @@ class _ProfileBody extends ConsumerWidget {
         const SizedBox(height: HealynSpacing.s6),
         const HealynSectionHeader(title: 'Personal details'),
         const SizedBox(height: HealynSpacing.s3),
-        _DetailCard(rows: details),
+        DetailCard(rows: details),
         if (medical.isNotEmpty) ...[
           const SizedBox(height: HealynSpacing.s6),
           const HealynSectionHeader(title: 'Medical'),
           const SizedBox(height: HealynSpacing.s3),
-          _DetailCard(rows: medical),
+          DetailCard(rows: medical),
         ],
         const SizedBox(height: HealynSpacing.s6),
         _AddressSection(address: patient.address),
@@ -124,6 +163,15 @@ class _ProfileBody extends ConsumerWidget {
           label: 'Treatment history',
           onTap: () => context.push(
             '/patients/${patient.id}/treatment_notes',
+            extra: patient.fullName,
+          ),
+        ),
+        const SizedBox(height: HealynSpacing.s3),
+        NavCard(
+          icon: Icons.folder_outlined,
+          label: 'Documents',
+          onTap: () => context.push(
+            '/patients/${patient.id}/documents',
             extra: patient.fullName,
           ),
         ),
@@ -251,45 +299,4 @@ class _Header extends StatelessWidget {
   }
 }
 
-class _DetailCard extends StatelessWidget {
-  const _DetailCard({required this.rows});
-
-  final List<(String, String)> rows;
-
-  @override
-  Widget build(BuildContext context) {
-    return SectionCard(
-      child: Column(
-        children: [
-          for (var i = 0; i < rows.length; i++) ...[
-            if (i > 0) const Divider(height: HealynSpacing.s5),
-            _DetailRow(label: rows[i].$1, value: rows[i].$2),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-class _DetailRow extends StatelessWidget {
-  const _DetailRow({required this.label, required this.value});
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(
-          width: 110,
-          child: Text(label, style: HealynTypography.caption),
-        ),
-        const SizedBox(width: HealynSpacing.s3),
-        Expanded(child: Text(value, style: HealynTypography.body)),
-      ],
-    );
-  }
-}
 

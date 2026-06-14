@@ -7,11 +7,13 @@ import '../../appointments/presentation/appointments_providers.dart';
 import '../../appointments/presentation/screens/appointment_detail_screen.dart';
 import '../../appointments/presentation/screens/appointments_screen.dart';
 import '../../appointments/presentation/screens/book_appointment_screen.dart';
+import '../../appointments/presentation/screens/patient_appointments_screen.dart';
 import '../../appointments/presentation/screens/reschedule_appointment_screen.dart';
 import '../../availability/presentation/screens/availability_blackout_form_screen.dart';
 import '../../availability/presentation/screens/availability_rule_form_screen.dart';
 import '../../discussion/presentation/screens/discussion_screen.dart';
 import '../../discussion/presentation/screens/unread_discussions_screen.dart';
+import '../../files/presentation/screens/patient_documents_screen.dart';
 import '../../auth/domain/auth_status.dart';
 import '../../auth/presentation/controllers/auth_controller.dart';
 import '../../auth/presentation/screens/login_screen.dart';
@@ -38,6 +40,7 @@ import '../../physio/presentation/screens/physio_treatment_note_screen.dart';
 import '../../treatment_notes/data/models/treatment_note_models.dart';
 import '../auth/account_role.dart';
 import '../widgets/app_bar.dart';
+import '../widgets/healyn_scene_skeletons.dart';
 import '../../patients/data/models/patient_models.dart';
 import '../../patients/presentation/patients_providers.dart';
 import '../../patients/presentation/screens/family_screen.dart';
@@ -187,19 +190,20 @@ final routerProvider = Provider<GoRouter>((ref) {
           StatefulShellBranch(
             routes: [
               GoRoute(
-                path: '/physio/patients',
-                builder: (_, _) => const PhysioPatientsScreen(),
+                path: '/physio/upcoming',
+                builder: (_, _) => const PhysioUpcomingScreen(),
               ),
             ],
           ),
           StatefulShellBranch(
             routes: [
               GoRoute(
-                path: '/physio/availability',
-                builder: (_, _) => const PhysioAvailabilityScreen(),
+                path: '/physio/patients',
+                builder: (_, _) => const PhysioPatientsScreen(),
               ),
             ],
           ),
+
           StatefulShellBranch(
             routes: [
               GoRoute(
@@ -218,12 +222,13 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/physio/requests',
         builder: (_, _) => const PhysioRequestsScreen(),
       ),
-      // The physiotherapist's Upcoming list, reached from the Today app-bar
-      // action. Pushed over the physio shell; under /physio/* so the redirect
-      // keeps non-physios out.
+      // The physiotherapist's availability management, reached from the Today
+      // app-bar action. Pushed over the physio shell (the less-frequent task, so
+      // it's a push, not a tab); under /physio/* so the redirect keeps
+      // non-physios out.
       GoRoute(
-        path: '/physio/upcoming',
-        builder: (_, _) => const PhysioUpcomingScreen(),
+        path: '/physio/availability',
+        builder: (_, _) => const PhysioAvailabilityScreen(),
       ),
       // The physiotherapist's account-wide unread discussions, reached from the
       // Today "Unread" stat. Under /physio/* so the redirect keeps non-physios out.
@@ -283,6 +288,27 @@ final routerProvider = Provider<GoRouter>((ref) {
           viewer: TreatmentHistoryViewer.physio,
         ),
       ),
+      // The physiotherapist's view of a patient's full appointment history. A
+      // distinct literal under /physio/patients/:id/*, matched before the bare
+      // detail.
+      GoRoute(
+        path: '/physio/patients/:id/appointments',
+        builder: (_, state) => PatientAppointmentsScreen(
+          patientId: state.pathParameters['id']!,
+          patientName: state.extra is String ? state.extra as String : null,
+          viewer: AppointmentHistoryViewer.physio,
+        ),
+      ),
+      // The physiotherapist's view of a patient's document library. A distinct
+      // literal under /physio/patients/:id/*, matched before the bare detail.
+      GoRoute(
+        path: '/physio/patients/:id/documents',
+        builder: (_, state) => PatientDocumentsScreen(
+          patientId: state.pathParameters['id']!,
+          patientName: state.extra is String ? state.extra as String : null,
+          viewer: DocumentsViewer.physio,
+        ),
+      ),
       GoRoute(
         path: '/physio/patients/:id',
         builder: (_, state) {
@@ -327,6 +353,15 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/patients/:id/treatment_notes',
         builder: (_, state) => TreatmentNotesTimelineScreen(
+          patientId: state.pathParameters['id']!,
+          patientName: state.extra is String ? state.extra as String : null,
+        ),
+      ),
+      // A patient's document library (self or family member). `extra` carries the
+      // patient's name for the header.
+      GoRoute(
+        path: '/patients/:id/documents',
+        builder: (_, state) => PatientDocumentsScreen(
           patientId: state.pathParameters['id']!,
           patientName: state.extra is String ? state.extra as String : null,
         ),
@@ -421,8 +456,7 @@ class _EditPatientRoute extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final patients = ref.watch(patientsProvider);
     return patients.when(
-      loading: () =>
-          const Scaffold(body: Center(child: CircularProgressIndicator())),
+      loading: () => const HealynFormSceneSkeleton(),
       error: (_, _) => const Scaffold(
         appBar: HealynAppBar(),
         body: Center(child: Text('Could not load this patient.')),
@@ -451,8 +485,7 @@ class _AppointmentDetailRoute extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final appointment = ref.watch(appointmentByIdProvider(id));
     return appointment.when(
-      loading: () =>
-          const Scaffold(body: Center(child: CircularProgressIndicator())),
+      loading: () => const HealynDetailSceneSkeleton(),
       error: (_, _) => const Scaffold(
         appBar: HealynAppBar(),
         body: Center(child: Text('Could not load this appointment.')),
@@ -473,8 +506,7 @@ class _RescheduleRoute extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final appointment = ref.watch(appointmentByIdProvider(id));
     return appointment.when(
-      loading: () =>
-          const Scaffold(body: Center(child: CircularProgressIndicator())),
+      loading: () => const HealynFormSceneSkeleton(),
       error: (_, _) => const Scaffold(
         appBar: HealynAppBar(),
         body: Center(child: Text('Could not load this appointment.')),
@@ -496,8 +528,7 @@ class _PhysioPatientDetailRoute extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final patients = ref.watch(patientsProvider);
     return patients.when(
-      loading: () =>
-          const Scaffold(body: Center(child: CircularProgressIndicator())),
+      loading: () => const HealynDetailSceneSkeleton(),
       error: (_, _) => const Scaffold(
         appBar: HealynAppBar(),
         body: Center(child: Text('Could not load this patient.')),
@@ -526,8 +557,7 @@ class _PhysioAppointmentDetailRoute extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final appointment = ref.watch(appointmentByIdProvider(id));
     return appointment.when(
-      loading: () =>
-          const Scaffold(body: Center(child: CircularProgressIndicator())),
+      loading: () => const HealynDetailSceneSkeleton(),
       error: (_, _) => const Scaffold(
         appBar: HealynAppBar(),
         body: Center(child: Text('Could not load this appointment.')),
@@ -548,8 +578,7 @@ class _DiscussionRoute extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final appointment = ref.watch(appointmentByIdProvider(id));
     return appointment.when(
-      loading: () =>
-          const Scaffold(body: Center(child: CircularProgressIndicator())),
+      loading: () => const HealynChatSceneSkeleton(),
       error: (_, _) => const Scaffold(
         appBar: HealynAppBar(),
         body: Center(child: Text('Could not load this appointment.')),
@@ -570,8 +599,7 @@ class _PhysioDiscussionRoute extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final appointment = ref.watch(appointmentByIdProvider(id));
     return appointment.when(
-      loading: () =>
-          const Scaffold(body: Center(child: CircularProgressIndicator())),
+      loading: () => const HealynChatSceneSkeleton(),
       error: (_, _) => const Scaffold(
         appBar: HealynAppBar(),
         body: Center(child: Text('Could not load this appointment.')),

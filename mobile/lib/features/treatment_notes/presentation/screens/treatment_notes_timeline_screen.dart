@@ -3,12 +3,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../shared/design/colors.dart';
+import '../../../shared/widgets/healyn_state_switcher.dart';
 import '../../../shared/design/spacing.dart';
 import '../../../shared/design/typography.dart';
 import '../../../shared/network/api_exception.dart';
 import '../../../shared/widgets/app_bar.dart';
 import '../../../shared/widgets/error_banner.dart';
 import '../../../shared/widgets/healyn_list_row.dart';
+import '../../../shared/widgets/healyn_skeletons.dart';
 import '../../data/models/treatment_note_models.dart';
 import '../../data/treatment_notes_repository.dart';
 import '../treatment_notes_format.dart';
@@ -152,10 +154,19 @@ class _TreatmentNotesTimelineScreenState
   }
 
   Widget _body() {
-    if (_loading) {
-      return const Center(child: CircularProgressIndicator());
-    }
-    return RefreshIndicator(onRefresh: _loadInitial, child: _list());
+    return HealynStateSwitcher(
+      child: _loading
+          ? const HealynListSkeleton(
+              key: ValueKey('notes-loading'),
+              hasLeading: false,
+              hasFooter: true,
+            )
+          : RefreshIndicator(
+              key: const ValueKey('notes-data'),
+              onRefresh: _loadInitial,
+              child: _list(),
+            ),
+    );
   }
 
   Widget _list() {

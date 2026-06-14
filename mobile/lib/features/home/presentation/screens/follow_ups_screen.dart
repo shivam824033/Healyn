@@ -8,10 +8,13 @@ import '../../../appointments/presentation/screens/book_appointment_screen.dart'
 import '../../../patients/data/models/patient_models.dart';
 import '../../../patients/presentation/patient_format.dart';
 import '../../../shared/design/colors.dart';
+import '../../../shared/widgets/healyn_state_switcher.dart';
 import '../../../shared/design/spacing.dart';
 import '../../../shared/design/typography.dart';
 import '../../../shared/widgets/app_bar.dart';
 import '../../../shared/widgets/error_banner.dart';
+import '../../../shared/widgets/healyn_reveal.dart';
+import '../../../shared/widgets/healyn_skeletons.dart';
 import '../../../shared/widgets/section_card.dart';
 import '../../../treatment_notes/presentation/treatment_notes_format.dart';
 import '../next_review_provider.dart';
@@ -46,32 +49,47 @@ class FollowUpsScreen extends ConsumerWidget {
             ref.invalidate(pendingReviewsProvider);
             await ref.read(pendingReviewsProvider.future);
           },
-          child: reviews.when(
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (_, _) => ListView(
-              padding: const EdgeInsets.all(HealynSpacing.screenEdge),
-              children: const [
-                ErrorBanner(
-                  message: 'Could not load your follow-ups. Pull down to retry.',
-                ),
-              ],
-            ),
-            data: (items) {
-              if (items.isEmpty) return const _NoFollowUps();
-              return ListView.separated(
+          child: HealynStateSwitcher(
+            child: reviews.when(
+              loading: () => const HealynListSkeleton(
+                key: ValueKey('followups-loading'),
+                hasLeading: true,
+                hasFooter: true,
+                count: 4,
+              ),
+              error: (_, _) => ListView(
+                key: const ValueKey('followups-error'),
                 padding: const EdgeInsets.all(HealynSpacing.screenEdge),
-                itemCount: items.length,
-                separatorBuilder: (_, _) =>
-                    const SizedBox(height: HealynSpacing.s4),
-                itemBuilder: (_, i) {
-                  final r = items[i];
-                  return _FollowUpCard(
-                    suggestion: r,
-                    alreadyBooked: bookedPatientIds.contains(r.patient.id),
-                  );
-                },
-              );
-            },
+                children: const [
+                  ErrorBanner(
+                    message:
+                        'Could not load your follow-ups. Pull down to retry.',
+                  ),
+                ],
+              ),
+              data: (items) {
+                if (items.isEmpty) {
+                  return const _NoFollowUps(key: ValueKey('followups-empty'));
+                }
+                return ListView.separated(
+                  key: const ValueKey('followups-data'),
+                  padding: const EdgeInsets.all(HealynSpacing.screenEdge),
+                  itemCount: items.length,
+                  separatorBuilder: (_, _) =>
+                      const SizedBox(height: HealynSpacing.s4),
+                  itemBuilder: (_, i) {
+                    final r = items[i];
+                    return HealynReveal.staggered(
+                      index: i < 6 ? i : 6,
+                      child: _FollowUpCard(
+                        suggestion: r,
+                        alreadyBooked: bookedPatientIds.contains(r.patient.id),
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
           ),
         ),
       ),
@@ -206,7 +224,7 @@ class _Avatar extends StatelessWidget {
 }
 
 class _NoFollowUps extends StatelessWidget {
-  const _NoFollowUps();
+  const _NoFollowUps({super.key});
 
   @override
   Widget build(BuildContext context) {

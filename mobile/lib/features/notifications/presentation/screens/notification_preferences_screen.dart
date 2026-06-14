@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../shared/design/colors.dart';
+import '../../../shared/widgets/healyn_state_switcher.dart';
 import '../../../shared/design/spacing.dart';
 import '../../../shared/design/typography.dart';
 import '../../../shared/network/api_exception.dart';
 import '../../../shared/widgets/app_bar.dart';
 import '../../../shared/widgets/error_banner.dart';
+import '../../../shared/widgets/healyn_skeletons.dart';
 import '../../../shared/widgets/section_card.dart';
 import '../../data/models/notification_preferences.dart';
 import '../notification_preferences_providers.dart';
@@ -24,9 +26,16 @@ class NotificationPreferencesScreen extends ConsumerWidget {
       backgroundColor: HealynColors.surfaceAlt,
       appBar: const HealynAppBar(title: 'Notifications'),
       body: SafeArea(
-        child: prefs.when(
-          loading: () => const Center(child: CircularProgressIndicator()),
+        child: HealynStateSwitcher(
+          child: prefs.when(
+          loading: () => const HealynListSkeleton(
+            key: ValueKey('prefs-loading'),
+            hasLeading: false,
+            hasFooter: false,
+            count: 5,
+          ),
           error: (_, _) => ListView(
+            key: const ValueKey('prefs-error'),
             padding: const EdgeInsets.all(HealynSpacing.screenEdge),
             children: [
               const ErrorBanner(
@@ -41,7 +50,8 @@ class NotificationPreferencesScreen extends ConsumerWidget {
               ),
             ],
           ),
-          data: (data) => _Body(prefs: data),
+          data: (data) => _Body(key: const ValueKey('prefs-data'), prefs: data),
+          ),
         ),
       ),
     );
@@ -49,7 +59,7 @@ class NotificationPreferencesScreen extends ConsumerWidget {
 }
 
 class _Body extends StatelessWidget {
-  const _Body({required this.prefs});
+  const _Body({required this.prefs, super.key});
 
   final NotificationPreferences prefs;
 

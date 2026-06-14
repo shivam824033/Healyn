@@ -38,6 +38,26 @@ class _SplashScreenState extends State<SplashScreen>
     CurvedAnimation(parent: _controller, curve: HealynMotion.standardCurve),
   );
 
+  bool _precached = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Warm the bundled branding images into the cache on the first frame so the
+    // mark, wordmark and silhouette are decoded before the reveal animates them
+    // in — otherwise they can pop mid-fade on a cold start.
+    if (!_precached) {
+      _precached = true;
+      for (final asset in const [
+        'assets/branding/mark_oncard.png',
+        'assets/branding/wordmark.png',
+        'assets/branding/figure_silhouette.png',
+      ]) {
+        precacheImage(AssetImage(asset), context);
+      }
+    }
+  }
+
   @override
   void dispose() {
     _controller.dispose();

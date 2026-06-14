@@ -52,7 +52,6 @@ public final class ErrorCode {
     public static final String FILE_TOO_LARGE = "files.too_large";
     public static final String FILE_KIND_REQUIRED = "files.kind_required";
     public static final String FILE_FILENAME_INVALID = "files.filename_invalid";
-    public static final String FILE_APPOINTMENT_REQUIRED = "files.appointment_required";
     public static final String FILE_PATIENT_MISMATCH = "files.patient_mismatch";
     public static final String FILE_DAILY_CAP_EXCEEDED = "files.daily_cap_exceeded";
     public static final String FILE_INVALID_STATE = "files.invalid_state";

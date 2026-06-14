@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -50,6 +52,41 @@ class FilesApi {
   Future<DownloadTarget> download(String fileId) async {
     final res = await _dio.get<Map<String, dynamic>>('/files/$fileId/download');
     return DownloadTarget.fromJson(res.data!);
+  }
+
+  /// Lists a patient's library documents for one uploader, cursor-paginated.
+  Future<DocumentPage> listDocuments({
+    required String patientId,
+    required DocumentUploader uploader,
+    String? cursor,
+    int limit = 20,
+  }) async {
+    final res = await _dio.get<Map<String, dynamic>>(
+      '/files',
+      queryParameters: <String, dynamic>{
+        'patient_id': patientId,
+        'uploader': uploader.query,
+        'cursor': ?cursor,
+        'limit': limit,
+      },
+    );
+    return DocumentPage.fromJson(res.data!);
+  }
+
+  /// Soft-deletes a file. The server blocks deletion of a referenced file or a
+  /// physio-uploaded document by a patient-side account.
+  Future<void> deleteFile(String fileId) async {
+    await _dio.delete<void>('/files/$fileId');
+  }
+
+  /// Pulls the bytes of a presigned URL straight into memory (no auth header, no
+  /// disk write) for the in-app preview. The buffer lives only as long as the viewer.
+  Future<Uint8List> fetchBytes(String url) async {
+    final res = await _uploadDio.get<List<int>>(
+      url,
+      options: Options(responseType: ResponseType.bytes),
+    );
+    return Uint8List.fromList(res.data!);
   }
 }
 

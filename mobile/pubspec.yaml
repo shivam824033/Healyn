@@ -58,6 +58,15 @@ dependencies:
   # presigned GET URL to the OS browser/native viewer. BSD-3-Clause (Flutter
   # team). No PHI bytes touch app storage — the URL self-expires (TTL ≤5 min).
   url_launcher: 6.3.0
+  # Document library (F1.15 extension). pdf (Apache-2.0) builds a single PDF from
+  # multiple selected images entirely in memory (multi-image → one document); the
+  # bytes are PUT to storage, never written to disk. pdfx (MIT) renders a PDF in-app
+  # from in-memory bytes via PdfDocument.openData — no PHI bytes land on the device.
+  # CVE note: pdfx's only known advisory (CVE-2024-34342) is in PDF.js, used solely
+  # on the Flutter web target; Phase 1 is Android-only (web deferred), where pdfx
+  # renders via native pdfium — so it is outside this build's attack surface.
+  pdf: ^3.12.0
+  pdfx: ^2.9.2
 
 dev_dependencies:
   flutter_test:
@@ -76,6 +85,8 @@ dev_dependencies:
   # a stable freezed supports analyzer 8+.
   freezed: 3.2.6-dev.1
   json_serializable: ^6.14.0
+  # Test-only (MIT): generates valid PNG bytes for the image→PDF converter test.
+  image: ^4.8.0
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

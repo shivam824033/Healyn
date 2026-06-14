@@ -96,10 +96,10 @@ class _SchedulingRepo extends AppointmentsRepository {
 
   // No prior bookings in these tests, so every served slot stays selectable.
   @override
-  Future<Set<DateTime>> bookedStartsFor(
+  Future<List<BookedRange>> bookedRangesFor(
     DateTime day, {
     String? excludeAppointmentId,
-  }) async => const {};
+  }) async => const [];
 }
 
 /// A COMPLETED appointment mounts the treatment-note section; stub it to resolve
