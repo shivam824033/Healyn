@@ -26,3 +26,20 @@ UploadType? uploadTypeForFilename(String filename) {
     _ => null,
   };
 }
+
+/// The most images merged into a single PDF in one upload. Bounds the combined
+/// document under the 20 MB PDF cap and keeps the in-memory conversion responsive.
+const maxImagesPerUpload = 20;
+
+/// True when [bytes] start with the PDF signature `%PDF-`. The picker only reads
+/// the filename extension; this is the byte-level check that catches a mislabelled
+/// or empty file client-side before a presign — the server magic-byte verifies
+/// again at complete (never trust the extension alone).
+bool hasPdfMagic(List<int> bytes) {
+  const magic = [0x25, 0x50, 0x44, 0x46, 0x2D]; // "%PDF-"
+  if (bytes.length < magic.length) return false;
+  for (var i = 0; i < magic.length; i++) {
+    if (bytes[i] != magic[i]) return false;
+  }
+  return true;
+}

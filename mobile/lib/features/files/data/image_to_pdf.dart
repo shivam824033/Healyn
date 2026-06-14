@@ -1,5 +1,4 @@
-import 'dart:typed_data';
-
+import 'package:flutter/foundation.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
@@ -26,3 +25,11 @@ Future<Uint8List> imagesToPdf(List<PickedFile> images) async {
   }
   return doc.save();
 }
+
+/// Runs [imagesToPdf] on a background isolate via [compute]. Decoding several
+/// photos and serializing the PDF is CPU-heavy and would freeze the UI mid-upload;
+/// the screen keeps its progress spinner visible while this runs off the main
+/// isolate. [PickedFile] is a plain data holder, so it copies across the isolate
+/// boundary cleanly.
+Future<Uint8List> imagesToPdfInBackground(List<PickedFile> images) =>
+    compute(imagesToPdf, images);
