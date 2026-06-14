@@ -17,6 +17,25 @@ class PatientsApi {
     return PatientListResponse.fromJson(res.data!);
   }
 
+  /// The physiotherapist's practice roster, newest-first and cursor-paginated.
+  /// [q] (≥2 chars) narrows by patient name or Patient ID; [cursor] continues a
+  /// page. Same `/patients` endpoint — the server returns the roster for a physio.
+  Future<PatientListResponse> listRoster({
+    String? cursor,
+    String? q,
+    int limit = 20,
+  }) async {
+    final res = await _dio.get<Map<String, dynamic>>(
+      '/patients',
+      queryParameters: <String, dynamic>{
+        'cursor': ?cursor,
+        'q': ?q,
+        'limit': limit,
+      },
+    );
+    return PatientListResponse.fromJson(res.data!);
+  }
+
   /// Adds a family member; returns the created patient.
   Future<Patient> create(CreateFamilyMemberRequest body) async {
     final res = await _dio.post<Map<String, dynamic>>(

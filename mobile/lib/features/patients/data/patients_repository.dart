@@ -16,6 +16,16 @@ class PatientsRepository {
     return _guard(() async => (await _api.list()).patients);
   }
 
+  /// One cursor page of the physiotherapist's practice roster (newest-first).
+  /// [q] (≥2 chars) narrows by patient name or Patient ID.
+  Future<PatientListResponse> listRoster({
+    String? cursor,
+    String? q,
+    int limit = 20,
+  }) async {
+    return _guard(() => _api.listRoster(cursor: cursor, q: q, limit: limit));
+  }
+
   Future<Patient> create(CreateFamilyMemberRequest body) async {
     return _guard(() => _api.create(body));
   }

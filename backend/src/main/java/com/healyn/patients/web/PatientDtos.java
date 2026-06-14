@@ -84,5 +84,8 @@ public final class PatientDtos {
             Instant createdAt,
             Instant updatedAt) {}
 
-    public record PatientListResponse(List<PatientView> patients) {}
+    /// The patient list. For the patient side this is the account's family roster
+    /// ([nextCursor] is always null — the family is small). For the physiotherapist it
+    /// is one cursor page of the practice roster; [nextCursor] is null on the last page.
+    public record PatientListResponse(List<PatientView> patients, String nextCursor) {}
 }

@@ -75,10 +75,16 @@ abstract class Patient with _$Patient {
       _$PatientFromJson(json);
 }
 
+/// The `GET /patients` response. For a patient account this is the full family
+/// roster ([nextCursor] always null). For the physiotherapist it is one cursor
+/// page of the practice roster (newest-first); [nextCursor] is null on the last
+/// page.
 @freezed
 abstract class PatientListResponse with _$PatientListResponse {
-  const factory PatientListResponse({required List<Patient> patients}) =
-      _PatientListResponse;
+  const factory PatientListResponse({
+    @Default(<Patient>[]) List<Patient> patients,
+    String? nextCursor,
+  }) = _PatientListResponse;
 
   factory PatientListResponse.fromJson(Map<String, dynamic> json) =>
       _$PatientListResponseFromJson(json);

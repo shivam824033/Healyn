@@ -6,6 +6,8 @@ import com.healyn.common.error.ErrorCode;
 import com.healyn.common.error.NotFoundException;
 import com.healyn.common.error.UnprocessableException;
 import com.healyn.common.id.UuidV7;
+import com.healyn.common.pagination.Cursor;
+import com.healyn.common.pagination.CursorPage;
 import com.healyn.patients.domain.AccountAddress;
 import com.healyn.patients.domain.AccountPatient;
 import com.healyn.patients.domain.Patient;
@@ -18,12 +20,20 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 
 @Service
 public class PatientService {
+
+    // A roster search needs at least two characters: a single letter would match almost
+    // the whole practice (mirrors AppointmentService's global-search floor).
+    private static final int ROSTER_MIN_QUERY_LENGTH = 2;
+    private static final int ROSTER_DEFAULT_LIMIT = 20;
+    private static final int ROSTER_MAX_LIMIT = 50;
 
     private final PatientRepository patients;
     private final AccountPatientRepository links;
@@ -80,6 +90,47 @@ public class PatientService {
         return links.findActivePatientsForAccount(accountId).stream()
                 .map(p -> new PatientWithLink(p, links.findLink(accountId, p.getId()).orElse(null), household))
                 .toList();
+    }
+
+    /// The physiotherapist's patient roster (F1.16): every live patient, newest-first,
+    /// cursor-paginated. An optional [q] of ≥2 characters narrows by Patient ID prefix
+    /// (PAT-NNNNNN) or full-name substring; a shorter term is treated as no search.
+    /// Household addresses for the page are resolved in one batched query.
+    @Transactional(readOnly = true)
+    public CursorPage<PatientWithLink> roster(String cursorToken, String q, int limit) {
+        int capped = (limit <= 0 || limit > ROSTER_MAX_LIMIT) ? ROSTER_DEFAULT_LIMIT : limit;
+        String term = q == null ? "" : q.trim();
+        boolean filterSearch = term.length() >= ROSTER_MIN_QUERY_LENGTH;
+        // Identifiers are stored upper-case; upper-case the term so a case-sensitive LIKE hits
+        // the text_pattern_ops index. Names use ILIKE (the trigram index is case-folding).
+        String escaped = escapeLike(term);
+        String numberPrefix = escaped.toUpperCase(Locale.ROOT) + "%";
+        String nameContains = "%" + escaped + "%";
+
+        // Over-fetch one row to learn whether a further page exists without a count query.
+        int fetch = capped + 1;
+        List<Patient> rows;
+        if (cursorToken == null || cursorToken.isBlank()) {
+            rows = patients.rosterFirstPage(filterSearch, numberPrefix, nameContains, fetch);
+        } else {
+            Cursor c = Cursor.decode(cursorToken);
+            rows = patients.rosterAfterCursor(
+                    filterSearch, numberPrefix, nameContains, c.pivot(), c.id(), fetch);
+        }
+
+        String nextCursor = null;
+        if (rows.size() > capped) {
+            Patient pivot = rows.get(capped - 1);
+            nextCursor = new Cursor(pivot.getCreatedAt(), pivot.getId()).encode();
+            rows = rows.subList(0, capped);
+        }
+
+        Map<UUID, AccountAddress> byPatient = addresses.findForPatients(
+                rows.stream().map(Patient::getId).toList());
+        List<PatientWithLink> items = rows.stream()
+                .map(p -> new PatientWithLink(p, null, byPatient.get(p.getId())))
+                .toList();
+        return new CursorPage<>(new ArrayList<>(items), nextCursor);
     }
 
     @Transactional(readOnly = true)
@@ -144,6 +195,12 @@ public class PatientService {
 
     private static String blankToNull(String s) {
         return (s == null || s.isBlank()) ? null : s;
+    }
+
+    /// Escapes the LIKE/ILIKE wildcards (`%`, `_`) and the escape char so a typed term is
+    /// matched literally — a user typing "%" searches for a percent sign, not "match anything".
+    private static String escapeLike(String term) {
+        return term.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
     }
 
     /// A patient with the caller's link to it (null for the physiotherapist) and

@@ -1,6 +1,7 @@
 package com.healyn.patients.web;
 
 import com.healyn.auth.domain.AccountRole;
+import com.healyn.common.pagination.CursorPage;
 import com.healyn.patients.domain.AccountAddress;
 import com.healyn.patients.repository.AccountPatientRepository;
 import com.healyn.patients.service.AccountAddressService;
@@ -19,6 +20,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -40,14 +42,28 @@ public class PatientController {
         this.addresses = addresses;
     }
 
+    /// The patient list. The physiotherapist gets a cursor page of the practice roster
+    /// (newest-first, optional [q] search by name or Patient ID); a patient account gets
+    /// its own family roster in full (the [cursor]/[q]/[limit] params do not apply).
     @GetMapping
-    public PatientDtos.PatientListResponse list(@AuthenticationPrincipal Jwt jwt) {
+    public PatientDtos.PatientListResponse list(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestParam(value = "cursor", required = false) String cursor,
+            @RequestParam(value = "q", required = false) String q,
+            @RequestParam(value = "limit", required = false, defaultValue = "20") int limit) {
         UUID accountId = UUID.fromString(jwt.getSubject());
         AccountRole role = roleOf(jwt);
+        if (role == AccountRole.ROLE_PHYSIO) {
+            CursorPage<PatientWithLink> page = patientService.roster(cursor, q, limit);
+            List<PatientDtos.PatientView> views = page.items().stream()
+                    .map(PatientMapper::toView)
+                    .toList();
+            return new PatientDtos.PatientListResponse(views, page.nextCursor());
+        }
         List<PatientDtos.PatientView> views = patientService.listForAccount(accountId, role).stream()
                 .map(PatientMapper::toView)
                 .toList();
-        return new PatientDtos.PatientListResponse(views);
+        return new PatientDtos.PatientListResponse(views, null);
     }
 
     @PostMapping
