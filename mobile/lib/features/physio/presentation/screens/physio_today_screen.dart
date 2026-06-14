@@ -8,6 +8,7 @@ import '../../../appointments/presentation/widgets/appointment_status_chip.dart'
 import '../../../patients/data/models/patient_models.dart';
 import '../../../patients/presentation/patients_providers.dart';
 import '../../../shared/design/colors.dart';
+import '../../../shared/design/motion.dart';
 import '../../../shared/design/radii.dart';
 import '../../../shared/design/spacing.dart';
 import '../../../shared/design/typography.dart';
@@ -15,7 +16,10 @@ import '../../../shared/widgets/error_banner.dart';
 import '../../../shared/widgets/healyn_hero.dart';
 import '../../../shared/widgets/healyn_info_banner.dart';
 import '../../../shared/widgets/healyn_list_row.dart';
+import '../../../shared/widgets/healyn_reveal.dart';
 import '../../../shared/widgets/healyn_section_header.dart';
+import '../../../shared/widgets/healyn_shimmer.dart';
+import '../../../shared/widgets/healyn_skeletons.dart';
 import '../../../shared/widgets/healyn_stat_card.dart';
 import '../../../shared/widgets/healyn_time_block.dart';
 import '../../../shared/widgets/healyn_tonal_icon.dart';
@@ -276,15 +280,23 @@ class _PhysioTodayScreenState extends ConsumerState<PhysioTodayScreen>
               ),
             ),
             const SizedBox(height: HealynSpacing.s3),
-            ...schedule.when(
-              loading: () => const [
-                Padding(
-                  padding: EdgeInsets.all(HealynSpacing.s8),
-                  child: Center(child: CircularProgressIndicator()),
+            AnimatedSwitcher(
+              duration: HealynMotion.slow,
+              switchInCurve: HealynMotion.standardCurve,
+              switchOutCurve: HealynMotion.standardCurve,
+              child: schedule.when(
+                loading: () => const HealynShimmer(
+                  key: ValueKey('schedule-loading'),
+                  child: Column(
+                    children: [
+                      _RosterRowSkeleton(),
+                      _RosterRowSkeleton(),
+                      _RosterRowSkeleton(),
+                    ],
+                  ),
                 ),
-              ],
-              error: (_, _) => const [
-                Padding(
+                error: (_, _) => const Padding(
+                  key: ValueKey('schedule-error'),
                   padding: EdgeInsets.symmetric(
                     horizontal: HealynSpacing.screenEdge,
                   ),
@@ -293,26 +305,38 @@ class _PhysioTodayScreenState extends ConsumerState<PhysioTodayScreen>
                         'Could not load the schedule. Pull down to retry.',
                   ),
                 ),
-              ],
-              data: (appointments) {
-                if (appointments.isEmpty) return const [_EmptyDay()];
-                return [
-                  for (final a in appointments)
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(
-                        HealynSpacing.screenEdge,
-                        0,
-                        HealynSpacing.screenEdge,
-                        HealynSpacing.s3,
-                      ),
-                      child: _ScheduleTile(
-                        appointment: a,
-                        patient: byId[a.patientId],
-                        activity: activity[a.id],
-                      ),
-                    ),
-                ];
-              },
+                data: (appointments) {
+                  if (appointments.isEmpty) {
+                    return const _EmptyDay(key: ValueKey('schedule-empty'));
+                  }
+                  // Capped running index so the first rows reveal in a gentle
+                  // bottom-up stagger; later rows arrive without delay.
+                  var revealIndex = 0;
+                  int nextReveal() => revealIndex < 6 ? revealIndex++ : 6;
+                  return Column(
+                    key: const ValueKey('schedule-data'),
+                    children: [
+                      for (final a in appointments)
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(
+                            HealynSpacing.screenEdge,
+                            0,
+                            HealynSpacing.screenEdge,
+                            HealynSpacing.s3,
+                          ),
+                          child: HealynReveal.staggered(
+                            index: nextReveal(),
+                            child: _ScheduleTile(
+                              appointment: a,
+                              patient: byId[a.patientId],
+                              activity: activity[a.id],
+                            ),
+                          ),
+                        ),
+                    ],
+                  );
+                },
+              ),
             ),
             const SizedBox(height: HealynSpacing.s8),
           ],
@@ -554,8 +578,28 @@ class _PendingFilesBadge extends StatelessWidget {
   }
 }
 
+/// One shimmering placeholder row for the day's roster while it loads — a
+/// leading avatar + time block and two text lines, in the same card footprint as
+/// [_ScheduleTile], inset to match and spaced like the real rows.
+class _RosterRowSkeleton extends StatelessWidget {
+  const _RosterRowSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Padding(
+      padding: EdgeInsets.fromLTRB(
+        HealynSpacing.screenEdge,
+        0,
+        HealynSpacing.screenEdge,
+        HealynSpacing.s3,
+      ),
+      child: HealynListRowSkeleton(hasLeading: true),
+    );
+  }
+}
+
 class _EmptyDay extends StatelessWidget {
-  const _EmptyDay();
+  const _EmptyDay({super.key});
 
   @override
   Widget build(BuildContext context) {

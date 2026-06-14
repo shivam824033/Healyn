@@ -12,12 +12,16 @@ import '../../patients/presentation/active_patient_provider.dart';
 import '../../patients/presentation/patients_providers.dart';
 import '../../patients/presentation/widgets/patient_switcher.dart';
 import '../../shared/design/colors.dart';
+import '../../shared/design/motion.dart';
 import '../../shared/design/spacing.dart';
 import '../../shared/design/typography.dart';
 import '../../shared/widgets/healyn_hero.dart';
 import '../../shared/widgets/healyn_info_banner.dart';
 import '../../shared/widgets/healyn_list_row.dart';
+import '../../shared/widgets/healyn_reveal.dart';
 import '../../shared/widgets/healyn_section_header.dart';
+import '../../shared/widgets/healyn_shimmer.dart';
+import '../../shared/widgets/healyn_skeletons.dart';
 import '../../treatment_notes/presentation/treatment_notes_format.dart';
 import 'next_review_provider.dart';
 
@@ -63,7 +67,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
   @override
   Widget build(BuildContext context) {
-    final firstName = ref.watch(patientsProvider).maybeWhen(
+    final patientsAsync = ref.watch(patientsProvider);
+    final appointmentsAsync = ref.watch(appointmentsProvider);
+
+    final firstName = patientsAsync.maybeWhen(
       data: (patients) {
         final me = primaryPatientOf(patients);
         final name = me?.fullName.trim() ?? '';
@@ -71,6 +78,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       },
       orElse: () => null,
     );
+
+    // The first-load gate: until the two roots Home is built from have resolved
+    // we hold a skeleton in the content's exact shape, then cross-fade to the
+    // real cards (which reveal in a stagger). Keyed on "loading and no value
+    // yet", so a later refresh (tab re-entry / resume invalidates these) keeps
+    // showing the last data — the skeleton only appears on the genuine cold load.
+    final loading =
+        (patientsAsync.isLoading && !patientsAsync.hasValue) ||
+        (appointmentsAsync.isLoading && !appointmentsAsync.hasValue);
 
     return Scaffold(
       backgroundColor: HealynColors.surfaceAlt,
@@ -84,11 +100,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             bottomOverlap: HealynSpacing.s6,
           ),
           const SizedBox(height: HealynSpacing.s5),
-          const Padding(padding: _edge, child: PatientSwitcher()),
-          const SizedBox(height: HealynSpacing.s5),
-          const _UnreadMessagesCard(),
-          const _UpcomingSummary(),
-          const _NextReviewCard(),
+          AnimatedSwitcher(
+            duration: HealynMotion.slow,
+            switchInCurve: HealynMotion.standardCurve,
+            switchOutCurve: HealynMotion.standardCurve,
+            child: loading
+                ? const _HomeBodySkeleton(key: ValueKey('home-skeleton'))
+                : const _HomeBody(key: ValueKey('home-body')),
+          ),
           const SizedBox(height: HealynSpacing.s8),
         ],
       ),
@@ -101,6 +120,56 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     if (h < 12) return 'Good morning';
     if (h < 17) return 'Good afternoon';
     return 'Good evening';
+  }
+}
+
+/// The loaded Home content: the active-patient switcher, the unread roll-up, the
+/// next upcoming appointment and the suggested next review. Each top-level card
+/// reveals in a gentle bottom-up stagger so they arrive in sequence rather than
+/// all at once.
+class _HomeBody extends StatelessWidget {
+  const _HomeBody({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        HealynReveal.staggered(
+          index: 0,
+          child: const Padding(padding: _edge, child: PatientSwitcher()),
+        ),
+        const SizedBox(height: HealynSpacing.s5),
+        HealynReveal.staggered(index: 1, child: const _UnreadMessagesCard()),
+        HealynReveal.staggered(index: 2, child: const _UpcomingSummary()),
+        HealynReveal.staggered(index: 3, child: const _NextReviewCard()),
+      ],
+    );
+  }
+}
+
+/// The first-load placeholder: the switcher card, the "Upcoming appointments"
+/// section header and one appointment row, rendered as shimmering skeletons in
+/// the same footprint as the real content so nothing shifts on the cross-fade.
+class _HomeBodySkeleton extends StatelessWidget {
+  const _HomeBodySkeleton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return const Padding(
+      padding: _edge,
+      child: HealynShimmer(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            HealynSwitcherSkeleton(),
+            SizedBox(height: HealynSpacing.s5),
+            HealynSkeletonLine(widthFactor: 0.5, height: 20),
+            SizedBox(height: HealynSpacing.s4),
+            HealynListRowSkeleton(),
+          ],
+        ),
+      ),
+    );
   }
 }
 

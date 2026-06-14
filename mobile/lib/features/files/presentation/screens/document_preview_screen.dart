@@ -5,10 +5,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pdfx/pdfx.dart';
 
 import '../../../shared/design/colors.dart';
+import '../../../shared/design/radii.dart';
 import '../../../shared/design/spacing.dart';
 import '../../../shared/network/api_exception.dart';
 import '../../../shared/widgets/app_bar.dart';
 import '../../../shared/widgets/error_banner.dart';
+import '../../../shared/widgets/healyn_shimmer.dart';
 import '../../data/files_repository.dart';
 import '../../data/url_opener.dart';
 import '../documents_format.dart';
@@ -119,7 +121,18 @@ class _DocumentPreviewScreenState extends ConsumerState<DocumentPreviewScreen> {
 
   Widget _body() {
     if (_loading) {
-      return const Center(child: CircularProgressIndicator());
+      // A full-bleed shimmering page stands in for the document while its bytes
+      // load, so the preview doesn't open on an empty spinner.
+      return const Padding(
+        padding: EdgeInsets.all(HealynSpacing.s6),
+        child: HealynShimmer(
+          child: HealynSkeletonBox(
+            width: double.infinity,
+            height: double.infinity,
+            radius: HealynRadii.brLg,
+          ),
+        ),
+      );
     }
     if (_error != null) {
       return Center(

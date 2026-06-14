@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 
 import '../../../shared/design/colors.dart';
+import '../../../shared/design/radii.dart';
 import '../../../shared/design/spacing.dart';
 import '../../../shared/design/typography.dart';
+import '../../../shared/widgets/healyn_shimmer.dart';
+import '../../../shared/widgets/healyn_skeletons.dart';
 import '../../data/models/appointment_models.dart';
 import '../appointment_format.dart';
 
@@ -67,12 +70,22 @@ class SlotPicker extends StatelessWidget {
       );
     }
     if (loading) {
+      // Shimmering chip-shaped placeholders so the slot row keeps its footprint
+      // while the day's open times load, rather than collapsing to a spinner.
       return const Padding(
-        padding: EdgeInsets.symmetric(vertical: HealynSpacing.s3),
-        child: SizedBox(
-          height: 20,
-          width: 20,
-          child: CircularProgressIndicator(strokeWidth: 2),
+        padding: EdgeInsets.symmetric(vertical: HealynSpacing.s1),
+        child: HealynSkeletonGroup(
+          child: Wrap(
+            spacing: HealynSpacing.s2,
+            runSpacing: HealynSpacing.s2,
+            children: [
+              HealynSkeletonBox(width: 64, height: 32, radius: HealynRadii.brSm),
+              HealynSkeletonBox(width: 72, height: 32, radius: HealynRadii.brSm),
+              HealynSkeletonBox(width: 60, height: 32, radius: HealynRadii.brSm),
+              HealynSkeletonBox(width: 68, height: 32, radius: HealynRadii.brSm),
+              HealynSkeletonBox(width: 64, height: 32, radius: HealynRadii.brSm),
+            ],
+          ),
         ),
       );
     }

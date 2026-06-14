@@ -13,12 +13,15 @@ import '../../../appointments/presentation/widgets/appointment_status_chip.dart'
 import '../../../patients/data/models/patient_models.dart';
 import '../../../patients/presentation/patients_providers.dart';
 import '../../../shared/design/colors.dart';
+import '../../../shared/design/motion.dart';
 import '../../../shared/design/radii.dart';
 import '../../../shared/design/spacing.dart';
 import '../../../shared/design/typography.dart';
 import '../../../shared/widgets/app_bar.dart';
 import '../../../shared/widgets/error_banner.dart';
 import '../../../shared/widgets/healyn_list_row.dart';
+import '../../../shared/widgets/healyn_reveal.dart';
+import '../../../shared/widgets/healyn_skeletons.dart';
 import '../physio_upcoming_providers.dart';
 import '../widgets/patient_avatar_button.dart';
 
@@ -65,10 +68,18 @@ class PhysioUpcomingScreen extends ConsumerWidget {
                   ref.invalidate(physioAppointmentsProvider);
                   await ref.read(physioAppointmentsProvider.future);
                 },
-                child: appointments.when(
-                  loading: () =>
-                      const Center(child: CircularProgressIndicator()),
+                child: AnimatedSwitcher(
+                  duration: HealynMotion.slow,
+                  switchInCurve: HealynMotion.standardCurve,
+                  switchOutCurve: HealynMotion.standardCurve,
+                  child: appointments.when(
+                  loading: () => const HealynListSkeleton(
+                    key: ValueKey('upcoming-loading'),
+                    showHeader: true,
+                    hasFooter: true,
+                  ),
                   error: (_, _) => ListView(
+                    key: const ValueKey('upcoming-error'),
                     padding: const EdgeInsets.all(HealynSpacing.screenEdge),
                     children: const [
                       ErrorBanner(
@@ -81,8 +92,12 @@ class PhysioUpcomingScreen extends ConsumerWidget {
                     final all = state.items;
                     if (all.isEmpty) {
                       return _isUpcomingDefault(filter)
-                          ? const _NothingUpcoming()
-                          : const _NoMatchingAppointments();
+                          ? const _NothingUpcoming(
+                              key: ValueKey('upcoming-empty'),
+                            )
+                          : const _NoMatchingAppointments(
+                              key: ValueKey('upcoming-nomatch'),
+                            );
                     }
                     final upcoming = upcomingOf(all);
                     var past = pastOf(all);
@@ -99,10 +114,17 @@ class PhysioUpcomingScreen extends ConsumerWidget {
                           .toList();
                     }
                     if (past.isEmpty && upcoming.isEmpty) {
-                      return const _NoMatchingAppointments();
+                      return const _NoMatchingAppointments(
+                        key: ValueKey('upcoming-nomatch'),
+                      );
                     }
+                    // Capped running stagger so the first rows reveal in sequence;
+                    // later (and paged-in) rows arrive without delay.
+                    var revealIndex = 0;
+                    int nextReveal() => revealIndex < 6 ? revealIndex++ : 6;
                     // Auto-load the next cursor page as the list nears its bottom.
                     return NotificationListener<ScrollNotification>(
+                      key: const ValueKey('upcoming-data'),
                       onNotification: (n) {
                         if (state.hasMore &&
                             !state.isLoadingMore &&
@@ -121,9 +143,12 @@ class PhysioUpcomingScreen extends ConsumerWidget {
                             const _SectionTitle('Upcoming'),
                             const SizedBox(height: HealynSpacing.s3),
                             for (final a in upcoming) ...[
-                              _AppointmentTile(
-                                appointment: a,
-                                patient: byId[a.patientId],
+                              HealynReveal.staggered(
+                                index: nextReveal(),
+                                child: _AppointmentTile(
+                                  appointment: a,
+                                  patient: byId[a.patientId],
+                                ),
                               ),
                               const SizedBox(height: HealynSpacing.s3),
                             ],
@@ -134,14 +159,17 @@ class PhysioUpcomingScreen extends ConsumerWidget {
                             const _SectionTitle('Past'),
                             const SizedBox(height: HealynSpacing.s3),
                             for (final a in past) ...[
-                              _AppointmentTile(
-                                appointment: a,
-                                patient: byId[a.patientId],
-                                hasNote:
-                                    a.status == AppointmentStatus.completed &&
-                                        noteStatus != null
-                                    ? noteStatus.contains(a.id)
-                                    : null,
+                              HealynReveal.staggered(
+                                index: nextReveal(),
+                                child: _AppointmentTile(
+                                  appointment: a,
+                                  patient: byId[a.patientId],
+                                  hasNote:
+                                      a.status == AppointmentStatus.completed &&
+                                          noteStatus != null
+                                      ? noteStatus.contains(a.id)
+                                      : null,
+                                ),
                               ),
                               const SizedBox(height: HealynSpacing.s3),
                             ],
@@ -157,6 +185,7 @@ class PhysioUpcomingScreen extends ConsumerWidget {
                       ),
                     );
                   },
+                  ),
                 ),
               ),
             ),
@@ -349,7 +378,7 @@ class _SectionTitle extends StatelessWidget {
 /// Shown when a non-default filter matches nothing — distinct from the at-rest
 /// [_NothingUpcoming] state.
 class _NoMatchingAppointments extends StatelessWidget {
-  const _NoMatchingAppointments();
+  const _NoMatchingAppointments({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -383,7 +412,7 @@ class _NoMatchingAppointments extends StatelessWidget {
 }
 
 class _NothingUpcoming extends StatelessWidget {
-  const _NothingUpcoming();
+  const _NothingUpcoming({super.key});
 
   @override
   Widget build(BuildContext context) {

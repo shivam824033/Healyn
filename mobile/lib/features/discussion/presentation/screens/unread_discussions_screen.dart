@@ -5,12 +5,15 @@ import 'package:go_router/go_router.dart';
 import '../../../appointments/presentation/appointment_format.dart';
 import '../../../patients/presentation/patients_providers.dart';
 import '../../../shared/design/colors.dart';
+import '../../../shared/design/motion.dart';
 import '../../../shared/design/radii.dart';
 import '../../../shared/design/spacing.dart';
 import '../../../shared/design/typography.dart';
 import '../../../shared/widgets/app_bar.dart';
 import '../../../shared/widgets/error_banner.dart';
 import '../../../shared/widgets/healyn_list_row.dart';
+import '../../../shared/widgets/healyn_reveal.dart';
+import '../../../shared/widgets/healyn_skeletons.dart';
 import '../unread_providers.dart';
 
 /// An index of the account's appointments that carry unread discussion messages
@@ -34,32 +37,49 @@ class UnreadDiscussionsScreen extends ConsumerWidget {
             ref.invalidate(unreadSummaryProvider);
             await ref.read(unreadSummaryProvider.future);
           },
-          child: summary.when(
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (_, _) => ListView(
-              padding: const EdgeInsets.all(HealynSpacing.screenEdge),
-              children: const [
-                ErrorBanner(
-                  message: 'Could not load unread messages. Pull down to retry.',
-                ),
-              ],
-            ),
-            data: (s) {
-              if (s.threads.isEmpty) return const _AllCaughtUp();
-              return ListView.separated(
+          child: AnimatedSwitcher(
+            duration: HealynMotion.slow,
+            switchInCurve: HealynMotion.standardCurve,
+            switchOutCurve: HealynMotion.standardCurve,
+            child: summary.when(
+              loading: () => const HealynListSkeleton(
+                key: ValueKey('unread-loading'),
+                hasLeading: false,
+                hasFooter: false,
+              ),
+              error: (_, _) => ListView(
+                key: const ValueKey('unread-error'),
                 padding: const EdgeInsets.all(HealynSpacing.screenEdge),
-                itemCount: s.threads.length,
-                separatorBuilder: (_, _) =>
-                    const SizedBox(height: HealynSpacing.s3),
-                itemBuilder: (_, i) {
-                  final thread = s.threads[i];
-                  return _UnreadTile(
-                    thread: thread,
-                    patientName: names[thread.appointment.patientId],
-                  );
-                },
-              );
-            },
+                children: const [
+                  ErrorBanner(
+                    message:
+                        'Could not load unread messages. Pull down to retry.',
+                  ),
+                ],
+              ),
+              data: (s) {
+                if (s.threads.isEmpty) {
+                  return const _AllCaughtUp(key: ValueKey('unread-empty'));
+                }
+                return ListView.separated(
+                  key: const ValueKey('unread-data'),
+                  padding: const EdgeInsets.all(HealynSpacing.screenEdge),
+                  itemCount: s.threads.length,
+                  separatorBuilder: (_, _) =>
+                      const SizedBox(height: HealynSpacing.s3),
+                  itemBuilder: (_, i) {
+                    final thread = s.threads[i];
+                    return HealynReveal.staggered(
+                      index: i < 6 ? i : 6,
+                      child: _UnreadTile(
+                        thread: thread,
+                        patientName: names[thread.appointment.patientId],
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
           ),
         ),
       ),
@@ -126,7 +146,7 @@ class _UnreadBadge extends StatelessWidget {
 }
 
 class _AllCaughtUp extends StatelessWidget {
-  const _AllCaughtUp();
+  const _AllCaughtUp({super.key});
 
   @override
   Widget build(BuildContext context) {

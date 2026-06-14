@@ -6,6 +6,7 @@ import '../../../shared/auth/current_account.dart';
 import '../../../shared/design/colors.dart';
 import '../../../shared/design/spacing.dart';
 import '../../../shared/design/typography.dart';
+import '../../../shared/widgets/healyn_skeletons.dart';
 import '../../../shared/widgets/healyn_tonal_icon.dart';
 import '../../../shared/widgets/section_card.dart';
 import '../../data/models/appointment_models.dart';
@@ -36,14 +37,16 @@ class AppointmentTimelineSection extends ConsumerWidget {
         const SizedBox(height: HealynSpacing.s3),
         timeline.when(
           loading: () => const SectionCard(
-            child: Center(
-              child: Padding(
-                padding: EdgeInsets.all(HealynSpacing.s4),
-                child: SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                ),
+            child: HealynSkeletonGroup(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  HealynSkeletonLine(widthFactor: 0.55, height: 12),
+                  SizedBox(height: HealynSpacing.s2),
+                  HealynSkeletonLine(widthFactor: 0.8, height: 12),
+                  SizedBox(height: HealynSpacing.s2),
+                  HealynSkeletonLine(widthFactor: 0.65, height: 12),
+                ],
               ),
             ),
           ),

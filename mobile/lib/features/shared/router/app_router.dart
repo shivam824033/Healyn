@@ -39,6 +39,7 @@ import '../../physio/presentation/screens/physio_treatment_note_screen.dart';
 import '../../treatment_notes/data/models/treatment_note_models.dart';
 import '../auth/account_role.dart';
 import '../widgets/app_bar.dart';
+import '../widgets/healyn_loader.dart';
 import '../../patients/data/models/patient_models.dart';
 import '../../patients/presentation/patients_providers.dart';
 import '../../patients/presentation/screens/family_screen.dart';
@@ -441,8 +442,7 @@ class _EditPatientRoute extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final patients = ref.watch(patientsProvider);
     return patients.when(
-      loading: () =>
-          const Scaffold(body: Center(child: CircularProgressIndicator())),
+      loading: () => const Scaffold(body: HealynPulseLoader()),
       error: (_, _) => const Scaffold(
         appBar: HealynAppBar(),
         body: Center(child: Text('Could not load this patient.')),
@@ -471,8 +471,7 @@ class _AppointmentDetailRoute extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final appointment = ref.watch(appointmentByIdProvider(id));
     return appointment.when(
-      loading: () =>
-          const Scaffold(body: Center(child: CircularProgressIndicator())),
+      loading: () => const Scaffold(body: HealynPulseLoader()),
       error: (_, _) => const Scaffold(
         appBar: HealynAppBar(),
         body: Center(child: Text('Could not load this appointment.')),
@@ -493,8 +492,7 @@ class _RescheduleRoute extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final appointment = ref.watch(appointmentByIdProvider(id));
     return appointment.when(
-      loading: () =>
-          const Scaffold(body: Center(child: CircularProgressIndicator())),
+      loading: () => const Scaffold(body: HealynPulseLoader()),
       error: (_, _) => const Scaffold(
         appBar: HealynAppBar(),
         body: Center(child: Text('Could not load this appointment.')),
@@ -516,8 +514,7 @@ class _PhysioPatientDetailRoute extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final patients = ref.watch(patientsProvider);
     return patients.when(
-      loading: () =>
-          const Scaffold(body: Center(child: CircularProgressIndicator())),
+      loading: () => const Scaffold(body: HealynPulseLoader()),
       error: (_, _) => const Scaffold(
         appBar: HealynAppBar(),
         body: Center(child: Text('Could not load this patient.')),
@@ -546,8 +543,7 @@ class _PhysioAppointmentDetailRoute extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final appointment = ref.watch(appointmentByIdProvider(id));
     return appointment.when(
-      loading: () =>
-          const Scaffold(body: Center(child: CircularProgressIndicator())),
+      loading: () => const Scaffold(body: HealynPulseLoader()),
       error: (_, _) => const Scaffold(
         appBar: HealynAppBar(),
         body: Center(child: Text('Could not load this appointment.')),
@@ -568,8 +564,7 @@ class _DiscussionRoute extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final appointment = ref.watch(appointmentByIdProvider(id));
     return appointment.when(
-      loading: () =>
-          const Scaffold(body: Center(child: CircularProgressIndicator())),
+      loading: () => const Scaffold(body: HealynPulseLoader()),
       error: (_, _) => const Scaffold(
         appBar: HealynAppBar(),
         body: Center(child: Text('Could not load this appointment.')),
@@ -590,8 +585,7 @@ class _PhysioDiscussionRoute extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final appointment = ref.watch(appointmentByIdProvider(id));
     return appointment.when(
-      loading: () =>
-          const Scaffold(body: Center(child: CircularProgressIndicator())),
+      loading: () => const Scaffold(body: HealynPulseLoader()),
       error: (_, _) => const Scaffold(
         appBar: HealynAppBar(),
         body: Center(child: Text('Could not load this appointment.')),

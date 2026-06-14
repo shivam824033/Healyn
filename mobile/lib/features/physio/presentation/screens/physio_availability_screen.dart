@@ -14,6 +14,7 @@ import '../../../shared/network/api_exception.dart';
 import '../../../shared/widgets/app_bar.dart';
 import '../../../shared/widgets/error_banner.dart';
 import '../../../shared/widgets/healyn_section_header.dart';
+import '../../../shared/widgets/healyn_skeletons.dart';
 import '../../../shared/widgets/section_card.dart';
 
 /// The physiotherapist's availability management (C7, F1.8 enabler): the two
@@ -363,8 +364,13 @@ class _SectionLoading extends StatelessWidget {
   const _SectionLoading();
 
   @override
-  Widget build(BuildContext context) => const Padding(
-    padding: EdgeInsets.symmetric(vertical: HealynSpacing.s6),
-    child: Center(child: CircularProgressIndicator()),
+  Widget build(BuildContext context) => const HealynSkeletonGroup(
+    child: Column(
+      children: [
+        HealynListRowSkeleton(hasFooter: false),
+        SizedBox(height: HealynSpacing.s3),
+        HealynListRowSkeleton(hasFooter: false),
+      ],
+    ),
   );
 }

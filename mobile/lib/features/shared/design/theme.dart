@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'colors.dart';
+import 'page_transitions.dart';
 import 'radii.dart';
 import 'spacing.dart';
 import 'typography.dart';
@@ -39,6 +40,18 @@ abstract final class HealynTheme {
       scaffoldBackgroundColor: HealynColors.surfaceBase,
       textTheme: textTheme,
       fontFamily: HealynTypography.fontFamily,
+      // One restrained fade/slide transition for every route on every platform —
+      // applies to all go_router pushes and the splash → home hand-off (§7).
+      pageTransitionsTheme: const PageTransitionsTheme(
+        builders: {
+          TargetPlatform.android: HealynPageTransitionsBuilder(),
+          TargetPlatform.iOS: HealynPageTransitionsBuilder(),
+          TargetPlatform.macOS: HealynPageTransitionsBuilder(),
+          TargetPlatform.windows: HealynPageTransitionsBuilder(),
+          TargetPlatform.linux: HealynPageTransitionsBuilder(),
+          TargetPlatform.fuchsia: HealynPageTransitionsBuilder(),
+        },
+      ),
       // Fallback for any bare AppBar — premium indigo header, light status-bar
       // icons. Most screens use HealynAppBar, which paints the brand gradient on
       // top of this; the solid brand colour keeps stragglers on-theme.

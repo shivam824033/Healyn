@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../shared/design/colors.dart';
 import '../../../shared/design/spacing.dart';
 import '../../../shared/design/typography.dart';
+import '../../../shared/widgets/healyn_skeletons.dart';
 import '../../../shared/widgets/section_card.dart';
 import '../../../treatment_notes/data/models/treatment_note_models.dart';
 import '../../../treatment_notes/presentation/treatment_notes_providers.dart';
@@ -30,14 +31,16 @@ class PhysioTreatmentNoteSection extends ConsumerWidget {
         const SizedBox(height: HealynSpacing.s3),
         note.when(
           loading: () => const SectionCard(
-            child: Center(
-              child: Padding(
-                padding: EdgeInsets.all(HealynSpacing.s4),
-                child: SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                ),
+            child: HealynSkeletonGroup(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  HealynSkeletonLine(widthFactor: 0.5, height: 14),
+                  SizedBox(height: HealynSpacing.s2),
+                  HealynSkeletonLine(widthFactor: 0.9, height: 12),
+                  SizedBox(height: HealynSpacing.s1),
+                  HealynSkeletonLine(widthFactor: 0.75, height: 12),
+                ],
               ),
             ),
           ),

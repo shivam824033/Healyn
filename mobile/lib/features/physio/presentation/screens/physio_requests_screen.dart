@@ -8,12 +8,15 @@ import '../../../appointments/presentation/widgets/appointment_status_chip.dart'
 import '../../../patients/data/models/patient_models.dart';
 import '../../../patients/presentation/patients_providers.dart';
 import '../../../shared/design/colors.dart';
+import '../../../shared/design/motion.dart';
 import '../../../shared/design/spacing.dart';
 import '../../../shared/design/typography.dart';
 import '../../../shared/widgets/app_bar.dart';
 import '../../../shared/widgets/error_banner.dart';
 import '../../../shared/widgets/healyn_list_row.dart';
+import '../../../shared/widgets/healyn_reveal.dart';
 import '../../../shared/widgets/healyn_section_header.dart';
+import '../../../shared/widgets/healyn_skeletons.dart';
 import '../physio_requests_providers.dart';
 import '../widgets/patient_avatar_button.dart';
 
@@ -38,49 +41,68 @@ class PhysioRequestsScreen extends ConsumerWidget {
             ref.invalidate(physioRequestsProvider);
             await ref.read(physioRequestsProvider.future);
           },
-          child: requests.when(
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (_, _) => ListView(
-              padding: const EdgeInsets.all(HealynSpacing.screenEdge),
-              children: const [
-                ErrorBanner(
-                  message: 'Could not load requests. Pull down to retry.',
-                ),
-              ],
-            ),
-            data: (items) {
-              if (items.isEmpty) return const _NoRequests();
-              // Group by requested calendar day, preserving the earliest-first
-              // order (a request has no scheduled time yet).
-              final groups = <String, List<Appointment>>{};
-              for (final a in items) {
-                groups
-                    .putIfAbsent(formatDateLong(a.requestedDate), () => [])
-                    .add(a);
-              }
-              return ListView(
+          child: AnimatedSwitcher(
+            duration: HealynMotion.slow,
+            switchInCurve: HealynMotion.standardCurve,
+            switchOutCurve: HealynMotion.standardCurve,
+            child: requests.when(
+              loading: () => const HealynListSkeleton(
+                key: ValueKey('requests-loading'),
+                showHeader: true,
+                hasFooter: true,
+              ),
+              error: (_, _) => ListView(
+                key: const ValueKey('requests-error'),
                 padding: const EdgeInsets.all(HealynSpacing.screenEdge),
-                children: [
-                  for (final entry in groups.entries) ...[
-                    HealynSectionHeader(
-                      title: entry.key,
-                      countLabel: entry.value.length == 1
-                          ? '1 request'
-                          : '${entry.value.length} requests',
-                    ),
-                    const SizedBox(height: HealynSpacing.s3),
-                    for (final a in entry.value) ...[
-                      _RequestTile(
-                        appointment: a,
-                        patient: byId[a.patientId],
+                children: const [
+                  ErrorBanner(
+                    message: 'Could not load requests. Pull down to retry.',
+                  ),
+                ],
+              ),
+              data: (items) {
+                if (items.isEmpty) {
+                  return const _NoRequests(key: ValueKey('requests-empty'));
+                }
+                // Group by requested calendar day, preserving the earliest-first
+                // order (a request has no scheduled time yet).
+                final groups = <String, List<Appointment>>{};
+                for (final a in items) {
+                  groups
+                      .putIfAbsent(formatDateLong(a.requestedDate), () => [])
+                      .add(a);
+                }
+                // Capped running stagger across all rows, headers included.
+                var revealIndex = 0;
+                int nextReveal() => revealIndex < 6 ? revealIndex++ : 6;
+                return ListView(
+                  key: const ValueKey('requests-data'),
+                  padding: const EdgeInsets.all(HealynSpacing.screenEdge),
+                  children: [
+                    for (final entry in groups.entries) ...[
+                      HealynSectionHeader(
+                        title: entry.key,
+                        countLabel: entry.value.length == 1
+                            ? '1 request'
+                            : '${entry.value.length} requests',
                       ),
                       const SizedBox(height: HealynSpacing.s3),
+                      for (final a in entry.value) ...[
+                        HealynReveal.staggered(
+                          index: nextReveal(),
+                          child: _RequestTile(
+                            appointment: a,
+                            patient: byId[a.patientId],
+                          ),
+                        ),
+                        const SizedBox(height: HealynSpacing.s3),
+                      ],
+                      const SizedBox(height: HealynSpacing.s4),
                     ],
-                    const SizedBox(height: HealynSpacing.s4),
                   ],
-                ],
-              );
-            },
+                );
+              },
+            ),
           ),
         ),
       ),
@@ -116,7 +138,7 @@ class _RequestTile extends StatelessWidget {
 }
 
 class _NoRequests extends StatelessWidget {
-  const _NoRequests();
+  const _NoRequests({super.key});
 
   @override
   Widget build(BuildContext context) {

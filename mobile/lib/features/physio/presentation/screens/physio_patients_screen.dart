@@ -7,12 +7,15 @@ import '../../../patients/presentation/patient_format.dart';
 import '../../../patients/presentation/patients_providers.dart';
 import '../../../shared/domain/patient_sex.dart';
 import '../../../shared/design/colors.dart';
+import '../../../shared/design/motion.dart';
 import '../../../shared/design/spacing.dart';
 import '../../../shared/design/typography.dart';
 import '../../../shared/widgets/app_bar.dart';
 import '../../../shared/widgets/error_banner.dart';
 import '../../../shared/widgets/healyn_avatar.dart';
 import '../../../shared/widgets/healyn_list_row.dart';
+import '../../../shared/widgets/healyn_reveal.dart';
+import '../../../shared/widgets/healyn_skeletons.dart';
 
 /// The physiotherapist's patient roster (C6, F1.16) — every patient in the
 /// practice (`GET /patients` returns the full roster for a physio), name-sorted
@@ -79,19 +82,27 @@ class _PhysioPatientsScreenState extends ConsumerState<PhysioPatientsScreen> {
                   ref.invalidate(patientsProvider);
                   await ref.read(patientsProvider.future);
                 },
-                child: patients.when(
-                  loading: () =>
-                      const Center(child: CircularProgressIndicator()),
-                  error: (_, _) => ListView(
-                    padding: const EdgeInsets.all(HealynSpacing.screenEdge),
-                    children: const [
-                      ErrorBanner(
-                        message:
-                            'Could not load patients. Pull down to retry.',
-                      ),
-                    ],
+                child: AnimatedSwitcher(
+                  duration: HealynMotion.slow,
+                  switchInCurve: HealynMotion.standardCurve,
+                  switchOutCurve: HealynMotion.standardCurve,
+                  child: patients.when(
+                    loading: () => const HealynListSkeleton(
+                      key: ValueKey('patients-loading'),
+                      hasFooter: false,
+                    ),
+                    error: (_, _) => ListView(
+                      key: const ValueKey('patients-error'),
+                      padding: const EdgeInsets.all(HealynSpacing.screenEdge),
+                      children: const [
+                        ErrorBanner(
+                          message:
+                              'Could not load patients. Pull down to retry.',
+                        ),
+                      ],
+                    ),
+                    data: (all) => _list(_filterAndSort(all)),
                   ),
-                  data: (all) => _list(_filterAndSort(all)),
                 ),
               ),
             ),
@@ -114,13 +125,21 @@ class _PhysioPatientsScreenState extends ConsumerState<PhysioPatientsScreen> {
 
   Widget _list(List<Patient> patients) {
     if (patients.isEmpty) {
-      return _EmptyRoster(searching: _query.isNotEmpty);
+      return _EmptyRoster(
+        key: const ValueKey('patients-empty'),
+        searching: _query.isNotEmpty,
+      );
     }
     return ListView.separated(
+      key: const ValueKey('patients-data'),
       padding: const EdgeInsets.all(HealynSpacing.screenEdge),
       itemCount: patients.length,
       separatorBuilder: (_, _) => const SizedBox(height: HealynSpacing.s3),
-      itemBuilder: (_, i) => _PatientTile(patient: patients[i]),
+      // Cap the stagger so rows scrolled into view later reveal immediately.
+      itemBuilder: (_, i) => HealynReveal.staggered(
+        index: i < 6 ? i : 6,
+        child: _PatientTile(patient: patients[i]),
+      ),
     );
   }
 }
@@ -146,7 +165,7 @@ class _PatientTile extends StatelessWidget {
 }
 
 class _EmptyRoster extends StatelessWidget {
-  const _EmptyRoster({required this.searching});
+  const _EmptyRoster({required this.searching, super.key});
 
   final bool searching;
 

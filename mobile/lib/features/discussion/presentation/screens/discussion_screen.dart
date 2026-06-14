@@ -13,6 +13,7 @@ import '../../../files/data/url_opener.dart';
 import '../../../patients/presentation/patients_providers.dart';
 import '../../../shared/auth/current_account.dart';
 import '../../../shared/design/colors.dart';
+import '../../../shared/design/motion.dart';
 import '../../../shared/design/radii.dart';
 import '../../../shared/design/spacing.dart';
 import '../../../shared/design/typography.dart';
@@ -20,6 +21,7 @@ import '../../../shared/network/api_exception.dart';
 import '../../../shared/widgets/app_bar.dart';
 import '../../../shared/widgets/copyable_id.dart';
 import '../../../shared/widgets/error_banner.dart';
+import '../../../shared/widgets/healyn_skeletons.dart';
 import '../../data/discussion_repository.dart';
 import '../../data/models/discussion_models.dart';
 import '../discussion_format.dart';
@@ -481,7 +483,14 @@ class _DiscussionScreenState extends ConsumerState<DiscussionScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            Expanded(child: _body()),
+            Expanded(
+              child: AnimatedSwitcher(
+                duration: HealynMotion.slow,
+                switchInCurve: HealynMotion.standardCurve,
+                switchOutCurve: HealynMotion.standardCurve,
+                child: _body(),
+              ),
+            ),
             _writable ? _buildComposer() : const _ReadOnlyNotice(),
           ],
         ),
@@ -491,7 +500,7 @@ class _DiscussionScreenState extends ConsumerState<DiscussionScreen> {
 
   Widget _body() {
     if (_loading) {
-      return const Center(child: CircularProgressIndicator());
+      return const HealynChatSkeleton();
     }
     if (_loadError != null) {
       return _LoadError(message: _loadError!, onRetry: _loadInitial);

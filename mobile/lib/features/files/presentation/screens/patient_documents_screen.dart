@@ -9,6 +9,7 @@ import '../../../shared/network/api_exception.dart';
 import '../../../shared/widgets/app_bar.dart';
 import '../../../shared/widgets/error_banner.dart';
 import '../../../shared/widgets/healyn_section_header.dart';
+import '../../../shared/widgets/healyn_skeletons.dart';
 import '../../data/file_picker_service.dart';
 import '../../data/file_types.dart';
 import '../../data/files_repository.dart';
@@ -344,9 +345,16 @@ class _PatientDocumentsScreenState
         ),
         const SizedBox(height: HealynSpacing.s3),
         if (!section.loadedOnce && section.loading)
-          const Padding(
-            padding: EdgeInsets.all(HealynSpacing.s5),
-            child: Center(child: CircularProgressIndicator()),
+          const HealynSkeletonGroup(
+            child: Column(
+              children: [
+                HealynDocumentCardSkeleton(),
+                SizedBox(height: HealynSpacing.s3),
+                HealynDocumentCardSkeleton(),
+                SizedBox(height: HealynSpacing.s3),
+                HealynDocumentCardSkeleton(),
+              ],
+            ),
           )
         else if (section.error != null)
           ErrorBanner(message: section.error!)
