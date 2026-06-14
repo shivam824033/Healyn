@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../shared/design/colors.dart';
-import '../../../shared/design/motion.dart';
+import '../../../shared/widgets/healyn_state_switcher.dart';
 import '../../../shared/design/spacing.dart';
 import '../../../shared/design/typography.dart';
 import '../../../shared/widgets/app_bar.dart';
@@ -42,10 +42,7 @@ class FamilyScreen extends ConsumerWidget {
             ref.invalidate(patientsProvider);
             await ref.read(patientsProvider.future);
           },
-          child: AnimatedSwitcher(
-            duration: HealynMotion.slow,
-            switchInCurve: HealynMotion.standardCurve,
-            switchOutCurve: HealynMotion.standardCurve,
+          child: HealynStateSwitcher(
             child: patients.when(
               loading: () => const HealynListSkeleton(
                 key: ValueKey('family-loading'),

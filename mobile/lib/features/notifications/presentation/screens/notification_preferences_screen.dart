@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../shared/design/colors.dart';
-import '../../../shared/design/motion.dart';
+import '../../../shared/widgets/healyn_state_switcher.dart';
 import '../../../shared/design/spacing.dart';
 import '../../../shared/design/typography.dart';
 import '../../../shared/network/api_exception.dart';
@@ -26,10 +26,7 @@ class NotificationPreferencesScreen extends ConsumerWidget {
       backgroundColor: HealynColors.surfaceAlt,
       appBar: const HealynAppBar(title: 'Notifications'),
       body: SafeArea(
-        child: AnimatedSwitcher(
-          duration: HealynMotion.slow,
-          switchInCurve: HealynMotion.standardCurve,
-          switchOutCurve: HealynMotion.standardCurve,
+        child: HealynStateSwitcher(
           child: prefs.when(
           loading: () => const HealynListSkeleton(
             key: ValueKey('prefs-loading'),

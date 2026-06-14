@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 
 import '../../../patients/presentation/patients_providers.dart';
 import '../../../shared/design/colors.dart';
-import '../../../shared/design/motion.dart';
 import '../../../shared/design/spacing.dart';
 import '../../../shared/design/typography.dart';
 import '../../../shared/widgets/app_bar.dart';
@@ -14,6 +13,7 @@ import '../../../shared/widgets/healyn_reveal.dart';
 import '../../../shared/widgets/healyn_section_header.dart';
 import '../../../shared/widgets/healyn_shimmer.dart';
 import '../../../shared/widgets/healyn_skeletons.dart';
+import '../../../shared/widgets/healyn_state_switcher.dart';
 import '../../data/models/appointment_models.dart';
 import '../appointment_format.dart';
 import '../appointments_providers.dart';
@@ -54,10 +54,7 @@ class AppointmentsScreen extends ConsumerWidget {
                   ref.invalidate(appointmentsProvider);
                   await ref.read(appointmentsProvider.future);
                 },
-                child: AnimatedSwitcher(
-                  duration: HealynMotion.slow,
-                  switchInCurve: HealynMotion.standardCurve,
-                  switchOutCurve: HealynMotion.standardCurve,
+                child: HealynStateSwitcher(
                   child: appointments.when(
                   loading: () =>
                       const _AppointmentsSkeleton(key: ValueKey('appts-loading')),
@@ -75,8 +72,10 @@ class AppointmentsScreen extends ConsumerWidget {
                     final all = state.items;
                     if (all.isEmpty) {
                       return filter.isDefault
-                          ? const _EmptyAppointments()
-                          : const _NoMatchingAppointments();
+                          ? const _EmptyAppointments(key: ValueKey('appts-empty'))
+                          : const _NoMatchingAppointments(
+                              key: ValueKey('appts-nomatch'),
+                            );
                     }
               final upcoming = upcomingOf(all);
               final past = pastOf(all);
@@ -86,6 +85,7 @@ class AppointmentsScreen extends ConsumerWidget {
               int nextReveal() => revealIndex < 6 ? revealIndex++ : 6;
               // Auto-load the next cursor page as the list nears its bottom.
               return NotificationListener<ScrollNotification>(
+                key: const ValueKey('appts-data'),
                 onNotification: (n) {
                   if (state.hasMore &&
                       !state.isLoadingMore &&
@@ -205,7 +205,7 @@ class _AppointmentTile extends StatelessWidget {
 /// Shown when a filter is active but nothing matches — distinct from the
 /// first-run [_EmptyAppointments] onboarding (which invites a first booking).
 class _NoMatchingAppointments extends StatelessWidget {
-  const _NoMatchingAppointments();
+  const _NoMatchingAppointments({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -264,7 +264,7 @@ class _LoadMoreFooter extends StatelessWidget {
 }
 
 class _EmptyAppointments extends StatelessWidget {
-  const _EmptyAppointments();
+  const _EmptyAppointments({super.key});
 
   @override
   Widget build(BuildContext context) {

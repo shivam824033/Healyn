@@ -5,7 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../appointments/presentation/appointment_format.dart';
 import '../../../patients/presentation/patients_providers.dart';
 import '../../../shared/design/colors.dart';
-import '../../../shared/design/motion.dart';
+import '../../../shared/widgets/healyn_state_switcher.dart';
 import '../../../shared/design/radii.dart';
 import '../../../shared/design/spacing.dart';
 import '../../../shared/design/typography.dart';
@@ -37,10 +37,7 @@ class UnreadDiscussionsScreen extends ConsumerWidget {
             ref.invalidate(unreadSummaryProvider);
             await ref.read(unreadSummaryProvider.future);
           },
-          child: AnimatedSwitcher(
-            duration: HealynMotion.slow,
-            switchInCurve: HealynMotion.standardCurve,
-            switchOutCurve: HealynMotion.standardCurve,
+          child: HealynStateSwitcher(
             child: summary.when(
               loading: () => const HealynListSkeleton(
                 key: ValueKey('unread-loading'),

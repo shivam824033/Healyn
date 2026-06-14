@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../shared/design/colors.dart';
-import '../../../shared/design/motion.dart';
+import '../../../shared/widgets/healyn_state_switcher.dart';
 import '../../../shared/design/spacing.dart';
 import '../../../shared/design/typography.dart';
 import '../../../shared/network/api_exception.dart';
@@ -154,10 +154,7 @@ class _TreatmentNotesTimelineScreenState
   }
 
   Widget _body() {
-    return AnimatedSwitcher(
-      duration: HealynMotion.slow,
-      switchInCurve: HealynMotion.standardCurve,
-      switchOutCurve: HealynMotion.standardCurve,
+    return HealynStateSwitcher(
       child: _loading
           ? const HealynListSkeleton(
               key: ValueKey('notes-loading'),

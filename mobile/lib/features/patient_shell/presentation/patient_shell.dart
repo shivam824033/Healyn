@@ -4,62 +4,31 @@ import 'package:go_router/go_router.dart';
 
 import '../../appointments/presentation/appointments_providers.dart';
 import '../../patients/presentation/patients_providers.dart';
-import '../../shared/design/motion.dart';
+import '../../shared/design/colors.dart';
 
 /// The signed-in patient app frame: a 4-tab bottom nav over the
 /// Home/Appointments/Family/Profile branches (UI_UX_GUIDELINES §8.1). Each tab
 /// keeps its own navigation stack via [StatefulNavigationShell].
-class PatientShell extends ConsumerStatefulWidget {
+class PatientShell extends ConsumerWidget {
   const PatientShell({required this.navigationShell, super.key});
 
   final StatefulNavigationShell navigationShell;
 
   @override
-  ConsumerState<PatientShell> createState() => _PatientShellState();
-}
-
-class _PatientShellState extends ConsumerState<PatientShell>
-    with SingleTickerProviderStateMixin {
-  // A short fade-in runs on each tab switch so the body cross-dissolves rather
-  // than swapping instantly (UI_UX_GUIDELINES §7). The shell's branches share a
-  // single state (an IndexedStack), so wrapping it in an AnimatedSwitcher would
-  // duplicate the branches' GlobalKeys — instead we re-run this one controller.
-  late final AnimationController _fade = AnimationController(
-    vsync: this,
-    duration: HealynMotion.standard,
-    value: 1,
-  );
-  late final Animation<double> _opacity = CurvedAnimation(
-    parent: _fade,
-    curve: HealynMotion.standardCurve,
-  );
-  late int _index = widget.navigationShell.currentIndex;
-
-  @override
-  void didUpdateWidget(PatientShell oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    final next = widget.navigationShell.currentIndex;
-    if (next != _index) {
-      _index = next;
-      if (!MediaQuery.of(context).disableAnimations) {
-        _fade.forward(from: 0);
-      }
-    }
-  }
-
-  @override
-  void dispose() {
-    _fade.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
-      body: FadeTransition(opacity: _opacity, child: widget.navigationShell),
+      // Tabs swap instantly: the shell is an IndexedStack, so every branch keeps
+      // its state and is already built — switching just changes which is shown.
+      // We deliberately don't cross-fade. The branches share one IndexedStack
+      // (and its GlobalKeys), so a real dissolve between the old and new tab
+      // isn't possible; fading the single visible branch in from transparent
+      // briefly exposes the background, which reads as a flash/stutter. An
+      // instant swap is the smoother, native-feeling choice.
+      backgroundColor: HealynColors.surfaceAlt,
+      body: navigationShell,
       bottomNavigationBar: NavigationBar(
-        selectedIndex: widget.navigationShell.currentIndex,
-        onDestinationSelected: _goBranch,
+        selectedIndex: navigationShell.currentIndex,
+        onDestinationSelected: (index) => _goBranch(ref, index),
         destinations: const [
           NavigationDestination(
             icon: Icon(Icons.home_outlined),
@@ -86,7 +55,7 @@ class _PatientShellState extends ConsumerState<PatientShell>
     );
   }
 
-  void _goBranch(int index) {
+  void _goBranch(WidgetRef ref, int index) {
     // Entering Home refreshes its roots so a booking/cancel/status-change made
     // elsewhere (another tab, or physio-side) shows without a manual pull (D1);
     // the unread roll-up and next-review cards cascade off these.
@@ -95,10 +64,10 @@ class _PatientShellState extends ConsumerState<PatientShell>
         ..invalidate(appointmentsProvider)
         ..invalidate(patientsProvider);
     }
-    widget.navigationShell.goBranch(
+    navigationShell.goBranch(
       index,
       // Re-tapping the active tab pops it back to that branch's root.
-      initialLocation: index == widget.navigationShell.currentIndex,
+      initialLocation: index == navigationShell.currentIndex,
     );
   }
 }

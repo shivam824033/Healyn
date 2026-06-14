@@ -5,7 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../auth/presentation/controllers/auth_controller.dart';
 import '../../../auth/presentation/widgets/signed_in_devices.dart';
 import '../../../shared/design/colors.dart';
-import '../../../shared/design/motion.dart';
+import '../../../shared/widgets/healyn_state_switcher.dart';
 import '../../../shared/design/spacing.dart';
 import '../../../shared/design/typography.dart';
 import '../../../shared/domain/patient_sex.dart';
@@ -51,10 +51,7 @@ class ProfileScreen extends ConsumerWidget {
             ref.invalidate(signedInDevicesProvider);
             await ref.read(patientsProvider.future);
           },
-          child: AnimatedSwitcher(
-            duration: HealynMotion.slow,
-            switchInCurve: HealynMotion.standardCurve,
-            switchOutCurve: HealynMotion.standardCurve,
+          child: HealynStateSwitcher(
             child: patients.when(
               loading: () => const _ProfileSkeleton(key: ValueKey('profile-loading')),
               error: (_, _) => ListView(

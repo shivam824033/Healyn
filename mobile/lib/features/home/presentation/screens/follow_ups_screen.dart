@@ -8,7 +8,7 @@ import '../../../appointments/presentation/screens/book_appointment_screen.dart'
 import '../../../patients/data/models/patient_models.dart';
 import '../../../patients/presentation/patient_format.dart';
 import '../../../shared/design/colors.dart';
-import '../../../shared/design/motion.dart';
+import '../../../shared/widgets/healyn_state_switcher.dart';
 import '../../../shared/design/spacing.dart';
 import '../../../shared/design/typography.dart';
 import '../../../shared/widgets/app_bar.dart';
@@ -49,10 +49,7 @@ class FollowUpsScreen extends ConsumerWidget {
             ref.invalidate(pendingReviewsProvider);
             await ref.read(pendingReviewsProvider.future);
           },
-          child: AnimatedSwitcher(
-            duration: HealynMotion.slow,
-            switchInCurve: HealynMotion.standardCurve,
-            switchOutCurve: HealynMotion.standardCurve,
+          child: HealynStateSwitcher(
             child: reviews.when(
               loading: () => const HealynListSkeleton(
                 key: ValueKey('followups-loading'),

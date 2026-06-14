@@ -12,7 +12,7 @@ import '../../patients/presentation/active_patient_provider.dart';
 import '../../patients/presentation/patients_providers.dart';
 import '../../patients/presentation/widgets/patient_switcher.dart';
 import '../../shared/design/colors.dart';
-import '../../shared/design/motion.dart';
+import '../../shared/widgets/healyn_state_switcher.dart';
 import '../../shared/design/spacing.dart';
 import '../../shared/design/typography.dart';
 import '../../shared/widgets/healyn_hero.dart';
@@ -100,10 +100,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             bottomOverlap: HealynSpacing.s6,
           ),
           const SizedBox(height: HealynSpacing.s5),
-          AnimatedSwitcher(
-            duration: HealynMotion.slow,
-            switchInCurve: HealynMotion.standardCurve,
-            switchOutCurve: HealynMotion.standardCurve,
+          HealynStateSwitcher(
             child: loading
                 ? const _HomeBodySkeleton(key: ValueKey('home-skeleton'))
                 : const _HomeBody(key: ValueKey('home-body')),

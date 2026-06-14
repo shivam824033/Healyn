@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../patients/presentation/patients_providers.dart';
-import '../../shared/design/motion.dart';
+import '../../shared/design/colors.dart';
 import 'physio_calendar_providers.dart';
 import 'physio_requests_providers.dart';
 import 'physio_schedule_providers.dart';
@@ -12,57 +12,26 @@ import 'physio_unread_providers.dart';
 /// The signed-in physiotherapist app frame: a 4-tab bottom nav over the
 /// Today / Patients / Availability / Profile branches (mirrors PatientShell,
 /// UI_UX_GUIDELINES §8.1). Each tab keeps its own navigation stack.
-class PhysioShell extends ConsumerStatefulWidget {
+class PhysioShell extends ConsumerWidget {
   const PhysioShell({required this.navigationShell, super.key});
 
   final StatefulNavigationShell navigationShell;
 
   @override
-  ConsumerState<PhysioShell> createState() => _PhysioShellState();
-}
-
-class _PhysioShellState extends ConsumerState<PhysioShell>
-    with SingleTickerProviderStateMixin {
-  // A short fade-in runs on each tab switch so the body cross-dissolves rather
-  // than swapping instantly (UI_UX_GUIDELINES §7). Mirrors PatientShell: the
-  // branches share one IndexedStack state, so an AnimatedSwitcher would
-  // duplicate their GlobalKeys — we re-run a single controller instead.
-  late final AnimationController _fade = AnimationController(
-    vsync: this,
-    duration: HealynMotion.standard,
-    value: 1,
-  );
-  late final Animation<double> _opacity = CurvedAnimation(
-    parent: _fade,
-    curve: HealynMotion.standardCurve,
-  );
-  late int _index = widget.navigationShell.currentIndex;
-
-  @override
-  void didUpdateWidget(PhysioShell oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    final next = widget.navigationShell.currentIndex;
-    if (next != _index) {
-      _index = next;
-      if (!MediaQuery.of(context).disableAnimations) {
-        _fade.forward(from: 0);
-      }
-    }
-  }
-
-  @override
-  void dispose() {
-    _fade.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
-      body: FadeTransition(opacity: _opacity, child: widget.navigationShell),
+      // Tabs swap instantly: the shell is an IndexedStack, so every branch keeps
+      // its state and is already built — switching just changes which is shown.
+      // We deliberately don't cross-fade. The branches share one IndexedStack
+      // (and its GlobalKeys), so a real dissolve between the old and new tab
+      // isn't possible; fading the single visible branch in from transparent
+      // briefly exposes the background, which reads as a flash/stutter. An
+      // instant swap is the smoother, native-feeling choice.
+      backgroundColor: HealynColors.surfaceAlt,
+      body: navigationShell,
       bottomNavigationBar: NavigationBar(
-        selectedIndex: widget.navigationShell.currentIndex,
-        onDestinationSelected: _goBranch,
+        selectedIndex: navigationShell.currentIndex,
+        onDestinationSelected: (index) => _goBranch(ref, index),
         destinations: const [
           NavigationDestination(
             icon: Icon(Icons.today_outlined),
@@ -89,7 +58,7 @@ class _PhysioShellState extends ConsumerState<PhysioShell>
     );
   }
 
-  void _goBranch(int index) {
+  void _goBranch(WidgetRef ref, int index) {
     // Entering Today refreshes the schedule, its activity badges, calendar
     // marks, the requests banner, the unread roll-up, and the patient roster so
     // changes made while away (or on another device) show without a manual pull.
@@ -102,10 +71,10 @@ class _PhysioShellState extends ConsumerState<PhysioShell>
         ..invalidate(physioUnreadSummaryProvider)
         ..invalidate(patientsProvider);
     }
-    widget.navigationShell.goBranch(
+    navigationShell.goBranch(
       index,
       // Re-tapping the active tab pops it back to that branch's root.
-      initialLocation: index == widget.navigationShell.currentIndex,
+      initialLocation: index == navigationShell.currentIndex,
     );
   }
 }

@@ -7,7 +7,7 @@ import '../../../patients/presentation/patient_format.dart';
 import '../../../patients/presentation/patients_providers.dart';
 import '../../../shared/domain/patient_sex.dart';
 import '../../../shared/design/colors.dart';
-import '../../../shared/design/motion.dart';
+import '../../../shared/widgets/healyn_state_switcher.dart';
 import '../../../shared/design/spacing.dart';
 import '../../../shared/design/typography.dart';
 import '../../../shared/widgets/app_bar.dart';
@@ -82,10 +82,7 @@ class _PhysioPatientsScreenState extends ConsumerState<PhysioPatientsScreen> {
                   ref.invalidate(patientsProvider);
                   await ref.read(patientsProvider.future);
                 },
-                child: AnimatedSwitcher(
-                  duration: HealynMotion.slow,
-                  switchInCurve: HealynMotion.standardCurve,
-                  switchOutCurve: HealynMotion.standardCurve,
+                child: HealynStateSwitcher(
                   child: patients.when(
                     loading: () => const HealynListSkeleton(
                       key: ValueKey('patients-loading'),

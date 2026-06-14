@@ -13,7 +13,7 @@ import '../../../appointments/presentation/widgets/appointment_status_chip.dart'
 import '../../../patients/data/models/patient_models.dart';
 import '../../../patients/presentation/patients_providers.dart';
 import '../../../shared/design/colors.dart';
-import '../../../shared/design/motion.dart';
+import '../../../shared/widgets/healyn_state_switcher.dart';
 import '../../../shared/design/radii.dart';
 import '../../../shared/design/spacing.dart';
 import '../../../shared/design/typography.dart';
@@ -68,10 +68,7 @@ class PhysioUpcomingScreen extends ConsumerWidget {
                   ref.invalidate(physioAppointmentsProvider);
                   await ref.read(physioAppointmentsProvider.future);
                 },
-                child: AnimatedSwitcher(
-                  duration: HealynMotion.slow,
-                  switchInCurve: HealynMotion.standardCurve,
-                  switchOutCurve: HealynMotion.standardCurve,
+                child: HealynStateSwitcher(
                   child: appointments.when(
                   loading: () => const HealynListSkeleton(
                     key: ValueKey('upcoming-loading'),
