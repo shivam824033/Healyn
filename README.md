@@ -180,9 +180,27 @@ email:    physio@healyn.local           (override: HEALYN_DEV_PHYSIO_EMAIL)
 password: Physio!Dev123                 (override: HEALYN_DEV_PHYSIO_PASSWORD)
 ```
 
-The seed is idempotent and **never runs in prod**, where the physiotherapist is provisioned by an
-operator (e.g. a one-off admin task that inserts an `accounts` row with `role = ROLE_PHYSIO` and an
-Argon2id password hash). The dev password above is a placeholder, not a real secret.
+The seed is idempotent and **never runs in prod**. The dev password above is a placeholder, not a
+real secret.
+
+In prod the physiotherapist is provisioned by an operator via the one-off `PhysioBootstrapRunner`.
+You cannot hand-write the `accounts` row: `PasswordHasher` mixes a server-side pepper
+(`HEALYN_PASSWORD_PEPPER`) into every hash, so an offline-generated Argon2id hash will never match
+at login. The account must be created in-process with the live hasher. To provision:
+
+1. Set in your secret manager (alongside the existing `HEALYN_PASSWORD_PEPPER`):
+
+   ```text
+   HEALYN_BOOTSTRAP_PHYSIO_ENABLED=true
+   HEALYN_BOOTSTRAP_PHYSIO_EMAIL=<owner email>
+   HEALYN_BOOTSTRAP_PHYSIO_PASSWORD=<strong temporary password>
+   ```
+
+2. Deploy / restart once. The runner creates the `ROLE_PHYSIO` account (idempotent — it skips if
+   the email already exists) without logging the password.
+3. Log in and **rotate the temporary password** via the password-reset flow.
+4. Set `HEALYN_BOOTSTRAP_PHYSIO_ENABLED=false` and delete the `HEALYN_BOOTSTRAP_PHYSIO_PASSWORD`
+   secret.
 
 ### 5.3 File uploads from a device (presigned-URL host)
 

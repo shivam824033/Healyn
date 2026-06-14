@@ -102,6 +102,16 @@ healyn:
     physio:
       email: ${HEALYN_DEV_PHYSIO_EMAIL:physio@healyn.local}
       password: ${HEALYN_DEV_PHYSIO_PASSWORD:Physio!Dev123}
+  # Prod provisioning of the single ROLE_PHYSIO login (README §5.2). Off by default. The
+  # operator enables it once with a temporary email/password secret, boots, then turns it
+  # back off and removes the password secret; the physio rotates via the reset flow on first
+  # login. Hashing must run in-process (PasswordHasher mixes a server pepper) — offline SQL
+  # inserts cannot produce a matching hash. Idempotent (PhysioBootstrapRunner).
+  bootstrap:
+    physio:
+      enabled: ${HEALYN_BOOTSTRAP_PHYSIO_ENABLED:false}
+      email: ${HEALYN_BOOTSTRAP_PHYSIO_EMAIL:}
+      password: ${HEALYN_BOOTSTRAP_PHYSIO_PASSWORD:}
   notifications:
     poller-enabled: ${HEALYN_NOTIFICATIONS_POLLER_ENABLED:true}
     poll-interval-ms: ${HEALYN_NOTIFICATIONS_POLL_INTERVAL_MS:2000}
