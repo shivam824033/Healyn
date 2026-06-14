@@ -347,7 +347,7 @@ $AddressCopyWith<$Res>? get address {
 /// @nodoc
 mixin _$PatientListResponse {
 
- List<Patient> get patients;
+ List<Patient> get patients; String? get nextCursor;
 /// Create a copy of PatientListResponse
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -360,16 +360,16 @@ $PatientListResponseCopyWith<PatientListResponse> get copyWith => _$PatientListR
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is PatientListResponse&&const DeepCollectionEquality().equals(other.patients, patients));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is PatientListResponse&&const DeepCollectionEquality().equals(other.patients, patients)&&(identical(other.nextCursor, nextCursor) || other.nextCursor == nextCursor));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,const DeepCollectionEquality().hash(patients));
+int get hashCode => Object.hash(runtimeType,const DeepCollectionEquality().hash(patients),nextCursor);
 
 @override
 String toString() {
-  return 'PatientListResponse(patients: $patients)';
+  return 'PatientListResponse(patients: $patients, nextCursor: $nextCursor)';
 }
 
 
@@ -380,7 +380,7 @@ abstract mixin class $PatientListResponseCopyWith<$Res>  {
   factory $PatientListResponseCopyWith(PatientListResponse value, $Res Function(PatientListResponse) _then) = _$PatientListResponseCopyWithImpl;
 @useResult
 $Res call({
- List<Patient> patients
+ List<Patient> patients, String? nextCursor
 });
 
 
@@ -397,10 +397,11 @@ class _$PatientListResponseCopyWithImpl<$Res>
 
 /// Create a copy of PatientListResponse
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? patients = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? patients = null,Object? nextCursor = freezed,}) {
   return _then(_self.copyWith(
 patients: null == patients ? _self.patients : patients // ignore: cast_nullable_to_non_nullable
-as List<Patient>,
+as List<Patient>,nextCursor: freezed == nextCursor ? _self.nextCursor : nextCursor // ignore: cast_nullable_to_non_nullable
+as String?,
   ));
 }
 
@@ -485,10 +486,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( List<Patient> patients)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( List<Patient> patients,  String? nextCursor)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _PatientListResponse() when $default != null:
-return $default(_that.patients);case _:
+return $default(_that.patients,_that.nextCursor);case _:
   return orElse();
 
 }
@@ -506,10 +507,10 @@ return $default(_that.patients);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( List<Patient> patients)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( List<Patient> patients,  String? nextCursor)  $default,) {final _that = this;
 switch (_that) {
 case _PatientListResponse():
-return $default(_that.patients);case _:
+return $default(_that.patients,_that.nextCursor);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -526,10 +527,10 @@ return $default(_that.patients);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( List<Patient> patients)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( List<Patient> patients,  String? nextCursor)?  $default,) {final _that = this;
 switch (_that) {
 case _PatientListResponse() when $default != null:
-return $default(_that.patients);case _:
+return $default(_that.patients,_that.nextCursor);case _:
   return null;
 
 }
@@ -541,16 +542,17 @@ return $default(_that.patients);case _:
 @JsonSerializable()
 
 class _PatientListResponse implements PatientListResponse {
-  const _PatientListResponse({required final  List<Patient> patients}): _patients = patients;
+  const _PatientListResponse({final  List<Patient> patients = const <Patient>[], this.nextCursor}): _patients = patients;
   factory _PatientListResponse.fromJson(Map<String, dynamic> json) => _$PatientListResponseFromJson(json);
 
  final  List<Patient> _patients;
-@override List<Patient> get patients {
+@override@JsonKey() List<Patient> get patients {
   if (_patients is EqualUnmodifiableListView) return _patients;
   // ignore: implicit_dynamic_type
   return EqualUnmodifiableListView(_patients);
 }
 
+@override final  String? nextCursor;
 
 /// Create a copy of PatientListResponse
 /// with the given fields replaced by the non-null parameter values.
@@ -565,16 +567,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _PatientListResponse&&const DeepCollectionEquality().equals(other._patients, _patients));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _PatientListResponse&&const DeepCollectionEquality().equals(other._patients, _patients)&&(identical(other.nextCursor, nextCursor) || other.nextCursor == nextCursor));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,const DeepCollectionEquality().hash(_patients));
+int get hashCode => Object.hash(runtimeType,const DeepCollectionEquality().hash(_patients),nextCursor);
 
 @override
 String toString() {
-  return 'PatientListResponse(patients: $patients)';
+  return 'PatientListResponse(patients: $patients, nextCursor: $nextCursor)';
 }
 
 
@@ -585,7 +587,7 @@ abstract mixin class _$PatientListResponseCopyWith<$Res> implements $PatientList
   factory _$PatientListResponseCopyWith(_PatientListResponse value, $Res Function(_PatientListResponse) _then) = __$PatientListResponseCopyWithImpl;
 @override @useResult
 $Res call({
- List<Patient> patients
+ List<Patient> patients, String? nextCursor
 });
 
 
@@ -602,10 +604,11 @@ class __$PatientListResponseCopyWithImpl<$Res>
 
 /// Create a copy of PatientListResponse
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? patients = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? patients = null,Object? nextCursor = freezed,}) {
   return _then(_PatientListResponse(
 patients: null == patients ? _self._patients : patients // ignore: cast_nullable_to_non_nullable
-as List<Patient>,
+as List<Patient>,nextCursor: freezed == nextCursor ? _self.nextCursor : nextCursor // ignore: cast_nullable_to_non_nullable
+as String?,
   ));
 }
 

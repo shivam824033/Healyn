@@ -74,15 +74,19 @@ const _$PatientRelationshipEnumMap = {
 
 _PatientListResponse _$PatientListResponseFromJson(Map<String, dynamic> json) =>
     _PatientListResponse(
-      patients: (json['patients'] as List<dynamic>)
-          .map((e) => Patient.fromJson(e as Map<String, dynamic>))
-          .toList(),
+      patients:
+          (json['patients'] as List<dynamic>?)
+              ?.map((e) => Patient.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const <Patient>[],
+      nextCursor: json['next_cursor'] as String?,
     );
 
 Map<String, dynamic> _$PatientListResponseToJson(
   _PatientListResponse instance,
 ) => <String, dynamic>{
   'patients': instance.patients.map((e) => e.toJson()).toList(),
+  'next_cursor': ?instance.nextCursor,
 };
 
 _CreateFamilyMemberRequest _$CreateFamilyMemberRequestFromJson(
