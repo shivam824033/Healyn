@@ -63,19 +63,49 @@ Map<String, String>? _decodePayload(String? payload) {
 /// banner can appear on a lock screen, so it must stay PHI-free
 /// (SECURITY_GUIDELINES §1, CLAUDE.md Hard Rule #4). The raw data map is carried
 /// as the notification `payload` so a tap can deep-link to the right screen.
+// Future<void> showPushNotification(Map<String, String> data) async {
+//   final (title, body) = notificationContent(data);
+//   final id = DateTime.now().millisecondsSinceEpoch.remainder(2147483647);
+//   await _plugin.show(
+//     id,
+//     title,
+//     body,
+//     const NotificationDetails(
+//       android: AndroidNotificationDetails(
+//         _channelId,
+//         _channelName,
+//         importance: Importance.high,
+//         priority: Priority.high,
+//       ),
+//     ),
+//     payload: jsonEncode(data),
+//   );
+// }
+
 Future<void> showPushNotification(Map<String, String> data) async {
   final (title, body) = notificationContent(data);
   final id = DateTime.now().millisecondsSinceEpoch.remainder(2147483647);
+
   await _plugin.show(
     id,
     title,
     body,
-    const NotificationDetails(
+    NotificationDetails(
       android: AndroidNotificationDetails(
         _channelId,
         _channelName,
+
         importance: Importance.high,
         priority: Priority.high,
+
+        styleInformation: BigTextStyleInformation(
+          body,
+          contentTitle: title,
+          htmlFormatBigText: true,
+        ),
+
+        // Optional: makes notification stay visible longer
+        visibility: NotificationVisibility.public,
       ),
     ),
     payload: jsonEncode(data),
@@ -88,32 +118,54 @@ Future<void> showPushNotification(Map<String, String> data) async {
 /// reads a name or message body — none are sent (Hard Rule #4).
 (String, String) notificationContent(Map<String, String> data) {
   final number = _appointmentNumber(data);
+
   return switch (data['kind'] ?? '') {
     'BOOKING_REQUESTED' => (
         'New appointment request',
-        number ?? 'A new appointment has been requested.',
+        number != null
+            ? 'A new appointment request has been received. Appointment ID: $number.'
+            : 'A new appointment request has been received.',
       ),
+
     'BOOKING_CONFIRMED' => (
         'Appointment confirmed',
-        number ?? 'Your appointment has been confirmed.',
+        number != null
+            ? 'Your appointment $number has been confirmed successfully.'
+            : 'Your appointment has been confirmed successfully.',
       ),
+
     'BOOKING_CANCELLED' => (
         'Appointment cancelled',
-        number ?? 'An appointment has been cancelled.',
+        number != null
+            ? 'Appointment $number has been cancelled.'
+            : 'An appointment has been cancelled.',
       ),
+
     'APPOINTMENT_REMINDER' => (
         'Appointment reminder',
-        number ?? 'You have an upcoming appointment.',
+        number != null
+            ? 'Reminder: You have an upcoming appointment $number.'
+            : 'Reminder: You have an upcoming appointment.',
       ),
+
     'DISCUSSION_NEW_MESSAGE' => (
-        'New message',
-        number != null ? 'In $number' : 'You have a new message.',
+        'New message received',
+        number != null
+            ? 'You have a new message related to appointment $number.'
+            : 'You have received a new message.',
       ),
+
     'TREATMENT_NOTE_ADDED' => (
         'Treatment note added',
-        number ?? 'A treatment note has been added.',
+        number != null
+            ? 'A new treatment note has been added for appointment $number.'
+            : 'A new treatment note has been added.',
       ),
-    _ => ('Healyn', 'You have a new notification.'),
+
+    _ => (
+        'Healyn update',
+        'You have a new notification. Open Healyn to view details.',
+      ),
   };
 }
 
