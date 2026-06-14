@@ -31,7 +31,7 @@ class FlywayMigrationTest {
 
         // Pins the latest migration version as a tripwire — bump it with every new migration.
         MigrationInfo current = flyway.info().current();
-        assertThat(current.getVersion().getVersion()).isEqualTo("24");
+        assertThat(current.getVersion().getVersion()).isEqualTo("27");
         assertThat(flyway.info().applied()).hasSizeGreaterThanOrEqualTo(24);
 
         DataSource ds = flyway.getConfiguration().getDataSource();
@@ -193,6 +193,15 @@ class FlywayMigrationTest {
             try (ResultSet rs = st.executeQuery(
                     "select 1 from pg_indexes where indexname = 'idx_file_appointment'")) {
                 assertThat(rs.next()).as("idx_file_appointment partial index exists").isTrue();
+            }
+            // V27 physio profile: the single-row, account-keyed profile table.
+            try (ResultSet rs = st.executeQuery(
+                    "select 1 from pg_tables where tablename = 'physio_profiles'")) {
+                assertThat(rs.next()).as("physio_profiles table exists").isTrue();
+            }
+            try (ResultSet rs = st.executeQuery(
+                    "select 1 from pg_constraint where conname = 'physio_profiles_pkey' and contype = 'p'")) {
+                assertThat(rs.next()).as("physio_profiles primary key (account_id)").isTrue();
             }
         }
     }
