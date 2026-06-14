@@ -56,6 +56,10 @@ Map<String, String>? _decodePayload(String? payload) {
   return null;
 }
 
+/// Dismisses every notification this app has posted. Called on logout so a
+/// signed-out device shows nothing carried over from the prior session.
+Future<void> clearAllNotifications() => _plugin.cancelAll();
+
 /// Shows a local notification banner from a data-only FCM payload.
 ///
 /// No PHI: the visible text is built from the event [kind] and the human-friendly

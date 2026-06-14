@@ -16,6 +16,8 @@ public interface FcmTokenRepository extends JpaRepository<FcmToken, UUID> {
 
     List<FcmToken> findByAccountIdAndDeletedAtIsNull(UUID accountId);
 
+    List<FcmToken> findByAccountIdAndDeviceIdAndDeletedAtIsNull(UUID accountId, String deviceId);
+
     /// Erasure: hard-delete every token row for an account — the token string itself is a
     /// device identifier, so retiring (soft-delete) would leave it in the row.
     @Modifying
