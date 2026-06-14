@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../files/data/url_opener.dart';
 import '../../../patients/data/models/patient_models.dart';
 import '../../../patients/presentation/patient_format.dart';
 import '../../../shared/domain/patient_sex.dart';
@@ -9,6 +10,7 @@ import '../../../shared/design/colors.dart';
 import '../../../shared/design/spacing.dart';
 import '../../../shared/design/typography.dart';
 import '../../../shared/widgets/app_bar.dart';
+import '../../../shared/widgets/detail_card.dart';
 import '../../../shared/widgets/healyn_section_header.dart';
 import '../../../shared/widgets/nav_card.dart';
 import '../../../shared/widgets/copyable_id.dart';
@@ -28,19 +30,28 @@ class PhysioPatientDetailScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final reviewDue = ref.watch(patientNextReviewProvider(patient.id)).valueOrNull;
-    final details = <(String, String)>[
-      (
+    final details = <DetailRowData>[
+      DetailRowData(
         'Date of birth',
         '${formatBirthDate(patient.dateOfBirth)} '
             '(age ${patientAgeInYears(patient.dateOfBirth)})',
       ),
-      if (patient.sex != null) ('Sex', patient.sex!.label),
-      if (_has(patient.email)) ('Email', patient.email!),
-      if (_has(patient.phoneE164)) ('Phone', patient.phoneE164!),
+      if (patient.sex != null) DetailRowData('Sex', patient.sex!.label),
+      if (_has(patient.email))
+        DetailRowData('Email', patient.email!, copyable: true),
+      if (_has(patient.phoneE164))
+        DetailRowData(
+          'Phone',
+          patient.phoneE164!,
+          copyable: true,
+          onCall: () => _call(context, ref, patient.phoneE164!),
+        ),
     ];
-    final medical = <(String, String)>[
-      if (_has(patient.bloodGroup)) ('Blood group', patient.bloodGroup!),
-      if (_has(patient.allergies)) ('Allergies', patient.allergies!),
+    final medical = <DetailRowData>[
+      if (_has(patient.bloodGroup))
+        DetailRowData('Blood group', patient.bloodGroup!),
+      if (_has(patient.allergies))
+        DetailRowData('Allergies', patient.allergies!),
     ];
 
     return Scaffold(
@@ -54,12 +65,12 @@ class PhysioPatientDetailScreen extends ConsumerWidget {
             const SizedBox(height: HealynSpacing.s6),
             const HealynSectionHeader(title: 'Personal details'),
             const SizedBox(height: HealynSpacing.s3),
-            _DetailCard(rows: details),
+            DetailCard(rows: details),
             if (medical.isNotEmpty) ...[
               const SizedBox(height: HealynSpacing.s6),
               const HealynSectionHeader(title: 'Medical'),
               const SizedBox(height: HealynSpacing.s3),
-              _DetailCard(rows: medical),
+              DetailCard(rows: medical),
             ],
             if (patient.address != null) ...[
               const SizedBox(height: HealynSpacing.s6),
@@ -138,6 +149,21 @@ class PhysioPatientDetailScreen extends ConsumerWidget {
   }
 
   static bool _has(String? s) => s != null && s.trim().isNotEmpty;
+
+  /// Dials the patient straight from the physio's view via the OS dialer. The
+  /// physio can then place the call; we never auto-dial. Falls back to a snackbar
+  /// when no dialer is available (e.g. a tablet without telephony).
+  static Future<void> _call(
+    BuildContext context,
+    WidgetRef ref,
+    String phoneE164,
+  ) async {
+    final ok = await ref.read(urlOpenerProvider).open('tel:$phoneE164');
+    if (ok || !context.mounted) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(const SnackBar(content: Text('Could not start a call')));
+  }
 }
 
 class _Header extends StatelessWidget {
@@ -179,44 +205,3 @@ class _Header extends StatelessWidget {
   }
 }
 
-class _DetailCard extends StatelessWidget {
-  const _DetailCard({required this.rows});
-
-  final List<(String, String)> rows;
-
-  @override
-  Widget build(BuildContext context) {
-    return SectionCard(
-      child: Column(
-        children: [
-          for (var i = 0; i < rows.length; i++) ...[
-            if (i > 0) const Divider(height: HealynSpacing.s5),
-            _DetailRow(label: rows[i].$1, value: rows[i].$2),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-class _DetailRow extends StatelessWidget {
-  const _DetailRow({required this.label, required this.value});
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(
-          width: 110,
-          child: Text(label, style: HealynTypography.caption),
-        ),
-        const SizedBox(width: HealynSpacing.s3),
-        Expanded(child: Text(value, style: HealynTypography.body)),
-      ],
-    );
-  }
-}
