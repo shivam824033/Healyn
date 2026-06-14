@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../shared/auth/account_role.dart';
@@ -23,15 +24,25 @@ class AuthController extends Notifier<AuthState> {
   }
 
   Future<void> _bootstrap() async {
-    final store = ref.read(tokenStoreProvider);
-    if (!await store.hasSession()) {
+    try {
+      final store = ref.read(tokenStoreProvider);
+      if (!await store.hasSession()) {
+        state = const AuthState.unauthenticated();
+        return;
+      }
+      state =
+          AuthState(status: AuthStatus.authenticated, role: await _role(store));
+      // A returning session re-registers its push token (it may have rotated, or
+      // permission may have been granted since last run). Fire-and-forget.
+      unawaited(ref.read(pushServiceProvider).register());
+    } catch (e, st) {
+      // The token store read failed (e.g. a keystore error). This runs via
+      // `unawaited`, so a thrown error would otherwise be swallowed and leave
+      // the status stuck at `unknown` — stranding the app on the splash. Fall
+      // back to signed-out so the router moves to /login.
+      debugPrint('Auth bootstrap failed; treating as signed out: $e\n$st');
       state = const AuthState.unauthenticated();
-      return;
     }
-    state = AuthState(status: AuthStatus.authenticated, role: await _role(store));
-    // A returning session re-registers its push token (it may have rotated, or
-    // permission may have been granted since last run). Fire-and-forget.
-    unawaited(ref.read(pushServiceProvider).register());
   }
 
   Future<void> markAuthenticated() async {
