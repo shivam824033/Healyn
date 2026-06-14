@@ -126,6 +126,15 @@ class PhysioPatientDetailScreen extends ConsumerWidget {
             const HealynSectionHeader(title: 'History'),
             const SizedBox(height: HealynSpacing.s3),
             NavCard(
+              icon: Icons.event_note_outlined,
+              label: 'Appointment history',
+              onTap: () => context.push(
+                '/physio/patients/${patient.id}/appointments',
+                extra: patient.fullName,
+              ),
+            ),
+            const SizedBox(height: HealynSpacing.s3),
+            NavCard(
               icon: Icons.assignment_outlined,
               label: 'Treatment history',
               onTap: () => context.push(

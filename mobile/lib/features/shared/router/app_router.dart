@@ -7,6 +7,7 @@ import '../../appointments/presentation/appointments_providers.dart';
 import '../../appointments/presentation/screens/appointment_detail_screen.dart';
 import '../../appointments/presentation/screens/appointments_screen.dart';
 import '../../appointments/presentation/screens/book_appointment_screen.dart';
+import '../../appointments/presentation/screens/patient_appointments_screen.dart';
 import '../../appointments/presentation/screens/reschedule_appointment_screen.dart';
 import '../../availability/presentation/screens/availability_blackout_form_screen.dart';
 import '../../availability/presentation/screens/availability_rule_form_screen.dart';
@@ -189,19 +190,20 @@ final routerProvider = Provider<GoRouter>((ref) {
           StatefulShellBranch(
             routes: [
               GoRoute(
-                path: '/physio/patients',
-                builder: (_, _) => const PhysioPatientsScreen(),
+                path: '/physio/upcoming',
+                builder: (_, _) => const PhysioUpcomingScreen(),
               ),
             ],
           ),
           StatefulShellBranch(
             routes: [
               GoRoute(
-                path: '/physio/availability',
-                builder: (_, _) => const PhysioAvailabilityScreen(),
+                path: '/physio/patients',
+                builder: (_, _) => const PhysioPatientsScreen(),
               ),
             ],
           ),
+
           StatefulShellBranch(
             routes: [
               GoRoute(
@@ -220,12 +222,13 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/physio/requests',
         builder: (_, _) => const PhysioRequestsScreen(),
       ),
-      // The physiotherapist's Upcoming list, reached from the Today app-bar
-      // action. Pushed over the physio shell; under /physio/* so the redirect
-      // keeps non-physios out.
+      // The physiotherapist's availability management, reached from the Today
+      // app-bar action. Pushed over the physio shell (the less-frequent task, so
+      // it's a push, not a tab); under /physio/* so the redirect keeps
+      // non-physios out.
       GoRoute(
-        path: '/physio/upcoming',
-        builder: (_, _) => const PhysioUpcomingScreen(),
+        path: '/physio/availability',
+        builder: (_, _) => const PhysioAvailabilityScreen(),
       ),
       // The physiotherapist's account-wide unread discussions, reached from the
       // Today "Unread" stat. Under /physio/* so the redirect keeps non-physios out.
@@ -283,6 +286,17 @@ final routerProvider = Provider<GoRouter>((ref) {
           patientId: state.pathParameters['id']!,
           patientName: state.extra is String ? state.extra as String : null,
           viewer: TreatmentHistoryViewer.physio,
+        ),
+      ),
+      // The physiotherapist's view of a patient's full appointment history. A
+      // distinct literal under /physio/patients/:id/*, matched before the bare
+      // detail.
+      GoRoute(
+        path: '/physio/patients/:id/appointments',
+        builder: (_, state) => PatientAppointmentsScreen(
+          patientId: state.pathParameters['id']!,
+          patientName: state.extra is String ? state.extra as String : null,
+          viewer: AppointmentHistoryViewer.physio,
         ),
       ),
       // The physiotherapist's view of a patient's document library. A distinct

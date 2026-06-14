@@ -208,9 +208,9 @@ class _PhysioTodayScreenState extends ConsumerState<PhysioTodayScreen>
                   // ),
                   const SizedBox(width: HealynSpacing.s2),
                   _HeroAction(
-                    icon: Icons.event_note_outlined,
-                    tooltip: 'Appointments',
-                    onTap: () => context.push('/physio/upcoming'),
+                    icon: Icons.schedule_outlined,
+                    tooltip: 'Availability',
+                    onTap: () => context.push('/physio/availability'),
                   ),
                 ],
               ),

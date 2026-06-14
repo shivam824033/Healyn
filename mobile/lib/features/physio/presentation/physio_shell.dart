@@ -8,9 +8,10 @@ import 'physio_calendar_providers.dart';
 import 'physio_requests_providers.dart';
 import 'physio_schedule_providers.dart';
 import 'physio_unread_providers.dart';
+import 'physio_upcoming_providers.dart';
 
 /// The signed-in physiotherapist app frame: a 4-tab bottom nav over the
-/// Today / Patients / Availability / Profile branches (mirrors PatientShell,
+/// Today / Patients / Appointments / Profile branches (mirrors PatientShell,
 /// UI_UX_GUIDELINES §8.1). Each tab keeps its own navigation stack.
 class PhysioShell extends ConsumerWidget {
   const PhysioShell({required this.navigationShell, super.key});
@@ -39,15 +40,16 @@ class PhysioShell extends ConsumerWidget {
             label: 'Today',
           ),
           NavigationDestination(
+            icon: Icon(Icons.event_note_outlined),
+            selectedIcon: Icon(Icons.event_note),
+            label: 'Appointments',
+          ),
+          NavigationDestination(
             icon: Icon(Icons.people_outline),
             selectedIcon: Icon(Icons.people),
             label: 'Patients',
           ),
-          NavigationDestination(
-            icon: Icon(Icons.schedule_outlined),
-            selectedIcon: Icon(Icons.schedule),
-            label: 'Availability',
-          ),
+
           NavigationDestination(
             icon: Icon(Icons.person_outline),
             selectedIcon: Icon(Icons.person),
@@ -70,6 +72,11 @@ class PhysioShell extends ConsumerWidget {
         ..invalidate(physioRequestsProvider)
         ..invalidate(physioUnreadSummaryProvider)
         ..invalidate(patientsProvider);
+    }
+    // Entering Appointments refetches the list so bookings/status changes made
+    // elsewhere show without a manual pull.
+    if (index == 2) {
+      ref.invalidate(physioAppointmentsProvider);
     }
     navigationShell.goBranch(
       index,
