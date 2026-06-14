@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../shared/design/colors.dart';
 import '../../../shared/design/spacing.dart';
+import '../../../shared/design/typography.dart';
 import '../../../shared/domain/patient_sex.dart';
 import '../../../shared/network/api_exception.dart';
 import '../../../shared/widgets/app_bar.dart';
@@ -50,6 +51,7 @@ class _PatientFormScreenState extends ConsumerState<PatientFormScreen> {
   DateTime? _dob;
   PatientSex? _sex;
   PatientRelationship? _relationship;
+  bool _authorityAttested = false;
   bool _submitting = false;
   String? _error;
 
@@ -133,6 +135,13 @@ class _PatientFormScreenState extends ConsumerState<PatientFormScreen> {
       setState(() => _error = 'Choose how this person relates to you.');
       return;
     }
+    if (!_isEditing && !_authorityAttested) {
+      setState(
+        () => _error = 'Please confirm you are authorised to manage this '
+            "person's health data.",
+      );
+      return;
+    }
 
     setState(() {
       _submitting = true;
@@ -162,6 +171,7 @@ class _PatientFormScreenState extends ConsumerState<PatientFormScreen> {
             fullName: _fullName.text.trim(),
             dateOfBirth: _dob!,
             relationship: _relationship!,
+            authorityAttested: _authorityAttested,
             sex: _sex,
             phoneE164: _phone.text.trim(),
             email: _email.text.trim(),
@@ -325,6 +335,14 @@ class _PatientFormScreenState extends ConsumerState<PatientFormScreen> {
                   keyboardType: TextInputType.multiline,
                   maxLines: 3,
                 ),
+                if (!_isEditing) ...[
+                  const SizedBox(height: HealynSpacing.s5),
+                  _AuthorityAttestation(
+                    value: _authorityAttested,
+                    enabled: !_submitting,
+                    onChanged: (v) => setState(() => _authorityAttested = v),
+                  ),
+                ],
                 const SizedBox(height: HealynSpacing.s7),
                 PrimaryButton(
                   label: _isEditing ? 'Save changes' : 'Add family member',
@@ -380,6 +398,62 @@ class _RelationshipField extends StatelessWidget {
           validator: (v) => v == null ? 'Choose a relationship' : null,
         ),
       ],
+    );
+  }
+}
+
+/// The DPDP Act authority attestation for adding a family member: the account
+/// holder confirms they are authorised to manage this person's health data. The
+/// backend requires it to be true (API_STANDARDS §9.2).
+class _AuthorityAttestation extends StatelessWidget {
+  const _AuthorityAttestation({
+    required this.value,
+    required this.enabled,
+    required this.onChanged,
+  });
+
+  final bool value;
+  final bool enabled;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(HealynSpacing.s3),
+      decoration: BoxDecoration(
+        color: HealynColors.surfaceBase,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: HealynColors.borderSubtle),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            height: 24,
+            width: 24,
+            child: Checkbox(
+              value: value,
+              activeColor: HealynColors.brandPrimary,
+              onChanged: enabled ? (v) => onChanged(v ?? false) : null,
+            ),
+          ),
+          const SizedBox(width: HealynSpacing.s3),
+          Expanded(
+            child: GestureDetector(
+              onTap: enabled ? () => onChanged(!value) : null,
+              behavior: HitTestBehavior.opaque,
+              child: const Padding(
+                padding: EdgeInsets.only(top: 2),
+                child: Text(
+                  'I confirm I am authorised to manage this person\'s health '
+                  'data on their behalf.',
+                  style: HealynTypography.body,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

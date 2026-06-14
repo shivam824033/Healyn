@@ -56,6 +56,21 @@ abstract class RegisterStartRequest with _$RegisterStartRequest {
       _$RegisterStartRequestFromJson(json);
 }
 
+/// The three account-level consents captured at registration (API_STANDARDS
+/// §9.9). All must be true or the backend rejects the registration; the UI
+/// enforces the same before submitting.
+@freezed
+abstract class RegistrationConsents with _$RegistrationConsents {
+  const factory RegistrationConsents({
+    required bool termsAccepted,
+    required bool privacyAccepted,
+    required bool healthDataProcessingAccepted,
+  }) = _RegistrationConsents;
+
+  factory RegistrationConsents.fromJson(Map<String, dynamic> json) =>
+      _$RegistrationConsentsFromJson(json);
+}
+
 @freezed
 abstract class RegisterCompleteRequest with _$RegisterCompleteRequest {
   const factory RegisterCompleteRequest({
@@ -65,6 +80,7 @@ abstract class RegisterCompleteRequest with _$RegisterCompleteRequest {
     required DeviceRequest device,
     required PrimaryPatientProfile profile,
     required Address address,
+    required RegistrationConsents consents,
   }) = _RegisterCompleteRequest;
 
   factory RegisterCompleteRequest.fromJson(Map<String, dynamic> json) =>

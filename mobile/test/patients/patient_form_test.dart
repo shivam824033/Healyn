@@ -69,6 +69,8 @@ void main() {
     expect(find.text('Enter a full name'), findsOneWidget);
     expect(find.text('Choose a relationship'), findsOneWidget);
     expect(repo.createCalled, isFalse);
+    // The DPDP authority attestation is part of the add-family-member form.
+    expect(find.textContaining('authorised to manage'), findsOneWidget);
   });
 
   testWidgets('edit form prefills and offers Remove for a family member', (

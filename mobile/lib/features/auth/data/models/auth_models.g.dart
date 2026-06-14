@@ -64,6 +64,22 @@ Map<String, dynamic> _$RegisterStartRequestToJson(
   _RegisterStartRequest instance,
 ) => <String, dynamic>{'target': instance.target.toJson()};
 
+_RegistrationConsents _$RegistrationConsentsFromJson(
+  Map<String, dynamic> json,
+) => _RegistrationConsents(
+  termsAccepted: json['terms_accepted'] as bool,
+  privacyAccepted: json['privacy_accepted'] as bool,
+  healthDataProcessingAccepted: json['health_data_processing_accepted'] as bool,
+);
+
+Map<String, dynamic> _$RegistrationConsentsToJson(
+  _RegistrationConsents instance,
+) => <String, dynamic>{
+  'terms_accepted': instance.termsAccepted,
+  'privacy_accepted': instance.privacyAccepted,
+  'health_data_processing_accepted': instance.healthDataProcessingAccepted,
+};
+
 _RegisterCompleteRequest _$RegisterCompleteRequestFromJson(
   Map<String, dynamic> json,
 ) => _RegisterCompleteRequest(
@@ -75,6 +91,9 @@ _RegisterCompleteRequest _$RegisterCompleteRequestFromJson(
     json['profile'] as Map<String, dynamic>,
   ),
   address: Address.fromJson(json['address'] as Map<String, dynamic>),
+  consents: RegistrationConsents.fromJson(
+    json['consents'] as Map<String, dynamic>,
+  ),
 );
 
 Map<String, dynamic> _$RegisterCompleteRequestToJson(
@@ -86,6 +105,7 @@ Map<String, dynamic> _$RegisterCompleteRequestToJson(
   'device': instance.device.toJson(),
   'profile': instance.profile.toJson(),
   'address': instance.address.toJson(),
+  'consents': instance.consents.toJson(),
 };
 
 _PasswordResetStartRequest _$PasswordResetStartRequestFromJson(

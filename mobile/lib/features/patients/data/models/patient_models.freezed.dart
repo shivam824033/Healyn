@@ -619,7 +619,7 @@ as String?,
 /// @nodoc
 mixin _$CreateFamilyMemberRequest {
 
- String get fullName;@LocalDateConverter() DateTime get dateOfBirth; PatientRelationship get relationship; PatientSex? get sex; String? get phoneE164; String? get email; String? get bloodGroup; String? get allergies; String? get notes;
+ String get fullName;@LocalDateConverter() DateTime get dateOfBirth; PatientRelationship get relationship; bool get authorityAttested; PatientSex? get sex; String? get phoneE164; String? get email; String? get bloodGroup; String? get allergies; String? get notes;
 /// Create a copy of CreateFamilyMemberRequest
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -632,16 +632,16 @@ $CreateFamilyMemberRequestCopyWith<CreateFamilyMemberRequest> get copyWith => _$
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is CreateFamilyMemberRequest&&(identical(other.fullName, fullName) || other.fullName == fullName)&&(identical(other.dateOfBirth, dateOfBirth) || other.dateOfBirth == dateOfBirth)&&(identical(other.relationship, relationship) || other.relationship == relationship)&&(identical(other.sex, sex) || other.sex == sex)&&(identical(other.phoneE164, phoneE164) || other.phoneE164 == phoneE164)&&(identical(other.email, email) || other.email == email)&&(identical(other.bloodGroup, bloodGroup) || other.bloodGroup == bloodGroup)&&(identical(other.allergies, allergies) || other.allergies == allergies)&&(identical(other.notes, notes) || other.notes == notes));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is CreateFamilyMemberRequest&&(identical(other.fullName, fullName) || other.fullName == fullName)&&(identical(other.dateOfBirth, dateOfBirth) || other.dateOfBirth == dateOfBirth)&&(identical(other.relationship, relationship) || other.relationship == relationship)&&(identical(other.authorityAttested, authorityAttested) || other.authorityAttested == authorityAttested)&&(identical(other.sex, sex) || other.sex == sex)&&(identical(other.phoneE164, phoneE164) || other.phoneE164 == phoneE164)&&(identical(other.email, email) || other.email == email)&&(identical(other.bloodGroup, bloodGroup) || other.bloodGroup == bloodGroup)&&(identical(other.allergies, allergies) || other.allergies == allergies)&&(identical(other.notes, notes) || other.notes == notes));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,fullName,dateOfBirth,relationship,sex,phoneE164,email,bloodGroup,allergies,notes);
+int get hashCode => Object.hash(runtimeType,fullName,dateOfBirth,relationship,authorityAttested,sex,phoneE164,email,bloodGroup,allergies,notes);
 
 @override
 String toString() {
-  return 'CreateFamilyMemberRequest(fullName: $fullName, dateOfBirth: $dateOfBirth, relationship: $relationship, sex: $sex, phoneE164: $phoneE164, email: $email, bloodGroup: $bloodGroup, allergies: $allergies, notes: $notes)';
+  return 'CreateFamilyMemberRequest(fullName: $fullName, dateOfBirth: $dateOfBirth, relationship: $relationship, authorityAttested: $authorityAttested, sex: $sex, phoneE164: $phoneE164, email: $email, bloodGroup: $bloodGroup, allergies: $allergies, notes: $notes)';
 }
 
 
@@ -652,7 +652,7 @@ abstract mixin class $CreateFamilyMemberRequestCopyWith<$Res>  {
   factory $CreateFamilyMemberRequestCopyWith(CreateFamilyMemberRequest value, $Res Function(CreateFamilyMemberRequest) _then) = _$CreateFamilyMemberRequestCopyWithImpl;
 @useResult
 $Res call({
- String fullName,@LocalDateConverter() DateTime dateOfBirth, PatientRelationship relationship, PatientSex? sex, String? phoneE164, String? email, String? bloodGroup, String? allergies, String? notes
+ String fullName,@LocalDateConverter() DateTime dateOfBirth, PatientRelationship relationship, bool authorityAttested, PatientSex? sex, String? phoneE164, String? email, String? bloodGroup, String? allergies, String? notes
 });
 
 
@@ -669,12 +669,13 @@ class _$CreateFamilyMemberRequestCopyWithImpl<$Res>
 
 /// Create a copy of CreateFamilyMemberRequest
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? fullName = null,Object? dateOfBirth = null,Object? relationship = null,Object? sex = freezed,Object? phoneE164 = freezed,Object? email = freezed,Object? bloodGroup = freezed,Object? allergies = freezed,Object? notes = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? fullName = null,Object? dateOfBirth = null,Object? relationship = null,Object? authorityAttested = null,Object? sex = freezed,Object? phoneE164 = freezed,Object? email = freezed,Object? bloodGroup = freezed,Object? allergies = freezed,Object? notes = freezed,}) {
   return _then(_self.copyWith(
 fullName: null == fullName ? _self.fullName : fullName // ignore: cast_nullable_to_non_nullable
 as String,dateOfBirth: null == dateOfBirth ? _self.dateOfBirth : dateOfBirth // ignore: cast_nullable_to_non_nullable
 as DateTime,relationship: null == relationship ? _self.relationship : relationship // ignore: cast_nullable_to_non_nullable
-as PatientRelationship,sex: freezed == sex ? _self.sex : sex // ignore: cast_nullable_to_non_nullable
+as PatientRelationship,authorityAttested: null == authorityAttested ? _self.authorityAttested : authorityAttested // ignore: cast_nullable_to_non_nullable
+as bool,sex: freezed == sex ? _self.sex : sex // ignore: cast_nullable_to_non_nullable
 as PatientSex?,phoneE164: freezed == phoneE164 ? _self.phoneE164 : phoneE164 // ignore: cast_nullable_to_non_nullable
 as String?,email: freezed == email ? _self.email : email // ignore: cast_nullable_to_non_nullable
 as String?,bloodGroup: freezed == bloodGroup ? _self.bloodGroup : bloodGroup // ignore: cast_nullable_to_non_nullable
@@ -765,10 +766,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String fullName, @LocalDateConverter()  DateTime dateOfBirth,  PatientRelationship relationship,  PatientSex? sex,  String? phoneE164,  String? email,  String? bloodGroup,  String? allergies,  String? notes)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String fullName, @LocalDateConverter()  DateTime dateOfBirth,  PatientRelationship relationship,  bool authorityAttested,  PatientSex? sex,  String? phoneE164,  String? email,  String? bloodGroup,  String? allergies,  String? notes)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _CreateFamilyMemberRequest() when $default != null:
-return $default(_that.fullName,_that.dateOfBirth,_that.relationship,_that.sex,_that.phoneE164,_that.email,_that.bloodGroup,_that.allergies,_that.notes);case _:
+return $default(_that.fullName,_that.dateOfBirth,_that.relationship,_that.authorityAttested,_that.sex,_that.phoneE164,_that.email,_that.bloodGroup,_that.allergies,_that.notes);case _:
   return orElse();
 
 }
@@ -786,10 +787,10 @@ return $default(_that.fullName,_that.dateOfBirth,_that.relationship,_that.sex,_t
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String fullName, @LocalDateConverter()  DateTime dateOfBirth,  PatientRelationship relationship,  PatientSex? sex,  String? phoneE164,  String? email,  String? bloodGroup,  String? allergies,  String? notes)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String fullName, @LocalDateConverter()  DateTime dateOfBirth,  PatientRelationship relationship,  bool authorityAttested,  PatientSex? sex,  String? phoneE164,  String? email,  String? bloodGroup,  String? allergies,  String? notes)  $default,) {final _that = this;
 switch (_that) {
 case _CreateFamilyMemberRequest():
-return $default(_that.fullName,_that.dateOfBirth,_that.relationship,_that.sex,_that.phoneE164,_that.email,_that.bloodGroup,_that.allergies,_that.notes);case _:
+return $default(_that.fullName,_that.dateOfBirth,_that.relationship,_that.authorityAttested,_that.sex,_that.phoneE164,_that.email,_that.bloodGroup,_that.allergies,_that.notes);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -806,10 +807,10 @@ return $default(_that.fullName,_that.dateOfBirth,_that.relationship,_that.sex,_t
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String fullName, @LocalDateConverter()  DateTime dateOfBirth,  PatientRelationship relationship,  PatientSex? sex,  String? phoneE164,  String? email,  String? bloodGroup,  String? allergies,  String? notes)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String fullName, @LocalDateConverter()  DateTime dateOfBirth,  PatientRelationship relationship,  bool authorityAttested,  PatientSex? sex,  String? phoneE164,  String? email,  String? bloodGroup,  String? allergies,  String? notes)?  $default,) {final _that = this;
 switch (_that) {
 case _CreateFamilyMemberRequest() when $default != null:
-return $default(_that.fullName,_that.dateOfBirth,_that.relationship,_that.sex,_that.phoneE164,_that.email,_that.bloodGroup,_that.allergies,_that.notes);case _:
+return $default(_that.fullName,_that.dateOfBirth,_that.relationship,_that.authorityAttested,_that.sex,_that.phoneE164,_that.email,_that.bloodGroup,_that.allergies,_that.notes);case _:
   return null;
 
 }
@@ -821,12 +822,13 @@ return $default(_that.fullName,_that.dateOfBirth,_that.relationship,_that.sex,_t
 @JsonSerializable()
 
 class _CreateFamilyMemberRequest implements CreateFamilyMemberRequest {
-  const _CreateFamilyMemberRequest({required this.fullName, @LocalDateConverter() required this.dateOfBirth, required this.relationship, this.sex, this.phoneE164, this.email, this.bloodGroup, this.allergies, this.notes});
+  const _CreateFamilyMemberRequest({required this.fullName, @LocalDateConverter() required this.dateOfBirth, required this.relationship, required this.authorityAttested, this.sex, this.phoneE164, this.email, this.bloodGroup, this.allergies, this.notes});
   factory _CreateFamilyMemberRequest.fromJson(Map<String, dynamic> json) => _$CreateFamilyMemberRequestFromJson(json);
 
 @override final  String fullName;
 @override@LocalDateConverter() final  DateTime dateOfBirth;
 @override final  PatientRelationship relationship;
+@override final  bool authorityAttested;
 @override final  PatientSex? sex;
 @override final  String? phoneE164;
 @override final  String? email;
@@ -847,16 +849,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _CreateFamilyMemberRequest&&(identical(other.fullName, fullName) || other.fullName == fullName)&&(identical(other.dateOfBirth, dateOfBirth) || other.dateOfBirth == dateOfBirth)&&(identical(other.relationship, relationship) || other.relationship == relationship)&&(identical(other.sex, sex) || other.sex == sex)&&(identical(other.phoneE164, phoneE164) || other.phoneE164 == phoneE164)&&(identical(other.email, email) || other.email == email)&&(identical(other.bloodGroup, bloodGroup) || other.bloodGroup == bloodGroup)&&(identical(other.allergies, allergies) || other.allergies == allergies)&&(identical(other.notes, notes) || other.notes == notes));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _CreateFamilyMemberRequest&&(identical(other.fullName, fullName) || other.fullName == fullName)&&(identical(other.dateOfBirth, dateOfBirth) || other.dateOfBirth == dateOfBirth)&&(identical(other.relationship, relationship) || other.relationship == relationship)&&(identical(other.authorityAttested, authorityAttested) || other.authorityAttested == authorityAttested)&&(identical(other.sex, sex) || other.sex == sex)&&(identical(other.phoneE164, phoneE164) || other.phoneE164 == phoneE164)&&(identical(other.email, email) || other.email == email)&&(identical(other.bloodGroup, bloodGroup) || other.bloodGroup == bloodGroup)&&(identical(other.allergies, allergies) || other.allergies == allergies)&&(identical(other.notes, notes) || other.notes == notes));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,fullName,dateOfBirth,relationship,sex,phoneE164,email,bloodGroup,allergies,notes);
+int get hashCode => Object.hash(runtimeType,fullName,dateOfBirth,relationship,authorityAttested,sex,phoneE164,email,bloodGroup,allergies,notes);
 
 @override
 String toString() {
-  return 'CreateFamilyMemberRequest(fullName: $fullName, dateOfBirth: $dateOfBirth, relationship: $relationship, sex: $sex, phoneE164: $phoneE164, email: $email, bloodGroup: $bloodGroup, allergies: $allergies, notes: $notes)';
+  return 'CreateFamilyMemberRequest(fullName: $fullName, dateOfBirth: $dateOfBirth, relationship: $relationship, authorityAttested: $authorityAttested, sex: $sex, phoneE164: $phoneE164, email: $email, bloodGroup: $bloodGroup, allergies: $allergies, notes: $notes)';
 }
 
 
@@ -867,7 +869,7 @@ abstract mixin class _$CreateFamilyMemberRequestCopyWith<$Res> implements $Creat
   factory _$CreateFamilyMemberRequestCopyWith(_CreateFamilyMemberRequest value, $Res Function(_CreateFamilyMemberRequest) _then) = __$CreateFamilyMemberRequestCopyWithImpl;
 @override @useResult
 $Res call({
- String fullName,@LocalDateConverter() DateTime dateOfBirth, PatientRelationship relationship, PatientSex? sex, String? phoneE164, String? email, String? bloodGroup, String? allergies, String? notes
+ String fullName,@LocalDateConverter() DateTime dateOfBirth, PatientRelationship relationship, bool authorityAttested, PatientSex? sex, String? phoneE164, String? email, String? bloodGroup, String? allergies, String? notes
 });
 
 
@@ -884,12 +886,13 @@ class __$CreateFamilyMemberRequestCopyWithImpl<$Res>
 
 /// Create a copy of CreateFamilyMemberRequest
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? fullName = null,Object? dateOfBirth = null,Object? relationship = null,Object? sex = freezed,Object? phoneE164 = freezed,Object? email = freezed,Object? bloodGroup = freezed,Object? allergies = freezed,Object? notes = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? fullName = null,Object? dateOfBirth = null,Object? relationship = null,Object? authorityAttested = null,Object? sex = freezed,Object? phoneE164 = freezed,Object? email = freezed,Object? bloodGroup = freezed,Object? allergies = freezed,Object? notes = freezed,}) {
   return _then(_CreateFamilyMemberRequest(
 fullName: null == fullName ? _self.fullName : fullName // ignore: cast_nullable_to_non_nullable
 as String,dateOfBirth: null == dateOfBirth ? _self.dateOfBirth : dateOfBirth // ignore: cast_nullable_to_non_nullable
 as DateTime,relationship: null == relationship ? _self.relationship : relationship // ignore: cast_nullable_to_non_nullable
-as PatientRelationship,sex: freezed == sex ? _self.sex : sex // ignore: cast_nullable_to_non_nullable
+as PatientRelationship,authorityAttested: null == authorityAttested ? _self.authorityAttested : authorityAttested // ignore: cast_nullable_to_non_nullable
+as bool,sex: freezed == sex ? _self.sex : sex // ignore: cast_nullable_to_non_nullable
 as PatientSex?,phoneE164: freezed == phoneE164 ? _self.phoneE164 : phoneE164 // ignore: cast_nullable_to_non_nullable
 as String?,email: freezed == email ? _self.email : email // ignore: cast_nullable_to_non_nullable
 as String?,bloodGroup: freezed == bloodGroup ? _self.bloodGroup : bloodGroup // ignore: cast_nullable_to_non_nullable

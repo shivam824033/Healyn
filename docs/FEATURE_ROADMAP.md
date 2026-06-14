@@ -80,7 +80,10 @@ Architecture in Phase 1 must **enable** Phase 2 and Phase 3 without rewrites. It
 > account deletion / **right-to-erasure** (anonymize-and-retain — clinical data is kept de-identified
 > per Hard Rule #7). This is a Phase-1 **launch prerequisite** identified by the production-readiness
 > audit (§5/§11 item 6), not new product scope: it underpins the existing P0 auth (F1.1) and patient
-> (F1.5–F1.6) features. The mobile consent/erasure UI is a follow-up increment. See
+> (F1.5–F1.6) features. The mobile surface is delivered: consent capture at registration (Terms /
+> Privacy / Health-data, with in-app legal readers), the family-member authority attestation at
+> family-add, a read-only consent-history screen, and a password-confirmed account-deletion /
+> erasure screen — reached from both the patient and physiotherapist Profile. See
 > [SECURITY_GUIDELINES.md §11.1](./SECURITY_GUIDELINES.md) and
 > [API_STANDARDS.md §9.9](./API_STANDARDS.md).
 

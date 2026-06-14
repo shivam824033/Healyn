@@ -11,6 +11,9 @@ import '../../appointments/presentation/screens/patient_appointments_screen.dart
 import '../../appointments/presentation/screens/reschedule_appointment_screen.dart';
 import '../../availability/presentation/screens/availability_blackout_form_screen.dart';
 import '../../availability/presentation/screens/availability_rule_form_screen.dart';
+import '../../compliance/presentation/screens/account_deletion_screen.dart';
+import '../../compliance/presentation/screens/consents_screen.dart';
+import '../../compliance/presentation/screens/legal_document_screen.dart';
 import '../../discussion/presentation/screens/discussion_screen.dart';
 import '../../discussion/presentation/screens/unread_discussions_screen.dart';
 import '../../files/presentation/screens/patient_documents_screen.dart';
@@ -76,19 +79,27 @@ final routerProvider = Provider<GoRouter>((ref) {
           location == '/login' ||
           location.startsWith('/register') ||
           location.startsWith('/password-reset');
+      // Legal documents are public — readable before sign-in (the registration
+      // consent links) and from either role's Profile.
+      final isLegal = location.startsWith('/legal');
 
       switch (session.status) {
         case AuthStatus.unknown:
           return location == '/' ? null : '/';
         case AuthStatus.unauthenticated:
-          return inAuthArea ? null : '/login';
+          return (inAuthArea || isLegal) ? null : '/login';
         case AuthStatus.authenticated:
           final isPhysio = session.role == AccountRole.physio;
           final inPhysioArea =
               location == '/physio' || location.startsWith('/physio/');
           // Account-scoped screens both roles share (reached from either
-          // Profile) — exempt from the role-bounce below (D5).
-          final inSharedArea = location.startsWith('/notifications/');
+          // Profile) — exempt from the role-bounce below (D5). Includes the
+          // compliance surface: legal documents, consent history, and account
+          // deletion.
+          final inSharedArea = location.startsWith('/notifications/') ||
+              isLegal ||
+              location == '/me/consents' ||
+              location == '/account/deletion';
           if (location == '/' || inAuthArea) {
             return isPhysio ? '/physio/today' : '/home';
           }
@@ -378,6 +389,22 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/notifications/preferences',
         builder: (_, _) => const NotificationPreferencesScreen(),
+      ),
+      // Compliance surface (API_STANDARDS §9.9). `/legal/:kind` is public and is
+      // also opened from the registration consent links; consents + account
+      // deletion are reached from either role's Profile.
+      GoRoute(
+        path: '/legal/:kind',
+        builder: (_, state) =>
+            LegalDocumentScreen(kindPath: state.pathParameters['kind']!),
+      ),
+      GoRoute(
+        path: '/me/consents',
+        builder: (_, _) => const ConsentsScreen(),
+      ),
+      GoRoute(
+        path: '/account/deletion',
+        builder: (_, _) => const AccountDeletionScreen(),
       ),
       // The account's household address editor, reached from Profile. `extra`
       // carries the current Address to prefill; absent when adding the first one.

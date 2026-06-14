@@ -55,6 +55,7 @@ void main() {
       fullName: 'Kiran Rao',
       dateOfBirth: DateTime(2015, 3, 10),
       relationship: PatientRelationship.child,
+      authorityAttested: true,
       sex: PatientSex.male,
       phoneE164: '+14155550123',
     ).toJson();
@@ -62,6 +63,7 @@ void main() {
     expect(json['full_name'], 'Kiran Rao');
     expect(json['date_of_birth'], '2015-03-10');
     expect(json['relationship'], 'CHILD');
+    expect(json['authority_attested'], true);
     expect(json['sex'], 'MALE');
     expect(json['phone_e164'], '+14155550123');
     // include_if_null:false — unset optional fields are absent, not null.
