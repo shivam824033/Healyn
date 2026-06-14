@@ -15,6 +15,12 @@ public final class ErrorCode {
     public static final String PATIENTS_PRIMARY_REQUIRED = "patients.primary_required";
     public static final String PATIENTS_RELATIONSHIP_EXISTS = "patients.relationship_exists";
     public static final String PATIENTS_NOT_FOUND = "patients.not_found";
+    public static final String PATIENTS_AUTHORITY_REQUIRED = "patients.authority_required";
+
+    public static final String COMPLIANCE_LEGAL_DOCUMENT_NOT_FOUND = "compliance.legal_document_not_found";
+    public static final String COMPLIANCE_DELETION_ALREADY_REQUESTED = "compliance.deletion_already_requested";
+    public static final String COMPLIANCE_DELETION_NOT_FOUND = "compliance.deletion_not_found";
+    public static final String COMPLIANCE_INVALID_PASSWORD = "compliance.invalid_password";
 
     public static final String AVAILABILITY_RULE_NOT_FOUND = "availability.rule_not_found";
     public static final String AVAILABILITY_BLACKOUT_NOT_FOUND = "availability.blackout_not_found";

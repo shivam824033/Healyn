@@ -31,7 +31,7 @@ class FlywayMigrationTest {
 
         // Pins the latest migration version as a tripwire — bump it with every new migration.
         MigrationInfo current = flyway.info().current();
-        assertThat(current.getVersion().getVersion()).isEqualTo("27");
+        assertThat(current.getVersion().getVersion()).isEqualTo("29");
         assertThat(flyway.info().applied()).hasSizeGreaterThanOrEqualTo(24);
 
         DataSource ds = flyway.getConfiguration().getDataSource();
@@ -207,6 +207,29 @@ class FlywayMigrationTest {
             try (ResultSet rs = st.executeQuery(
                     "select 1 from pg_constraint where conname = 'physio_profiles_pkey' and contype = 'p'")) {
                 assertThat(rs.next()).as("physio_profiles primary key (account_id)").isTrue();
+            }
+            // V28 compliance enum values: PENDING_DELETION on account_status, ANONYMIZE on audit_action.
+            try (ResultSet rs = st.executeQuery(
+                    "select 1 from pg_enum e join pg_type t on t.oid = e.enumtypid "
+                            + "where t.typname = 'account_status' and e.enumlabel = 'PENDING_DELETION'")) {
+                assertThat(rs.next()).as("account_status has PENDING_DELETION").isTrue();
+            }
+            try (ResultSet rs = st.executeQuery(
+                    "select 1 from pg_enum e join pg_type t on t.oid = e.enumtypid "
+                            + "where t.typname = 'audit_action' and e.enumlabel = 'ANONYMIZE'")) {
+                assertThat(rs.next()).as("audit_action has ANONYMIZE").isTrue();
+            }
+            // V29 compliance schema: the three new tables + a seeded current Privacy Policy.
+            for (String table : new String[]{"legal_documents", "consent_records", "account_deletion_requests"}) {
+                try (ResultSet rs = st.executeQuery(
+                        "select 1 from pg_tables where tablename = '" + table + "'")) {
+                    assertThat(rs.next()).as(table + " table exists").isTrue();
+                }
+            }
+            try (ResultSet rs = st.executeQuery(
+                    "select count(*) from legal_documents where is_current and kind = 'PRIVACY_POLICY'")) {
+                assertThat(rs.next()).isTrue();
+                assertThat(rs.getInt(1)).as("one current Privacy Policy seeded").isEqualTo(1);
             }
         }
     }

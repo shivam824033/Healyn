@@ -140,6 +140,7 @@ class FcmTokenIntegrationTest {
                 "full_name", "Test Person",
                 "date_of_birth", "1990-01-15",
                 "sex", "UNDISCLOSED"));
+        body.put("consents", Map.of("terms_accepted", true, "privacy_accepted", true, "health_data_processing_accepted", true));
         body.put("address", Map.of(
                 "line1", "1 Test Street",
                 "city", "Pune",

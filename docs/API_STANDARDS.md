@@ -243,23 +243,33 @@ GET /api/v1/appointments?cursor=eyJpZCI6Ii4uLiJ9&limit=20
 > `/auth/fcm_tokens` path (served unprefixed by the running backend — see §9.4 note).
 
 > **`register/complete` (the running backend's path for register/verify) body** carries
-> `{ challenge_id, code, password, device, profile, address }`. `address` is **required**
-> at signup: `{ line1 (required), line2?, city (required), state (required), postal_code
-> (required), country? (defaults "India") }`. It is the **account household** address,
-> shared across every patient on the account (see §9.2 `/account/address`).
+> `{ challenge_id, code, password, device, profile, address, consents }`. `address` is
+> **required** at signup: `{ line1 (required), line2?, city (required), state (required),
+> postal_code (required), country? (defaults "India") }`. It is the **account household**
+> address, shared across every patient on the account (see §9.2 `/account/address`).
+> `consents` is **required** and all three flags must be `true` or registration is rejected
+> (400 validation): `{ terms_accepted, privacy_accepted, health_data_processing_accepted }`.
+> The server records the three account-level consents against the current legal-document
+> versions (see §9.9 Compliance) inside the registration transaction.
 
 ### 9.2 Patients
 
 | Method | Path | Purpose |
 |---|---|---|
 | `GET`  | `/api/v1/patients` | List patients linked to me (each carries the household `address`) |
-| `POST` | `/api/v1/patients` | Add a family member patient |
+| `POST` | `/api/v1/patients` | Add a family member patient (requires `authority_attested: true`) |
 | `GET`  | `/api/v1/patients/{id}` | Get a patient (includes resolved household `address`) |
 | `PATCH` | `/api/v1/patients/{id}` | Update a patient |
 | `DELETE` | `/api/v1/patients/{id}` | Remove link (and soft-delete if last link) |
 | `GET`  | `/api/v1/account/address` | The signed-in account's household address — `{ address }`, null when unset |
 | `PUT`  | `/api/v1/account/address` | Create / replace the household address (one per account, shared by all its patients) |
 
+> **Family-member authority** — `POST /patients` for a family member (relationship ≠ SELF)
+> requires `authority_attested: true` in the body: the account holder's attestation that they
+> are authorised to manage that person's health data (DPDP Act 2023). A missing/false flag is
+> rejected (400 validation; the service also enforces it as a 422 backstop). The server records
+> a `FAMILY_MEMBER_AUTHORITY` consent keyed to the new patient in the same transaction.
+>
 > The household **address** is account-level, not per-patient: one row per account
 > (`account_addresses`), captured at signup and editable via `PUT /account/address`. It
 > appears on every `PatientView` (the patient app shows the account's own; the
@@ -488,7 +498,29 @@ The client builds the banner text from `kind` + `appointmentNumber` only (never 
 message body) and the tap deep-links to the appointment detail — or its discussion thread for a new
 message — scoped to the signed-in role.
 
-### 9.9 Health
+### 9.9 Compliance
+
+| Method | Path | Purpose |
+|---|---|---|
+| `GET`  | `/legal/{kind}` | **Public.** Current legal document. `kind` ∈ `privacy_policy`, `terms_of_service` (case-insensitive). Returns `{ kind, version, locale, title, body_markdown, effective_at }` |
+| `GET`  | `/legal/{kind}/{version}` | **Public.** A specific historical version of a legal document |
+| `GET`  | `/me/consents` | The signed-in account's consent history — `{ consents: [{ id, consent_type, patient_id?, granted, document_version?, granted_at, withdrawn_at? }] }` |
+| `POST` | `/me/consents` | Grant or withdraw an account-level consent. Body: `{ consent_type, granted }`. Returns the new `ConsentView` (`201`) |
+| `POST` | `/me/deletion-request` | Open an account deletion / erasure request. Body: `{ password (re-auth, required), reason? }`. Revokes all sessions and sets the account to `PENDING_DELETION`. Returns `202` `{ status, requested_at, purge_after }` |
+| `POST` | `/me/deletion-request/cancel` | Cancel the active request within the grace window (`204`). Requires re-login first (the request signed all devices out) |
+| `GET`  | `/me/deletion-request` | The active request (`200` `{ status, requested_at, purge_after }`) or `204` when none |
+
+> **Deletion is anonymize-and-retain.** After the cancellable grace window (`healyn.compliance.grace-days`,
+> default 30) a scheduled sweep anonymizes the account's credentials/contact (email replaced by a
+> non-identifying tombstone, phone cleared, password hash made unusable, account `DISABLED` + soft-deleted),
+> redacts patient identity PII, and drops device push tokens. **Clinical records (appointments,
+> discussion messages, treatment notes, files) are retained, de-identified** — Hard Rule #7. Hard-purge
+> of that de-identified scaffolding is config-gated OFF (`healyn.compliance.purge-enabled`) pending a
+> documented retention policy. Consents are recorded with the legal-document version agreed to and audited
+> (`CONSENT_GRANT` / `CONSENT_WITHDRAW`); anonymization is audited (`ANONYMIZE`). `/legal/**` is served
+> unprefixed by the running backend, like the other Phase 1 paths.
+
+### 9.10 Health
 
 | Method | Path | Purpose |
 |---|---|---|

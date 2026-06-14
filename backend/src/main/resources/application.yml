@@ -114,3 +114,13 @@ healyn:
   # profile so a misconfigured prod deploy can't silently drop all push.
   fcm:
     credentials-path: ${HEALYN_FCM_CREDENTIALS_PATH:}
+  # Compliance surface: consent capture + account deletion / right-to-erasure (audit §11 item 6).
+  # grace-days is the cancellable window before anonymization. purge-enabled gates the hard-purge
+  # of de-identified clinical scaffolding and stays OFF by default (Hard Rule #7 — needs sign-off).
+  compliance:
+    poller-enabled: ${HEALYN_COMPLIANCE_POLLER_ENABLED:true}
+    poll-interval-ms: ${HEALYN_COMPLIANCE_POLL_INTERVAL_MS:60000}
+    grace-days: ${HEALYN_COMPLIANCE_GRACE_DAYS:30}
+    default-locale: ${HEALYN_COMPLIANCE_DEFAULT_LOCALE:en}
+    purge-enabled: ${HEALYN_COMPLIANCE_PURGE_ENABLED:false}
+    retention-days: ${HEALYN_COMPLIANCE_RETENTION_DAYS:2920}

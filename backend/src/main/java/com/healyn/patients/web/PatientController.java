@@ -2,6 +2,7 @@ package com.healyn.patients.web;
 
 import com.healyn.auth.domain.AccountRole;
 import com.healyn.common.pagination.CursorPage;
+import com.healyn.common.web.ClientInfo;
 import com.healyn.patients.domain.AccountAddress;
 import com.healyn.patients.repository.AccountPatientRepository;
 import com.healyn.patients.service.AccountAddressService;
@@ -9,6 +10,7 @@ import com.healyn.patients.service.NewPatientProfile;
 import com.healyn.patients.service.PatientService;
 import com.healyn.patients.service.PatientService.PatientWithLink;
 import com.healyn.patients.service.PatientUpdate;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -69,12 +71,14 @@ public class PatientController {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public PatientDtos.PatientView create(@AuthenticationPrincipal Jwt jwt,
-                                          @Valid @RequestBody PatientDtos.CreateFamilyMemberRequest body) {
+                                          @Valid @RequestBody PatientDtos.CreateFamilyMemberRequest body,
+                                          HttpServletRequest http) {
         UUID accountId = UUID.fromString(jwt.getSubject());
         NewPatientProfile profile = new NewPatientProfile(
                 body.fullName(), body.dateOfBirth(), body.sex(),
                 body.phoneE164(), body.email(), body.bloodGroup(), body.allergies(), body.notes());
-        var patient = patientService.addFamilyMember(accountId, body.relationship(), profile);
+        var patient = patientService.addFamilyMember(accountId, body.relationship(), profile,
+                body.authorityAttested(), ClientInfo.clientIp(http), ClientInfo.userAgent(http));
         var link = links.findLink(accountId, patient.getId()).orElseThrow();
         AccountAddress household = addresses.findForAccount(accountId).orElse(null);
         return PatientMapper.toView(new PatientWithLink(patient, link, household));

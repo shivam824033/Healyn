@@ -74,6 +74,7 @@ Each module is a top-level Java package: `com.healyn.<module>`.
 | `physio` | The single physiotherapist's public profile: personal/clinic/social details + avatar (read by patients, edited by the physiotherapist). Avatar reuses the S3 presign mechanism under its own key prefix | `PhysioProfile` | `auth` (physio account), S3 adapter (`files.port` / `files.domain`) |
 | `notifications` | Outbound notification dispatch (FCM in Phase 1) | `NotificationOutbox`, `FcmToken` | FCM adapter, all modules (via events) |
 | `audit` | Clinical access audit log (append-only) | `AuditLogEntry` | Called explicitly by modules via `AuditLogger` (REQUIRES_NEW); a web interceptor for READ paths is a later add |
+| `compliance` | Versioned legal documents (Privacy Policy / Terms), demonstrable consent capture (incl. family-member authority), and the account deletion / right-to-erasure flow (anonymize-and-retain) | `LegalDocument`, `ConsentRecord`, `AccountDeletionRequest` | `auth` + `patients` (erasure orchestration), `notifications` (token cleanup), `audit`. Records consent for `auth` (registration) and `patients` (family-add) via ports those modules own (`RegistrationConsentRecorder`, `ConsentRecorderPort`) so the dependency points one way: `compliance` → others |
 | `common` | Shared types, exception mapper, JSON config, validation | (cross-cutting) | — |
 
 ### 3.2 Mobile Modules (Flutter features)

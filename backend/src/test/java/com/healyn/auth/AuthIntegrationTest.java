@@ -236,7 +236,8 @@ class AuthIntegrationTest {
                                 "password", "valid-password-3",
                                 "device", deviceBody(),
                                 "profile", profileBody(),
-                                "address", addressBody()))))
+                                "address", addressBody(),
+                                "consents", consentsBody()))))
                 .andExpect(status().isUnprocessableEntity());
     }
 
@@ -257,6 +258,7 @@ class AuthIntegrationTest {
         body.put("password", "valid-password-9");
         body.put("device", deviceBody());
         body.put("profile", profileBody());
+        body.put("consents", consentsBody());
         // address deliberately omitted — it is required at signup.
 
         mvc.perform(post("/auth/register/complete")
@@ -296,6 +298,7 @@ class AuthIntegrationTest {
         body.put("device", deviceBody());
         body.put("profile", profileBody());
         body.put("address", addressBody());
+        body.put("consents", consentsBody());
 
         return body(mvc.perform(post("/auth/register/complete")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -334,6 +337,13 @@ class AuthIntegrationTest {
                 "state", "Maharashtra",
                 "postal_code", "411001",
                 "country", "India");
+    }
+
+    private static Map<String, Object> consentsBody() {
+        return Map.of(
+                "terms_accepted", true,
+                "privacy_accepted", true,
+                "health_data_processing_accepted", true);
     }
 
     private Map<String, Object> body(MvcResult result) throws Exception {

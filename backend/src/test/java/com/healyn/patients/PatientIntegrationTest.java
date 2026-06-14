@@ -113,7 +113,8 @@ class PatientIntegrationTest {
                 "full_name", "Bob Jr",
                 "date_of_birth", "2015-04-10",
                 "sex", "MALE",
-                "relationship", "CHILD"));
+                "relationship", "CHILD",
+                "authority_attested", true));
 
         mvc.perform(post("/patients")
                         .header("Authorization", "Bearer " + s.access)
@@ -367,7 +368,8 @@ class PatientIntegrationTest {
                                 "full_name", name,
                                 "date_of_birth", dob,
                                 "sex", sex,
-                                "relationship", rel))))
+                                "relationship", rel,
+                                "authority_attested", true))))
                 .andExpect(status().isCreated())
                 .andReturn());
         return UUID.fromString((String) resp.get("id"));
@@ -392,6 +394,7 @@ class PatientIntegrationTest {
                 "full_name", prefix + " Person",
                 "date_of_birth", "1991-05-20",
                 "sex", "UNDISCLOSED"));
+        body.put("consents", Map.of("terms_accepted", true, "privacy_accepted", true, "health_data_processing_accepted", true));
         body.put("address", Map.of(
                 "line1", "1 Test Street",
                 "city", "Pune",

@@ -24,6 +24,12 @@ public class FcmTokenService {
         this.tokens = tokens;
     }
 
+    /// Erasure: removes every device token for an account (right-to-erasure / anonymization).
+    @Transactional
+    public int deleteForAccount(UUID accountId) {
+        return tokens.deleteByAccountId(accountId);
+    }
+
     @Transactional
     public UUID register(UUID accountId, String token, String platform, String deviceId) {
         String resolvedPlatform = (platform == null || platform.isBlank()) ? DEFAULT_PLATFORM : platform;

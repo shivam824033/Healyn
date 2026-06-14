@@ -73,6 +73,17 @@ Architecture in Phase 1 must **enable** Phase 2 and Phase 3 without rewrites. It
 >
 > **Identifiers & lifecycle note (F1.5–F1.6, F1.9–F1.13, F1.21–F1.22):** appointments and patients carry human-readable **business IDs** (Appointment Number `PHY-YYYYMMDD-NNNN`, Patient ID `PAT-NNNNNN`) alongside their UUID primary keys; the UUID is never exposed to users. Appointments gain **parent-child lineage** (reschedules / follow-ups / reviews link to a lineage root) and an append-only **`appointment_events`** timeline. The ID and lineage work refines existing P0 features; the events table is the realization of the §4 Phase-3 enabler *"all clinical writes already produce a domain event"* (pulled forward, **not** new scope). The unified timeline (F1.21) and Appointment-Number search (F1.22) are new P1/P2 surfaces over that data. See [APPOINTMENT_FLOW.md](./APPOINTMENT_FLOW.md).
 
+> **Compliance surface note (F1.1, F1.5–F1.6):** lawful processing of health data requires a
+> consent + legal surface that the original inventory left implicit. A `compliance` module adds
+> versioned Privacy Policy / Terms, **demonstrable consent capture** at registration (Terms,
+> Privacy, Health-data processing) and **family-member authority** attestation at family-add, plus
+> account deletion / **right-to-erasure** (anonymize-and-retain — clinical data is kept de-identified
+> per Hard Rule #7). This is a Phase-1 **launch prerequisite** identified by the production-readiness
+> audit (§5/§11 item 6), not new product scope: it underpins the existing P0 auth (F1.1) and patient
+> (F1.5–F1.6) features. The mobile consent/erasure UI is a follow-up increment. See
+> [SECURITY_GUIDELINES.md §11.1](./SECURITY_GUIDELINES.md) and
+> [API_STANDARDS.md §9.9](./API_STANDARDS.md).
+
 ### 2.2 Phase 1 Acceptance Criteria
 
 Phase 1 is **done** when **all P0 features** are:
