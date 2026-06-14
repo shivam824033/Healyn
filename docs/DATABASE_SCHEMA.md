@@ -237,7 +237,7 @@ CREATE TABLE availability_rules (
     day_of_week         SMALLINT NOT NULL CHECK (day_of_week BETWEEN 0 AND 6), -- 0=Sun
     start_time          TIME NOT NULL,
     end_time            TIME NOT NULL,
-    slot_minutes        SMALLINT NOT NULL DEFAULT 30,
+    slot_minutes        SMALLINT NOT NULL DEFAULT 15,       -- grid step (V25); appointment length is independent
     timezone            VARCHAR(64) NOT NULL,               -- IANA, e.g., 'Asia/Kolkata'
     effective_from      DATE NOT NULL,
     effective_to        DATE,                               -- nullable = open-ended

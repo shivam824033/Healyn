@@ -13,7 +13,7 @@
 |---|---|
 | **Availability rule** | A recurring weekly window (e.g., Mon–Fri 09:00–13:00) declared by the physio. |
 | **Blackout window** | An explicit unavailable period (leave, holiday). Overrides availability rules. |
-| **Slot** | A candidate time atom derived from availability rules. Default `slot_minutes = 30`. Shown to the physiotherapist when assigning a time; not booked directly by patients. |
+| **Slot** | A candidate time atom derived from availability rules. Default `slot_minutes = 15` — the grid *step* (and each computed slot's width), independent of an appointment's own `duration_minutes`. Shown to the physiotherapist when assigning a time; not booked directly by patients. |
 | **Appointment request** | A patient's ask for care on a chosen `requested_date`, before the physiotherapist has fixed a time. Status `REQUESTED`, `scheduled_at` is `NULL`, with an optional `preferred_time` hint. |
 | **Appointment** | A request that the physiotherapist has scheduled (or a physiotherapist-created follow-up): it has a concrete `scheduled_at` for one patient. |
 | **Follow-up** | An appointment the physiotherapist creates directly to review a patient again (`is_follow_up = true`). The physiotherapist sets its date and time. |

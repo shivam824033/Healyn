@@ -49,7 +49,7 @@ class _AvailabilityRuleFormScreenState
   int _dayOfWeek = 1;
   TimeOfDay _start = const TimeOfDay(hour: 9, minute: 0);
   TimeOfDay _end = const TimeOfDay(hour: 17, minute: 0);
-  int _slotMinutes = 30;
+  int _slotMinutes = 15;
   String _timezone = _timezoneChoices.first;
 
   bool _submitting = false;

@@ -341,7 +341,8 @@ void main() {
       expect(repo.lastRule!['dayOfWeek'], 1);
       expect(repo.lastRule!['startTime'], '09:00:00');
       expect(repo.lastRule!['endTime'], '17:00:00');
-      expect(repo.lastRule!['slotMinutes'], 30);
+      // The grid defaults to 15-minute cells (V25); 9–17 aligns on them.
+      expect(repo.lastRule!['slotMinutes'], 15);
       expect(repo.lastRule!['timezone'], 'Asia/Kolkata');
     });
 
@@ -352,8 +353,9 @@ void main() {
         _RecordingRepo(),
       );
 
-      // 9:00–17:00 does not sit on 45-minute boundaries.
-      await tester.tap(find.text('30 minutes'));
+      // 9:00–17:00 does not sit on 45-minute boundaries. The grid defaults to
+      // 15-minute cells, so open the dropdown from there.
+      await tester.tap(find.text('15 minutes'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('45 minutes').last);
       await tester.pumpAndSettle();
