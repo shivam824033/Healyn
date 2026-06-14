@@ -24,6 +24,7 @@ import '../../shared/widgets/healyn_shimmer.dart';
 import '../../shared/widgets/healyn_skeletons.dart';
 import '../../treatment_notes/presentation/treatment_notes_format.dart';
 import 'next_review_provider.dart';
+import 'widgets/clinic_section.dart';
 
 /// Horizontal inset for the content below the full-bleed hero.
 const _edge = EdgeInsets.symmetric(horizontal: HealynSpacing.screenEdge);
@@ -139,6 +140,7 @@ class _HomeBody extends StatelessWidget {
         HealynReveal.staggered(index: 1, child: const _UnreadMessagesCard()),
         HealynReveal.staggered(index: 2, child: const _UpcomingSummary()),
         HealynReveal.staggered(index: 3, child: const _NextReviewCard()),
+        HealynReveal.staggered(index: 4, child: const ClinicSection()),
       ],
     );
   }

@@ -32,6 +32,7 @@ import '../../physio/presentation/screens/physio_availability_screen.dart';
 import '../../physio/presentation/screens/physio_patient_detail_screen.dart';
 import '../../physio/presentation/screens/physio_patients_screen.dart';
 import '../../physio/presentation/screens/physio_requests_screen.dart';
+import '../../physio/presentation/screens/physio_profile_edit_screen.dart';
 import '../../physio/presentation/screens/physio_profile_screen.dart';
 import '../../physio/presentation/screens/physio_today_screen.dart';
 import '../../physio/presentation/screens/physio_unread_discussions_screen.dart';
@@ -218,6 +219,13 @@ final routerProvider = Provider<GoRouter>((ref) {
       // banner. Pushed over the physio shell; under /physio/* so the redirect
       // keeps non-physios out. Matched before /physio/appointments/* below — a
       // distinct literal, so order is not load-bearing, but kept grouped.
+      // The physiotherapist's profile editor (personal/clinic/social + avatar),
+      // pushed over the physio shell. Under /physio/* so the role redirect keeps
+      // non-physios out.
+      GoRoute(
+        path: '/physio/profile/edit',
+        builder: (_, _) => const PhysioProfileEditScreen(),
+      ),
       GoRoute(
         path: '/physio/requests',
         builder: (_, _) => const PhysioRequestsScreen(),
