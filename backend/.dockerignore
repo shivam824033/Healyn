@@ -1,0 +1,29 @@
+# Keep the build context small and free of host/build artifacts and secrets.
+build/
+bin/
+.gradle/
+out/
+
+# Secrets and local env — never bake into an image.
+.env
+.env.*
+!.env.example
+secrets/
+*.pem
+*.key
+*.p8
+
+# IDE / OS noise
+.idea/
+*.iml
+.vscode/
+.DS_Store
+
+# JVM crash dumps
+hs_err_pid*.log
+replay_pid*.log
+
+# Docs / git metadata not needed by the build
+.git/
+.gitignore
+*.md
