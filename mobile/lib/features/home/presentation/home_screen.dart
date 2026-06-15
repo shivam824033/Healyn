@@ -22,6 +22,7 @@ import '../../shared/widgets/healyn_reveal.dart';
 import '../../shared/widgets/healyn_section_header.dart';
 import '../../shared/widgets/healyn_shimmer.dart';
 import '../../shared/widgets/healyn_skeletons.dart';
+import '../../promotions/presentation/widgets/promotions_carousel.dart';
 import '../../treatment_notes/presentation/treatment_notes_format.dart';
 import 'next_review_provider.dart';
 import 'widgets/clinic_section.dart';
@@ -140,7 +141,8 @@ class _HomeBody extends StatelessWidget {
         HealynReveal.staggered(index: 1, child: const _UnreadMessagesCard()),
         HealynReveal.staggered(index: 2, child: const _UpcomingSummary()),
         HealynReveal.staggered(index: 3, child: const _NextReviewCard()),
-        HealynReveal.staggered(index: 4, child: const ClinicSection()),
+        HealynReveal.staggered(index: 4, child: const PromotionsCarousel()),
+        HealynReveal.staggered(index: 5, child: const ClinicSection()),
       ],
     );
   }

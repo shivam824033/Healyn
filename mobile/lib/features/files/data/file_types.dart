@@ -11,6 +11,7 @@ class UploadType {
 const _pdf = UploadType(mimeType: 'application/pdf', maxBytes: 20 * 1024 * 1024);
 const _jpeg = UploadType(mimeType: 'image/jpeg', maxBytes: 10 * 1024 * 1024);
 const _png = UploadType(mimeType: 'image/png', maxBytes: 10 * 1024 * 1024);
+const _webp = UploadType(mimeType: 'image/webp', maxBytes: 10 * 1024 * 1024);
 
 /// Resolves a filename's extension to an accepted [UploadType], or `null` when
 /// the type is not allowed in Phase 1 (no `.docx`, `.heic`, `.zip`, …). The
@@ -23,6 +24,7 @@ UploadType? uploadTypeForFilename(String filename) {
     'pdf' => _pdf,
     'jpg' || 'jpeg' => _jpeg,
     'png' => _png,
+    'webp' => _webp,
     _ => null,
   };
 }

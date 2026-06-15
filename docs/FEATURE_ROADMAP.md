@@ -49,6 +49,7 @@ Architecture in Phase 1 must **enable** Phase 2 and Phase 3 without rewrites. It
 | F1.20 | Mobile app offline read cache (today's schedule, last 5 appointments) | P2 | `mobile-core` |
 | F1.21 | Unified appointment + treatment timeline (physiotherapist & patient) | P1 | `appointments` |
 | F1.22 | Global appointment search (by Appointment Number) | P2 | `appointments` |
+| F1.23 | Clinic promotions surface (physio-managed service cards / banners / announcements / health tips on patient Home) | P2 | `promotions` |
 
 **Priority legend:** P0 = must ship to release Phase 1. P1 = strongly desired but releasable without. P2 = nice to have.
 
@@ -86,6 +87,23 @@ Architecture in Phase 1 must **enable** Phase 2 and Phase 3 without rewrites. It
 > erasure screen — reached from both the patient and physiotherapist Profile. See
 > [SECURITY_GUIDELINES.md §11.1](./SECURITY_GUIDELINES.md) and
 > [API_STANDARDS.md §9.9](./API_STANDARDS.md).
+
+> **Clinic promotions note (F1.23):** the single physiotherapist can publish
+> **first-party clinic content** — service cards, promotional banners, clinic
+> announcements, and health tips — surfaced as a carousel + sections on the patient
+> Home and openable to a details screen. This is **not** third-party advertising, an ad
+> network, or marketing automation (those remain out of scope, §2.3 / CLAUDE.md §13);
+> it is the clinic describing its own services, mirroring the existing physio-profile
+> "Your clinic" surface (F-physio). Management lives **inside the physiotherapist's
+> in-app role** (the same role that already edits availability and profile) — it is **not**
+> the separate web "admin dashboard" forbidden by §2.3. Content is single-clinic and
+> physio-authored; the schema carries a nullable `clinic_id` and a content-ordering/
+> scheduling model so Phase-3 multi-clinic (F3.4) and audience targeting slot in without
+> rewrite, but **no** multi-clinic UI, no cross-clinic APIs, and **no** patient-group
+> targeting ship in Phase 1 (the column is always null; the patient query is unscoped).
+> P2: built only once P0 is code-complete, first to be cut if scope slips. See
+> [SYSTEM_ARCHITECTURE.md §3](./SYSTEM_ARCHITECTURE.md) and
+> [API_STANDARDS.md §9.10](./API_STANDARDS.md).
 
 ### 2.2 Phase 1 Acceptance Criteria
 

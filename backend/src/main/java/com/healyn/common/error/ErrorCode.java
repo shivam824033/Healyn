@@ -72,5 +72,16 @@ public final class ErrorCode {
     public static final String PHYSIO_AVATAR_KEY_INVALID = "physio.avatar_key_invalid";
     public static final String PHYSIO_AVATAR_INVALID = "physio.avatar_invalid";
 
+    public static final String PROMOTION_FORBIDDEN = "promotions.forbidden";
+    public static final String PROMOTION_NOT_FOUND = "promotions.not_found";
+    public static final String PROMOTION_LIMIT_REACHED = "promotions.limit_reached";
+    public static final String PROMOTION_INVALID_SCHEDULE = "promotions.invalid_schedule";
+    public static final String PROMOTION_INVALID_ACTION = "promotions.invalid_action";
+    public static final String PROMOTION_REORDER_MISMATCH = "promotions.reorder_mismatch";
+    public static final String PROMOTION_COVER_UNSUPPORTED_MIME = "promotions.cover_unsupported_mime";
+    public static final String PROMOTION_COVER_TOO_LARGE = "promotions.cover_too_large";
+    public static final String PROMOTION_COVER_KEY_INVALID = "promotions.cover_key_invalid";
+    public static final String PROMOTION_COVER_INVALID = "promotions.cover_invalid";
+
     private ErrorCode() {}
 }

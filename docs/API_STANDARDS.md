@@ -520,7 +520,30 @@ message — scoped to the signed-in role.
 > (`CONSENT_GRANT` / `CONSENT_WITHDRAW`); anonymization is audited (`ANONYMIZE`). `/legal/**` is served
 > unprefixed by the running backend, like the other Phase 1 paths.
 
-### 9.10 Health
+### 9.10 Promotions (clinic content)
+
+First-party clinic content (service cards, banners, announcements, health tips) the
+single physiotherapist publishes to patients. Reads are open to any authenticated
+account; all mutations are physio-only (enforced in the service via `PromotionPolicy`,
+Hard Rule #2). Cover images reuse the presign → magic-byte-validate pipeline.
+
+| Method | Path | Purpose |
+|---|---|---|
+| `GET`    | `/promotions` | **Patient view.** Active, in-window content ordered by `display_order` then newest. Returns `{ promotions: [PromotionView] }`. Each `PromotionView` carries `{ id, title, short_description, long_description, service_category, cta_text, cta_action, cover_url?, display_order }`. `cover_url` is a short-lived presigned GET URL (≤5 min). `cta_action` ∈ `NONE`, `BOOK_APPOINTMENT`, `CALL_CLINIC` |
+| `GET`    | `/promotions/manage` | **Physio only.** Every non-deleted promotion (active or not, in or out of window), ordered by `display_order`. Adds `{ active, starts_at?, ends_at?, created_at, updated_at }` |
+| `POST`   | `/promotions` | **Physio only.** Create. Body: `{ title, short_description?, long_description?, service_category?, cta_text?, cta_action?, starts_at?, ends_at?, active? }`. Appends at the end of the order. `201` → manage view. `422 promotions.limit_reached` when the active cap (`healyn.promotions.max-active`) would be exceeded |
+| `PATCH`  | `/promotions/{id}` | **Physio only.** Replace the content/schedule fields (`title` required; blank/omitted optional field clears it). Visibility is changed via the activate endpoint, not here |
+| `POST`   | `/promotions/{id}/active` | **Physio only.** Toggle visibility. Body: `{ active }`. Activating past the cap → `422 promotions.limit_reached` |
+| `POST`   | `/promotions/reorder` | **Physio only.** Body: `{ ordered_ids: [uuid] }` — sets `display_order` to the list index. Lower index appears first |
+| `DELETE` | `/promotions/{id}` | **Physio only.** Soft-delete (`deleted_at`) and remove the cover object from storage. `204` |
+| `POST`   | `/promotions/{id}/cover/presign` | **Physio only.** Body: `{ mime_type, size_bytes }`, `mime_type` ∈ `image/jpeg`, `image/png`, `image/webp`. Returns `{ object_key, url, content_type, expires_in_seconds }` |
+| `POST`   | `/promotions/{id}/cover/confirm` | **Physio only.** Body: `{ object_key, mime_type }`. Magic-byte-verifies the upload, sets it as the cover, deletes the previous object. Returns the manage view |
+
+> Single-clinic in Phase 1: the patient query is unscoped and the `clinic_id` column is
+> always null. Multi-clinic scoping and audience targeting are Phase-3 enablers
+> (FEATURE_ROADMAP.md F1.23 / F3.4) and are **not** exposed here.
+
+### 9.11 Health
 
 | Method | Path | Purpose |
 |---|---|---|

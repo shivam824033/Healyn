@@ -46,6 +46,12 @@ class PhysioProfileScreen extends ConsumerWidget {
                 label: 'Edit profile & clinic details',
                 onTap: () => context.push('/physio/profile/edit'),
               ),
+              const SizedBox(height: HealynSpacing.s3),
+              NavCard(
+                icon: Icons.campaign_outlined,
+                label: 'Clinic promotions',
+                onTap: () => context.push('/physio/promotions'),
+              ),
               const SizedBox(height: HealynSpacing.s6),
               const HealynSectionHeader(title: 'Settings'),
               const SizedBox(height: HealynSpacing.s3),

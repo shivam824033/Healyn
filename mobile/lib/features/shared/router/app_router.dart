@@ -28,6 +28,11 @@ import '../../auth/presentation/screens/splash_screen.dart';
 import '../../home/presentation/home_screen.dart';
 import '../../home/presentation/screens/follow_ups_screen.dart';
 import '../../notifications/presentation/screens/notification_preferences_screen.dart';
+import '../../promotions/data/models/promotion_models.dart';
+import '../../promotions/data/promotions_repository.dart';
+import '../../promotions/presentation/screens/physio_promotion_edit_screen.dart';
+import '../../promotions/presentation/screens/physio_promotions_screen.dart';
+import '../../promotions/presentation/screens/promotion_details_screen.dart';
 import '../../patient_shell/presentation/patient_shell.dart';
 import '../../physio/presentation/physio_shell.dart';
 import '../../physio/presentation/screens/physio_appointment_detail_screen.dart';
@@ -244,6 +249,25 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/physio/requests',
         builder: (_, _) => const PhysioRequestsScreen(),
       ),
+      // The physiotherapist's clinic-promotions manager + editor, pushed over the
+      // physio shell. Under /physio/* so the role redirect keeps non-physios out.
+      // `new` is a distinct literal from `:id/edit`, so order is not load-bearing.
+      GoRoute(
+        path: '/physio/promotions',
+        builder: (_, _) => const PhysioPromotionsScreen(),
+      ),
+      GoRoute(
+        path: '/physio/promotions/new',
+        builder: (_, _) => const PhysioPromotionEditScreen(),
+      ),
+      GoRoute(
+        path: '/physio/promotions/:id/edit',
+        builder: (_, state) => PhysioPromotionEditScreen(
+          existing: state.extra is ManagedPromotion
+              ? state.extra as ManagedPromotion
+              : null,
+        ),
+      ),
       // The physiotherapist's availability management, reached from the Today
       // app-bar action. Pushed over the physio shell (the less-frequent task, so
       // it's a push, not a tab); under /physio/* so the redirect keeps
@@ -421,6 +445,19 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/discussions/unread',
         builder: (_, _) => const UnreadDiscussionsScreen(),
+      ),
+      // A clinic promotion's details, reached by tapping a card in the Home
+      // carousel. `extra` carries the Promotion to avoid a refetch; absent on a
+      // refresh / deep link, when it's resolved from the patient list.
+      GoRoute(
+        path: '/promotions/:id',
+        builder: (_, state) {
+          final extra = state.extra;
+          if (extra is Promotion) {
+            return PromotionDetailsScreen(promotion: extra);
+          }
+          return _PromotionDetailsRoute(id: state.pathParameters['id']!);
+        },
       ),
       // Every managed patient's pending next-review, grouped per patient. Reached
       // from the Home "Suggested next review" card when more than one is due.
@@ -601,6 +638,35 @@ class _PhysioAppointmentDetailRoute extends ConsumerWidget {
         body: Center(child: Text('Could not load this appointment.')),
       ),
       data: (a) => PhysioAppointmentDetailScreen(appointment: a),
+    );
+  }
+}
+
+/// Resolves a promotion from the patient list when the details route was entered
+/// without the [Promotion] in `extra` (refresh / deep link).
+class _PromotionDetailsRoute extends ConsumerWidget {
+  const _PromotionDetailsRoute({required this.id});
+
+  final String id;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final promotions = ref.watch(patientPromotionsProvider);
+    return promotions.when(
+      loading: () => const HealynDetailSceneSkeleton(),
+      error: (_, _) => const Scaffold(
+        appBar: HealynAppBar(),
+        body: Center(child: Text('Could not load this promotion.')),
+      ),
+      data: (all) {
+        for (final p in all) {
+          if (p.id == id) return PromotionDetailsScreen(promotion: p);
+        }
+        return const Scaffold(
+          appBar: HealynAppBar(),
+          body: Center(child: Text('This promotion is no longer available.')),
+        );
+      },
     );
   }
 }
