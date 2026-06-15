@@ -38,6 +38,20 @@ spring:
       add-mappings: false
   jackson:
     default-property-inclusion: non_null
+  # SMTP transport for OTP email. Blank host (the default) means no JavaMailSender is
+  # auto-configured; SmtpOtpSender then fails fast outside local/test. local/test use the
+  # console LoggingOtpSender and need none of this.
+  mail:
+    host: ${HEALYN_SMTP_HOST:}
+    port: ${HEALYN_SMTP_PORT:587}
+    username: ${HEALYN_SMTP_USERNAME:}
+    password: ${HEALYN_SMTP_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: ${HEALYN_SMTP_AUTH:true}
+          starttls:
+            enable: ${HEALYN_SMTP_STARTTLS:true}
 
 server:
   port: ${HEALYN_HTTP_PORT:8080}
@@ -79,6 +93,12 @@ springdoc:
   show-actuator: false
 
 healyn:
+  # OTP delivery. EMAIL goes over spring.mail.* SMTP (SmtpOtpSender); SMS is not wired yet
+  # and fails fast (SmsOtpSender) until a provider adapter is added. local/test log to console.
+  otp:
+    email:
+      from: ${HEALYN_OTP_EMAIL_FROM:}
+      subject: ${HEALYN_OTP_EMAIL_SUBJECT:Your Healyn verification code}
   # Single-clinic reference frame (Phase 1). Used to derive clinic-local calendar days,
   # e.g. the YYYYMMDD stem of an Appointment Number. Instants are still stored as UTC.
   clinic:

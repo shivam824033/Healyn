@@ -30,6 +30,8 @@ dependencies {
     // Web + validation
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.springframework.boot:spring-boot-starter-validation")
+    // Email (OTP delivery over SMTP)
+    implementation("org.springframework.boot:spring-boot-starter-mail")
 
     // Persistence
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
