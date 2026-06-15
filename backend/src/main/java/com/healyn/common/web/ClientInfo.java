@@ -2,9 +2,15 @@ package com.healyn.common.web;
 
 import jakarta.servlet.http.HttpServletRequest;
 
-/// Extracts client network metadata (IP, user agent) from a request, honouring a
-/// reverse-proxy {@code X-Forwarded-For} header. Shared by modules that persist this
-/// metadata on consent and session records.
+/// Extracts client network metadata (IP, user agent) from a request. Shared by modules that
+/// persist this metadata on consent/session records and by the auth rate limiter.
+///
+/// The client IP is the framework-resolved {@code getRemoteAddr()} — NOT a raw client-supplied
+/// header (audit M2). With {@code server.forward-headers-strategy=framework} Spring's
+/// ForwardedHeaderFilter already folds the trusted reverse-proxy's forwarding header into
+/// {@code getRemoteAddr()}; parsing the leftmost {@code X-Forwarded-For} value here would instead
+/// trust the most client-controllable (spoofable) hop. The edge gateway MUST overwrite, not
+/// append, forwarding headers so a client cannot inject a fake origin IP.
 public final class ClientInfo {
 
     private static final int USER_AGENT_MAX = 512;
@@ -12,11 +18,6 @@ public final class ClientInfo {
     private ClientInfo() {}
 
     public static String clientIp(HttpServletRequest http) {
-        String forwarded = http.getHeader("X-Forwarded-For");
-        if (forwarded != null && !forwarded.isBlank()) {
-            int comma = forwarded.indexOf(',');
-            return (comma > 0 ? forwarded.substring(0, comma) : forwarded).trim();
-        }
         return http.getRemoteAddr();
     }
 

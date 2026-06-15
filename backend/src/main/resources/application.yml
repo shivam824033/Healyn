@@ -60,6 +60,12 @@ server:
     include-stacktrace: never
     include-binding-errors: never
   forward-headers-strategy: framework
+  # Request-size ceilings (audit M4). Bounds memory an oversized request can consume; the
+  # auth filter additionally enforces a tighter per-endpoint body cap (healyn.ratelimit).
+  max-http-request-header-size: 16KB
+  tomcat:
+    max-swallow-size: 2MB
+    max-http-form-post-size: 256KB
 
 management:
   endpoints:
@@ -122,6 +128,21 @@ healyn:
     public-key-path: ${HEALYN_JWT_PUBLIC_KEY_PATH:}
   password:
     pepper: ${HEALYN_PASSWORD_PEPPER:}
+  # Per-IP abuse protection for the unauthenticated auth surface (audit H1/H2/M4/M5). Backed by
+  # the existing Redis. These complement the per-account lockout and per-target OTP cap. Windows
+  # are seconds. max-body-bytes is the request payload ceiling (413) on /auth/** POSTs.
+  ratelimit:
+    enabled: ${HEALYN_RATELIMIT_ENABLED:true}
+    max-body-bytes: ${HEALYN_RATELIMIT_MAX_BODY_BYTES:65536}
+    login:
+      max-requests: ${HEALYN_RATELIMIT_LOGIN_MAX:10}
+      window-seconds: ${HEALYN_RATELIMIT_LOGIN_WINDOW:60}
+    refresh:
+      max-requests: ${HEALYN_RATELIMIT_REFRESH_MAX:30}
+      window-seconds: ${HEALYN_RATELIMIT_REFRESH_WINDOW:60}
+    otp-start:
+      max-requests: ${HEALYN_RATELIMIT_OTP_START_MAX:5}
+      window-seconds: ${HEALYN_RATELIMIT_OTP_START_WINDOW:600}
   # Local/dev only: DevPhysioSeeder upserts one ROLE_PHYSIO login so the
   # physiotherapist app is reachable. Never used in prod, where the physio is
   # provisioned by an operator (README §5.1). The password is a dev default —
