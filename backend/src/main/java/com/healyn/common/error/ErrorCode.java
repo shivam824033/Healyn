@@ -21,6 +21,7 @@ public final class ErrorCode {
     public static final String COMPLIANCE_DELETION_ALREADY_REQUESTED = "compliance.deletion_already_requested";
     public static final String COMPLIANCE_DELETION_NOT_FOUND = "compliance.deletion_not_found";
     public static final String COMPLIANCE_INVALID_PASSWORD = "compliance.invalid_password";
+    public static final String COMPLIANCE_DELETION_NOT_ALLOWED = "compliance.deletion_not_allowed";
 
     public static final String AVAILABILITY_RULE_NOT_FOUND = "availability.rule_not_found";
     public static final String AVAILABILITY_BLACKOUT_NOT_FOUND = "availability.blackout_not_found";

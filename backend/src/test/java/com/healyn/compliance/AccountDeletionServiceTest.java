@@ -3,11 +3,13 @@ package com.healyn.compliance;
 import com.healyn.audit.domain.AuditAction;
 import com.healyn.audit.service.AuditLogger;
 import com.healyn.auth.domain.Account;
+import com.healyn.auth.domain.AccountRole;
 import com.healyn.auth.repository.AccountRepository;
 import com.healyn.auth.service.AccountErasureService;
 import com.healyn.auth.service.DeviceSessionService;
 import com.healyn.auth.service.PasswordHasher;
 import com.healyn.common.error.ConflictException;
+import com.healyn.common.error.ForbiddenException;
 import com.healyn.common.error.UnauthorizedException;
 import com.healyn.compliance.config.ComplianceProperties;
 import com.healyn.compliance.domain.AccountDeletionRequest;
@@ -68,6 +70,21 @@ class AccountDeletionServiceTest {
         verify(requests).save(any(AccountDeletionRequest.class));
         verify(account).markPendingDeletion();
         verify(sessions).revokeAllForAccount(accountId);
+    }
+
+    @Test
+    void request_by_physio_owner_is_forbidden_and_changes_nothing() {
+        UUID accountId = UUID.randomUUID();
+        Account account = mock(Account.class);
+        when(accounts.findById(accountId)).thenReturn(Optional.of(account));
+        when(account.getRole()).thenReturn(AccountRole.ROLE_PHYSIO);
+
+        assertThatThrownBy(() -> service.request(accountId, "correct horse", "leaving"))
+                .isInstanceOf(ForbiddenException.class);
+
+        verify(passwordHasher, never()).matches(any(), any(), any());
+        verify(requests, never()).save(any());
+        verify(sessions, never()).revokeAllForAccount(any());
     }
 
     @Test

@@ -93,13 +93,16 @@ final routerProvider = Provider<GoRouter>((ref) {
           final inPhysioArea =
               location == '/physio' || location.startsWith('/physio/');
           // Account-scoped screens both roles share (reached from either
-          // Profile) — exempt from the role-bounce below (D5). Includes the
-          // compliance surface: legal documents, consent history, and account
-          // deletion.
+          // Profile) — exempt from the role-bounce below (D5): notification
+          // preferences and legal documents. Consent history and account
+          // deletion are patient (data-subject) surfaces, so they are shared
+          // only for the account role; the physio owner is bounced away (and
+          // deletion is additionally blocked server-side).
           final inSharedArea = location.startsWith('/notifications/') ||
               isLegal ||
-              location == '/me/consents' ||
-              location == '/account/deletion';
+              (!isPhysio &&
+                  (location == '/me/consents' ||
+                      location == '/account/deletion'));
           if (location == '/' || inAuthArea) {
             return isPhysio ? '/physio/today' : '/home';
           }

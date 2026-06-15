@@ -68,18 +68,9 @@ class PhysioProfileScreen extends ConsumerWidget {
                 label: 'Terms of Service',
                 onTap: () => context.push('/legal/terms_of_service'),
               ),
-              const SizedBox(height: HealynSpacing.s3),
-              NavCard(
-                icon: Icons.fact_check_outlined,
-                label: 'Your consents',
-                onTap: () => context.push('/me/consents'),
-              ),
-              const SizedBox(height: HealynSpacing.s3),
-              NavCard(
-                icon: Icons.delete_outline,
-                label: 'Delete account',
-                onTap: () => context.push('/account/deletion'),
-              ),
+              // Consent capture and account deletion are patient (data-subject)
+              // surfaces and are intentionally omitted for the physio owner, who
+              // is the clinic operator. Deletion is also blocked server-side.
               const SizedBox(height: HealynSpacing.s6),
               const SignedInDevicesSection(),
               const SizedBox(height: HealynSpacing.s6),

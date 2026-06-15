@@ -4,12 +4,14 @@ import com.healyn.audit.domain.AuditAction;
 import com.healyn.audit.domain.AuditResource;
 import com.healyn.audit.service.AuditLogger;
 import com.healyn.auth.domain.Account;
+import com.healyn.auth.domain.AccountRole;
 import com.healyn.auth.repository.AccountRepository;
 import com.healyn.auth.service.AccountErasureService;
 import com.healyn.auth.service.DeviceSessionService;
 import com.healyn.auth.service.PasswordHasher;
 import com.healyn.common.error.ConflictException;
 import com.healyn.common.error.ErrorCode;
+import com.healyn.common.error.ForbiddenException;
 import com.healyn.common.error.NotFoundException;
 import com.healyn.common.error.UnauthorizedException;
 import com.healyn.common.id.UuidV7;
@@ -78,6 +80,13 @@ public class AccountDeletionService {
     public AccountDeletionRequest request(UUID accountId, String password, String reason) {
         Account account = accounts.findById(accountId)
                 .orElseThrow(() -> new NotFoundException(ErrorCode.NOT_FOUND, "Account not found"));
+        if (account.getRole() == AccountRole.ROLE_PHYSIO) {
+            // The physio is the single operator/owner of the clinic app with no self-registration
+            // path; anonymizing it would orphan all clinical data and brick the app. Erasure is a
+            // patient (data-subject) right, not an operator action.
+            throw new ForbiddenException(ErrorCode.COMPLIANCE_DELETION_NOT_ALLOWED,
+                    "Account deletion is not available for this account");
+        }
         if (!passwordHasher.matches(password, account.getPasswordHash(), account.getPasswordSalt())) {
             throw new UnauthorizedException(ErrorCode.COMPLIANCE_INVALID_PASSWORD, "Password does not match");
         }
