@@ -1,0 +1,56 @@
+# SAST for the backend (audit §11 item 1: "SAST/dep-check" gate).
+# CodeQL static analysis of the Java sources; results surface in the repo's
+# Security > Code scanning tab and on PRs. Dependency/image CVE scanning is
+# handled by Trivy in backend-ci.yml.
+name: CodeQL
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "backend/**"
+      - ".github/workflows/codeql.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "backend/**"
+      - ".github/workflows/codeql.yml"
+  schedule:
+    # Weekly catch for newly published advisories on otherwise-idle code.
+    - cron: "27 3 * * 1"
+
+permissions:
+  contents: read
+
+jobs:
+  analyze:
+    name: Analyze (java)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: java-kotlin
+          build-mode: manual
+
+      # Manual build: compile the jar without tests so CodeQL traces the real
+      # bytecode. The Gradle wrapper lives under backend/.
+      - name: Build
+        run: ./gradlew clean bootJar -x test --no-daemon
+        working-directory: backend
+
+      - name: Perform CodeQL analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:java-kotlin"
