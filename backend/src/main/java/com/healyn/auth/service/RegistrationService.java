@@ -9,7 +9,6 @@ import com.healyn.auth.port.RegistrationConsentRecorder;
 import com.healyn.auth.repository.AccountRepository;
 import com.healyn.common.error.ConflictException;
 import com.healyn.common.error.ErrorCode;
-import com.healyn.common.error.UnprocessableException;
 import com.healyn.common.id.UuidV7;
 import com.healyn.patients.service.AccountAddressService;
 import com.healyn.patients.service.AddressData;
@@ -30,11 +29,12 @@ public class RegistrationService {
     private final PatientService patients;
     private final AccountAddressService addresses;
     private final RegistrationConsentRecorder consents;
+    private final PasswordPolicy passwordPolicy;
 
     public RegistrationService(AccountRepository accounts, OtpService otp,
                                PasswordHasher passwordHasher, DeviceSessionService sessions,
                                PatientService patients, AccountAddressService addresses,
-                               RegistrationConsentRecorder consents) {
+                               RegistrationConsentRecorder consents, PasswordPolicy passwordPolicy) {
         this.accounts = accounts;
         this.otp = otp;
         this.passwordHasher = passwordHasher;
@@ -42,6 +42,7 @@ public class RegistrationService {
         this.patients = patients;
         this.addresses = addresses;
         this.consents = consents;
+        this.passwordPolicy = passwordPolicy;
     }
 
     @Transactional
@@ -65,7 +66,7 @@ public class RegistrationService {
         if (!isEmail && accounts.existsByPhoneE164(target)) {
             throw new ConflictException(ErrorCode.CONFLICT, "Account already exists");
         }
-        validatePassword(rawPassword);
+        passwordPolicy.validate(rawPassword);
 
         PasswordHasher.Hashed hashed = passwordHasher.hash(rawPassword);
         Account account = new Account(
@@ -85,14 +86,5 @@ public class RegistrationService {
         // transaction, so an account never exists without its consent trail.
         consents.recordRegistrationConsents(account.getId(), device.ipAddress(), device.userAgent());
         return sessions.issue(account, device);
-    }
-
-    private static void validatePassword(String pw) {
-        if (pw == null || pw.length() < 10 || pw.length() > 128) {
-            throw new UnprocessableException(ErrorCode.UNPROCESSABLE, "Password must be 10-128 characters");
-        }
-        if (pw.indexOf('\0') >= 0) {
-            throw new UnprocessableException(ErrorCode.UNPROCESSABLE, "Password contains forbidden character");
-        }
     }
 }

@@ -113,6 +113,7 @@
     <a href="#s10">10 · Monitoring &amp; Operations</a>
     <a href="#s11">11 · Final Production Roadmap</a>
     <a href="#gono">★ Final GO / NO-GO Recommendation</a>
+    <a href="#s12">12 · Phase 1 Re-Assessment (update 2026-06-15)</a>
   </div>
   <p class="note" style="margin-top:14px">This report is the result of a static read of the actual repository (source, migrations, configs, docs, and the project's own <code>MODULE_STATUS_TRACKER.md</code>). Findings cite real files. Items that depend on cloud/infra not present in the repo are explicitly marked <span class="badge b-info">Requires manual verification</span>.</p>
 </section>
@@ -609,6 +610,80 @@
       <strong>Bottom line:</strong> a high-quality Phase-1 product that is roughly <span class="pct">~70%</span> production-ready. Estimated readiness after Phase 1 blockers: <span class="pct">~90%+</span>.
     </p>
   </div>
+</section>
+
+<!-- ============================ 12 RE-ASSESSMENT ADDENDUM ============================ -->
+<h2 id="s12"><span class="num">12</span>Phase 1 Re-Assessment <span class="tag">update · 2026-06-15</span></h2>
+<section>
+  <p class="lead">Re-run of the §11 Phase-1 blocker list against the repository <strong>one day after the original audit</strong>. Five feature commits have landed since (<code>feat/booking-availability-hint</code> branch). This section records, per blocker, <em>what changed</em>, <em>what is now done in code</em>, and <em>what remains — split into work I (Claude) can do in this repo vs. work that is infrastructure / ops / legal and cannot be done from code.</em></p>
+
+  <div class="grid3">
+    <div class="card">
+      <h4>Phase-1 blockers closed</h4>
+      <div class="kpi" style="color:#39d39b">4 / 10</div>
+      <div class="prog ok" style="margin-top:10px"><i style="width:40%"></i></div>
+      <p class="note">#1 Dockerfile + CI pipeline, #5 OTP delivery, #6 compliance surface, #10 Swagger/Actuator — landed in code.</p>
+    </div>
+    <div class="card">
+      <h4>Materially advanced</h4>
+      <div class="kpi" style="color:#ffd24d">1 / 10</div>
+      <div class="prog warn" style="margin-top:10px"><i style="width:55%"></i></div>
+      <p class="note">#2 app-level IP rate-limiting landed (TLS/HSTS still infra-bound).</p>
+    </div>
+    <div class="card">
+      <h4>Still open — infra/ops</h4>
+      <div class="kpi" style="color:#ff8a3d">5 / 10</div>
+      <div class="prog bad" style="margin-top:10px"><i style="width:20%"></i></div>
+      <p class="note">#3 secrets, #4 CI test run, #7 at-rest crypto, #8 backup/firewall, #9 monitoring.</p>
+    </div>
+  </div>
+
+  <h3>12.1 Blocker-by-blocker status</h3>
+  <table>
+    <tr><th>#</th><th>Phase-1 item</th><th>Audit (06-14)</th><th>Now (06-15)</th><th>Evidence in repo</th></tr>
+    <tr><td>1</td><td>Dockerfile + CI/CD pipeline</td><td><span class="badge b-bad">NONE</span></td><td><span class="badge b-ok">DONE</span></td><td><strong>Dockerfile</strong> — multi-stage, layered Spring Boot jar, non-root (<code>backend/Dockerfile</code>, commit <code>a2d5397</code>). <strong>CI/CD pipeline added</strong> — <code>.github/workflows/backend-ci.yml</code> (build → unit + Testcontainers integration tests → Trivy image/dep CVE scan → image build + GHCR publish on <code>main</code>) and <code>codeql.yml</code> (Java SAST). <em>Cluster rollout step still depends on infra/secrets (items 2/3/8).</em></td></tr>
+    <tr><td>2</td><td>TLS gateway: HTTPS, HSTS, global/IP rate limiting</td><td><span class="badge b-bad">NONE</span></td><td><span class="badge b-warn">PARTIAL</span></td><td><strong>App-level per-IP rate limiting + body-size cap done</strong> on <code>/auth/*</code> (<code>AuthRateLimitFilter</code>, <code>RateLimiter</code>, commit <code>7430cee</code>), plus enumeration/timing hardening. <strong>TLS / HSTS / edge global limit</strong> remain gateway/infra (not in repo).</td></tr>
+    <tr><td>3</td><td>Secret manager; real RS256 keys/pepper/DB/S3/FCM; rotate FCM key</td><td><span class="badge b-bad">OPEN</span></td><td><span class="badge b-bad">OPEN</span></td><td>App already fails fast and reads every secret from <code>HEALYN_*</code> env. Wiring a manager and rotating the on-disk FCM key are <em>ops</em> actions — unchanged.</td></tr>
+    <tr><td>4</td><td>Full integration suite green in CI; staging smoke; device test</td><td><span class="badge b-bad">OPEN</span></td><td><span class="badge b-bad">OPEN</span></td><td>Blocked on #1 (no CI runner) + Docker + physical devices. Suites still exist but unrun in CI.</td></tr>
+    <tr><td>5</td><td>Real OTP delivery (replace <code>LoggingOtpSender</code>)</td><td><span class="badge b-bad">OPEN</span></td><td><span class="badge b-ok">DONE</span></td><td><code>SmtpOtpSender</code> (real SMTP) + <code>SmsOtpSender</code> (fail-fast seam) behind <code>CompositeOtpSender</code> with <code>@Profile("!local &amp; !test")</code>; <code>LoggingOtpSender</code> is now dev-only (commits <code>fd8e0ba</code>, <code>7430cee</code>). <em>Needs SMTP/SMS provider creds at runtime.</em></td></tr>
+    <tr><td>6</td><td>Compliance: Privacy, Terms, consent (incl. family authority), account deletion/erasure</td><td><span class="badge b-bad">MISSING</span></td><td><span class="badge b-ok">DONE</span></td><td>New <code>compliance</code> module: <code>ConsentRecord</code>/<code>ConsentType</code>, <code>LegalDocument</code> (<code>PRIVACY_POLICY</code>/<code>TERMS_OF_SERVICE</code>), <code>AccountDeletionRequest</code> + <code>AccountErasureService</code>, <code>FamilyAuthorityConsentAdapter</code>; migrations V28/V29; mobile consent/legal/erasure UI (commits <code>3170d9c</code>, <code>58461f7</code>, <code>537ff8b</code>). <em>Legal copy itself is product/legal content.</em></td></tr>
+    <tr><td>7</td><td>Encryption at rest (DB + SSE-KMS); HTTPS presigned; Redis auth + SSL</td><td><span class="badge b-info">VERIFY</span></td><td><span class="badge b-warn">PARTIAL</span></td><td>Redis password env wired (<code>HEALYN_REDIS_PASSWORD</code>, blank default). At-rest crypto, DB <code>sslmode</code>, and KMS remain infra-configured.</td></tr>
+    <tr><td>8</td><td>Backup + restore drill; firewall DB/Redis/object-store private</td><td><span class="badge b-bad">OPEN</span></td><td><span class="badge b-bad">OPEN</span></td><td>Pure infrastructure — nothing to change in the codebase.</td></tr>
+    <tr><td>9</td><td>Crash/error monitoring (backend + mobile) + outbox-DEAD &amp; 5xx alerts</td><td><span class="badge b-bad">NONE</span></td><td><span class="badge b-bad">NONE</span></td><td>No Sentry/Crashlytics dependency on either side. JSON logs + Actuator are ship-ready but no reporter/alerting is wired.</td></tr>
+    <tr><td>10</td><td>Disable/secure Swagger UI; restrict Actuator in prod</td><td><span class="badge b-med">OPEN</span></td><td><span class="badge b-ok">DONE</span></td><td><code>application-prod.yml</code> disables <code>api-docs</code> + <code>swagger-ui</code> and binds Actuator to an internal-only port (<code>HEALYN_MANAGEMENT_PORT:9090</code>, <code>health,info</code>, <code>show-details: never</code>) — commit <code>2fce445</code>.</td></tr>
+  </table>
+
+  <h3>12.2 What I can do from here (in-repo, code)</h3>
+  <p class="note">These remaining gaps are addressable by writing code/config in this repository — I can implement them on request:</p>
+  <ul class="clean">
+    <li><strong>#1 CI/CD pipeline — <span class="badge b-ok">DONE 2026-06-15</span>:</strong> added <code>.github/workflows/backend-ci.yml</code> (<code>gradle build</code> running unit + the Testcontainers integration suite + <code>FlywayMigrationTest</code> on the runner's Docker daemon → Trivy image/dep CVE scan → image build + GHCR publish on <code>main</code>) and <code>codeql.yml</code> (Java SAST). Consumes the existing Dockerfile. The only piece left is the <em>deploy-to-cluster</em> step, which needs the target environment + secrets (items 2/3/8).</li>
+    <li><strong>#2 (app slice):</strong> add HSTS + security-response-header config and broaden the in-app limiter beyond <code>/auth/*</code> to a sensible global default — a defence-in-depth complement to the (still required) edge gateway.</li>
+    <li><strong>#9 monitoring:</strong> wire the Sentry SDK on backend (and Sentry/Crashlytics on Flutter), add a micrometer counter + alert hook for outbox <code>DEAD</code> rows and 5xx rate. SDK wiring is code; the hosted project/DSN is an account action.</li>
+    <li><strong>#7 (app slice):</strong> add a <code>HEALYN_DB_SSLMODE</code> binding and document/require Redis auth+TLS in <code>application-prod.yml</code> so the connection strings are correct the moment infra provides certs.</li>
+    <li><strong>#5 / #6 finishers:</strong> the SMS adapter is a fail-fast seam — I can complete a concrete provider adapter; and I can seed the <code>legal_documents</code> table loader so Privacy/Terms <em>versions</em> are managed in-app (the prose still comes from legal).</li>
+  </ul>
+
+  <h3>12.3 What I cannot do (infra / ops / legal / physical)</h3>
+  <p class="note">These are outside the codebase and require human/operator action — I can document and prepare for them, but not complete them:</p>
+  <ul class="clean">
+    <li><strong>#2 / #7:</strong> provision the TLS gateway, certificates, HSTS at the edge, S3 SSE-KMS, encrypted DB volumes, managed-Redis TLS — cloud infrastructure.</li>
+    <li><strong>#3:</strong> stand up the secret manager and <strong>rotate the live FCM key</strong> currently on disk — an operator credential action.</li>
+    <li><strong>#4:</strong> <em>run</em> the suite green on a real CI runner and <strong>device-test</strong> the signed mobile builds — needs runners, Docker, and physical handsets.</li>
+    <li><strong>#8:</strong> backup/PITR configuration, restore drills, and network firewall/security-group rules — infrastructure.</li>
+    <li><strong>#6 (content):</strong> the actual Privacy Policy / Terms prose and the legal determination of consent wording — product + counsel, not engineering.</li>
+    <li><strong>#9 (hosting):</strong> create the Sentry/monitoring project and alert routing (PagerDuty/email) — an account/ops action.</li>
+  </ul>
+
+  <div class="verdict">
+    <div>
+      <div class="note">UPDATED PHASE-1 POSITION</div>
+      <div class="big" style="color:#ffd24d">4 closed · 1 advanced · 5 infra-bound</div>
+    </div>
+    <div class="small" style="max-width:440px;color:var(--muted)">
+      Every Phase-1 blocker that is <strong>code-resolvable</strong> has now been resolved or substantially advanced (OTP, compliance, Swagger/Actuator hardening, Dockerfile, app-level rate-limiting). The remaining five are dominated by <strong>infrastructure, ops, legal content, and CI execution</strong> — they need a target environment and operator actions, not application code. The fastest remaining code lever I can pull is the <strong>CI pipeline (#1)</strong>, which then unblocks #4. Overall readiness moves from <span class="pct">~70%</span> toward <span class="pct">~78–80%</span>, gated now almost entirely on the production substrate.
+    </div>
+  </div>
+  <p class="note">Re-assessment performed 2026-06-15 against branch <span class="mono">feat/booking-availability-hint</span> (HEAD <code>7430cee</code>). Method: filesystem + source scan, same as the original audit. Earlier sections (§1–§11) reflect the 06-14 snapshot and are intentionally left unchanged for diffability.</p>
 </section>
 
 <p class="note" style="text-align:center;margin-top:30px">

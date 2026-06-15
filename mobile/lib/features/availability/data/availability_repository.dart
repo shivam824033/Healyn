@@ -14,6 +14,23 @@ class AvailabilityRepository {
 
   final AvailabilityApi _api;
 
+  /// Open slots over the inclusive day range `[from, to]` (reduced to date-only
+  /// on the wire). Used to surface a non-blocking availability hint while a
+  /// patient is choosing a date — the request still goes through regardless.
+  Future<List<AvailabilitySlot>> listSlots({
+    required DateTime from,
+    required DateTime to,
+    String? physiotherapistId,
+  }) {
+    return _guard(
+      () async => (await _api.listSlots(
+        from: _isoDate(from),
+        to: _isoDate(to),
+        physiotherapistId: physiotherapistId,
+      )).slots,
+    );
+  }
+
   Future<List<AvailabilityRule>> listRules() => _guard(_api.listRules);
 
   /// Creates a weekly working-hours rule. [startTime]/[endTime] are `"HH:mm:ss"`

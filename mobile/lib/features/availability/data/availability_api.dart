@@ -12,6 +12,25 @@ class AvailabilityApi {
 
   final Dio _dio;
 
+  /// `GET /availability` — open slots over `[from, to]` for one physiotherapist
+  /// (the clinic's default when [physiotherapistId] is null). Dates are sent
+  /// date-only.
+  Future<SlotListResponse> listSlots({
+    required String from,
+    required String to,
+    String? physiotherapistId,
+  }) async {
+    final res = await _dio.get<Map<String, dynamic>>(
+      '/availability',
+      queryParameters: {
+        'from': from,
+        'to': to,
+        'physiotherapist_id': ?physiotherapistId,
+      },
+    );
+    return SlotListResponse.fromJson(res.data!);
+  }
+
   Future<List<AvailabilityRule>> listRules() async {
     final res = await _dio.get<Map<String, dynamic>>('/availability/rules');
     return RuleListResponse.fromJson(res.data!).rules;

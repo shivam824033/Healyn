@@ -4,6 +4,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.healyn.auth.config.AuthProperties;
 import com.healyn.auth.service.JwtBlacklist;
 import com.healyn.auth.service.JwtKeyProvider;
+import com.healyn.auth.service.RateLimiter;
+import com.healyn.auth.web.AuthRateLimitFilter;
 import com.healyn.common.error.ErrorCode;
 import com.healyn.common.logging.TraceContext;
 import com.healyn.common.web.ApiError;
@@ -55,7 +57,10 @@ public class SecurityConfig {
     }
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http,
+                                                   RateLimiter rateLimiter,
+                                                   AuthProperties.RateLimit rateLimitProps) throws Exception {
+        AuthRateLimitFilter rateLimitFilter = new AuthRateLimitFilter(rateLimiter, rateLimitProps, objectMapper);
         // OpenAPI/Swagger is dev-only. In prod springdoc is disabled (application-prod.yml)
         // AND the paths are not anonymously whitelisted, so the spec/UI can never be reached
         // by an unauthenticated client (audit S-2).
@@ -64,6 +69,16 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .cors(AbstractHttpConfigurer::disable)
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                // Security headers (audit M3). HSTS pins TLS for a year incl. subdomains; the API
+                // serves only JSON to a native client, so deny framing and lock down refer/CTO.
+                // Spring's defaults already add X-Content-Type-Options and Cache-Control no-store.
+                .headers(h -> h
+                        .httpStrictTransportSecurity(hsts -> hsts.includeSubDomains(true).maxAgeInSeconds(31_536_000))
+                        .frameOptions(org.springframework.security.config.annotation.web.configurers.HeadersConfigurer.FrameOptionsConfig::deny)
+                        .referrerPolicy(rp -> rp.policy(
+                                org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter.ReferrerPolicy.NO_REFERRER)))
+                .addFilterBefore(rateLimitFilter,
+                        org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter.class)
                 .authorizeHttpRequests(reg -> {
                     reg.requestMatchers("/actuator/health/**", "/actuator/info").permitAll();
                     if (openApiExposed) {

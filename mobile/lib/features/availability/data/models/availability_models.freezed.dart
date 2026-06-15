@@ -850,6 +850,547 @@ as String?,
 
 
 /// @nodoc
+mixin _$AvailabilitySlot {
+
+ DateTime get startsAt; DateTime get endsAt; int get durationMinutes;
+/// Create a copy of AvailabilitySlot
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$AvailabilitySlotCopyWith<AvailabilitySlot> get copyWith => _$AvailabilitySlotCopyWithImpl<AvailabilitySlot>(this as AvailabilitySlot, _$identity);
+
+  /// Serializes this AvailabilitySlot to a JSON map.
+  Map<String, dynamic> toJson();
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is AvailabilitySlot&&(identical(other.startsAt, startsAt) || other.startsAt == startsAt)&&(identical(other.endsAt, endsAt) || other.endsAt == endsAt)&&(identical(other.durationMinutes, durationMinutes) || other.durationMinutes == durationMinutes));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,startsAt,endsAt,durationMinutes);
+
+@override
+String toString() {
+  return 'AvailabilitySlot(startsAt: $startsAt, endsAt: $endsAt, durationMinutes: $durationMinutes)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $AvailabilitySlotCopyWith<$Res>  {
+  factory $AvailabilitySlotCopyWith(AvailabilitySlot value, $Res Function(AvailabilitySlot) _then) = _$AvailabilitySlotCopyWithImpl;
+@useResult
+$Res call({
+ DateTime startsAt, DateTime endsAt, int durationMinutes
+});
+
+
+
+
+}
+/// @nodoc
+class _$AvailabilitySlotCopyWithImpl<$Res>
+    implements $AvailabilitySlotCopyWith<$Res> {
+  _$AvailabilitySlotCopyWithImpl(this._self, this._then);
+
+  final AvailabilitySlot _self;
+  final $Res Function(AvailabilitySlot) _then;
+
+/// Create a copy of AvailabilitySlot
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? startsAt = null,Object? endsAt = null,Object? durationMinutes = null,}) {
+  return _then(_self.copyWith(
+startsAt: null == startsAt ? _self.startsAt : startsAt // ignore: cast_nullable_to_non_nullable
+as DateTime,endsAt: null == endsAt ? _self.endsAt : endsAt // ignore: cast_nullable_to_non_nullable
+as DateTime,durationMinutes: null == durationMinutes ? _self.durationMinutes : durationMinutes // ignore: cast_nullable_to_non_nullable
+as int,
+  ));
+}
+
+}
+
+
+/// Adds pattern-matching-related methods to [AvailabilitySlot].
+extension AvailabilitySlotPatterns on AvailabilitySlot {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _AvailabilitySlot value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _AvailabilitySlot() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _AvailabilitySlot value)  $default,){
+final _that = this;
+switch (_that) {
+case _AvailabilitySlot():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _AvailabilitySlot value)?  $default,){
+final _that = this;
+switch (_that) {
+case _AvailabilitySlot() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( DateTime startsAt,  DateTime endsAt,  int durationMinutes)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _AvailabilitySlot() when $default != null:
+return $default(_that.startsAt,_that.endsAt,_that.durationMinutes);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( DateTime startsAt,  DateTime endsAt,  int durationMinutes)  $default,) {final _that = this;
+switch (_that) {
+case _AvailabilitySlot():
+return $default(_that.startsAt,_that.endsAt,_that.durationMinutes);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( DateTime startsAt,  DateTime endsAt,  int durationMinutes)?  $default,) {final _that = this;
+switch (_that) {
+case _AvailabilitySlot() when $default != null:
+return $default(_that.startsAt,_that.endsAt,_that.durationMinutes);case _:
+  return null;
+
+}
+}
+
+}
+
+/// @nodoc
+@JsonSerializable()
+
+class _AvailabilitySlot implements AvailabilitySlot {
+  const _AvailabilitySlot({required this.startsAt, required this.endsAt, required this.durationMinutes});
+  factory _AvailabilitySlot.fromJson(Map<String, dynamic> json) => _$AvailabilitySlotFromJson(json);
+
+@override final  DateTime startsAt;
+@override final  DateTime endsAt;
+@override final  int durationMinutes;
+
+/// Create a copy of AvailabilitySlot
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$AvailabilitySlotCopyWith<_AvailabilitySlot> get copyWith => __$AvailabilitySlotCopyWithImpl<_AvailabilitySlot>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$AvailabilitySlotToJson(this, );
+}
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _AvailabilitySlot&&(identical(other.startsAt, startsAt) || other.startsAt == startsAt)&&(identical(other.endsAt, endsAt) || other.endsAt == endsAt)&&(identical(other.durationMinutes, durationMinutes) || other.durationMinutes == durationMinutes));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,startsAt,endsAt,durationMinutes);
+
+@override
+String toString() {
+  return 'AvailabilitySlot(startsAt: $startsAt, endsAt: $endsAt, durationMinutes: $durationMinutes)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$AvailabilitySlotCopyWith<$Res> implements $AvailabilitySlotCopyWith<$Res> {
+  factory _$AvailabilitySlotCopyWith(_AvailabilitySlot value, $Res Function(_AvailabilitySlot) _then) = __$AvailabilitySlotCopyWithImpl;
+@override @useResult
+$Res call({
+ DateTime startsAt, DateTime endsAt, int durationMinutes
+});
+
+
+
+
+}
+/// @nodoc
+class __$AvailabilitySlotCopyWithImpl<$Res>
+    implements _$AvailabilitySlotCopyWith<$Res> {
+  __$AvailabilitySlotCopyWithImpl(this._self, this._then);
+
+  final _AvailabilitySlot _self;
+  final $Res Function(_AvailabilitySlot) _then;
+
+/// Create a copy of AvailabilitySlot
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? startsAt = null,Object? endsAt = null,Object? durationMinutes = null,}) {
+  return _then(_AvailabilitySlot(
+startsAt: null == startsAt ? _self.startsAt : startsAt // ignore: cast_nullable_to_non_nullable
+as DateTime,endsAt: null == endsAt ? _self.endsAt : endsAt // ignore: cast_nullable_to_non_nullable
+as DateTime,durationMinutes: null == durationMinutes ? _self.durationMinutes : durationMinutes // ignore: cast_nullable_to_non_nullable
+as int,
+  ));
+}
+
+
+}
+
+
+/// @nodoc
+mixin _$SlotListResponse {
+
+ String get physiotherapistId; List<AvailabilitySlot> get slots;
+/// Create a copy of SlotListResponse
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$SlotListResponseCopyWith<SlotListResponse> get copyWith => _$SlotListResponseCopyWithImpl<SlotListResponse>(this as SlotListResponse, _$identity);
+
+  /// Serializes this SlotListResponse to a JSON map.
+  Map<String, dynamic> toJson();
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is SlotListResponse&&(identical(other.physiotherapistId, physiotherapistId) || other.physiotherapistId == physiotherapistId)&&const DeepCollectionEquality().equals(other.slots, slots));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,physiotherapistId,const DeepCollectionEquality().hash(slots));
+
+@override
+String toString() {
+  return 'SlotListResponse(physiotherapistId: $physiotherapistId, slots: $slots)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $SlotListResponseCopyWith<$Res>  {
+  factory $SlotListResponseCopyWith(SlotListResponse value, $Res Function(SlotListResponse) _then) = _$SlotListResponseCopyWithImpl;
+@useResult
+$Res call({
+ String physiotherapistId, List<AvailabilitySlot> slots
+});
+
+
+
+
+}
+/// @nodoc
+class _$SlotListResponseCopyWithImpl<$Res>
+    implements $SlotListResponseCopyWith<$Res> {
+  _$SlotListResponseCopyWithImpl(this._self, this._then);
+
+  final SlotListResponse _self;
+  final $Res Function(SlotListResponse) _then;
+
+/// Create a copy of SlotListResponse
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? physiotherapistId = null,Object? slots = null,}) {
+  return _then(_self.copyWith(
+physiotherapistId: null == physiotherapistId ? _self.physiotherapistId : physiotherapistId // ignore: cast_nullable_to_non_nullable
+as String,slots: null == slots ? _self.slots : slots // ignore: cast_nullable_to_non_nullable
+as List<AvailabilitySlot>,
+  ));
+}
+
+}
+
+
+/// Adds pattern-matching-related methods to [SlotListResponse].
+extension SlotListResponsePatterns on SlotListResponse {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _SlotListResponse value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _SlotListResponse() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _SlotListResponse value)  $default,){
+final _that = this;
+switch (_that) {
+case _SlotListResponse():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _SlotListResponse value)?  $default,){
+final _that = this;
+switch (_that) {
+case _SlotListResponse() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String physiotherapistId,  List<AvailabilitySlot> slots)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _SlotListResponse() when $default != null:
+return $default(_that.physiotherapistId,_that.slots);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String physiotherapistId,  List<AvailabilitySlot> slots)  $default,) {final _that = this;
+switch (_that) {
+case _SlotListResponse():
+return $default(_that.physiotherapistId,_that.slots);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String physiotherapistId,  List<AvailabilitySlot> slots)?  $default,) {final _that = this;
+switch (_that) {
+case _SlotListResponse() when $default != null:
+return $default(_that.physiotherapistId,_that.slots);case _:
+  return null;
+
+}
+}
+
+}
+
+/// @nodoc
+@JsonSerializable()
+
+class _SlotListResponse implements SlotListResponse {
+  const _SlotListResponse({required this.physiotherapistId, required final  List<AvailabilitySlot> slots}): _slots = slots;
+  factory _SlotListResponse.fromJson(Map<String, dynamic> json) => _$SlotListResponseFromJson(json);
+
+@override final  String physiotherapistId;
+ final  List<AvailabilitySlot> _slots;
+@override List<AvailabilitySlot> get slots {
+  if (_slots is EqualUnmodifiableListView) return _slots;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_slots);
+}
+
+
+/// Create a copy of SlotListResponse
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$SlotListResponseCopyWith<_SlotListResponse> get copyWith => __$SlotListResponseCopyWithImpl<_SlotListResponse>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$SlotListResponseToJson(this, );
+}
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _SlotListResponse&&(identical(other.physiotherapistId, physiotherapistId) || other.physiotherapistId == physiotherapistId)&&const DeepCollectionEquality().equals(other._slots, _slots));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,physiotherapistId,const DeepCollectionEquality().hash(_slots));
+
+@override
+String toString() {
+  return 'SlotListResponse(physiotherapistId: $physiotherapistId, slots: $slots)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$SlotListResponseCopyWith<$Res> implements $SlotListResponseCopyWith<$Res> {
+  factory _$SlotListResponseCopyWith(_SlotListResponse value, $Res Function(_SlotListResponse) _then) = __$SlotListResponseCopyWithImpl;
+@override @useResult
+$Res call({
+ String physiotherapistId, List<AvailabilitySlot> slots
+});
+
+
+
+
+}
+/// @nodoc
+class __$SlotListResponseCopyWithImpl<$Res>
+    implements _$SlotListResponseCopyWith<$Res> {
+  __$SlotListResponseCopyWithImpl(this._self, this._then);
+
+  final _SlotListResponse _self;
+  final $Res Function(_SlotListResponse) _then;
+
+/// Create a copy of SlotListResponse
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? physiotherapistId = null,Object? slots = null,}) {
+  return _then(_SlotListResponse(
+physiotherapistId: null == physiotherapistId ? _self.physiotherapistId : physiotherapistId // ignore: cast_nullable_to_non_nullable
+as String,slots: null == slots ? _self._slots : slots // ignore: cast_nullable_to_non_nullable
+as List<AvailabilitySlot>,
+  ));
+}
+
+
+}
+
+
+/// @nodoc
 mixin _$BlackoutWindow {
 
  String get id; String get physiotherapistId; DateTime get startsAt; DateTime get endsAt; String? get reason;

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
@@ -5,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../availability/data/availability_repository.dart';
 import '../../../patients/data/models/patient_models.dart';
 import '../../../patients/presentation/active_patient_provider.dart';
 import '../../../patients/presentation/patients_providers.dart';
@@ -21,6 +23,8 @@ import '../../data/appointments_repository.dart';
 import '../../data/models/appointment_models.dart';
 import '../appointment_format.dart';
 import '../appointments_providers.dart';
+import '../booking_availability.dart';
+import '../widgets/booking_availability_note.dart';
 
 /// Prefill for the booking form, used when it's opened from a "next review"
 /// suggestion (D6): the patient to pre-select and the date to pre-fill. Nothing
@@ -51,6 +55,9 @@ class BookAppointmentScreen extends ConsumerStatefulWidget {
 class _BookAppointmentScreenState extends ConsumerState<BookAppointmentScreen> {
   static const int _maxHorizonDays = 90;
   static const int _reasonMaxLength = 280;
+  // Slot range the `/availability` hint looks ahead over to find the next open
+  // day (the endpoint caps a range at 31 days, so this stays at 30).
+  static const int _hintWindowDays = 30;
 
   // One key per booking attempt: dedupes retries of the *same* request (e.g. a
   // lost response) without blocking a genuinely new one on the next screen.
@@ -63,6 +70,11 @@ class _BookAppointmentScreenState extends ConsumerState<BookAppointmentScreen> {
   DateTime? _day;
   TimeOfDay? _time;
 
+  // Non-blocking availability note for the picked date/time; null = nothing to
+  // flag. `_hintReq` discards stale responses when the patient re-picks quickly.
+  BookingHintMessage? _hint;
+  int _hintReq = 0;
+
   bool _submitting = false;
   String? _error;
 
@@ -74,6 +86,7 @@ class _BookAppointmentScreenState extends ConsumerState<BookAppointmentScreen> {
       final d = DateTime(day.year, day.month, day.day);
       _day = d;
       _dayField.text = formatDateShort(d);
+      unawaited(_refreshHint());
     }
   }
 
@@ -100,6 +113,7 @@ class _BookAppointmentScreenState extends ConsumerState<BookAppointmentScreen> {
       _day = picked;
       _dayField.text = formatDateShort(picked);
     });
+    unawaited(_refreshHint());
   }
 
   Future<void> _pickTime() async {
@@ -113,6 +127,7 @@ class _BookAppointmentScreenState extends ConsumerState<BookAppointmentScreen> {
       _time = picked;
       _timeField.text = picked.format(context);
     });
+    unawaited(_refreshHint());
   }
 
   void _clearTime() {
@@ -120,6 +135,36 @@ class _BookAppointmentScreenState extends ConsumerState<BookAppointmentScreen> {
       _time = null;
       _timeField.clear();
     });
+    unawaited(_refreshHint());
+  }
+
+  /// Loads open slots for the picked day (plus a look-ahead window) and recomputes
+  /// the availability note. Info-only: any load failure simply clears the note —
+  /// it never blocks the request.
+  Future<void> _refreshHint() async {
+    final day = _day;
+    if (day == null) {
+      setState(() => _hint = null);
+      return;
+    }
+    final from = DateTime(day.year, day.month, day.day);
+    final time = _time;
+    final token = ++_hintReq;
+    try {
+      final slots = await ref.read(availabilityRepositoryProvider).listSlots(
+            from: from,
+            to: from.add(const Duration(days: _hintWindowDays)),
+          );
+      if (!mounted || token != _hintReq) return;
+      final hint = deriveBookingHint(
+        slots: slots,
+        pickedDate: from,
+        preferredMinutes: time == null ? null : time.hour * 60 + time.minute,
+      );
+      setState(() => _hint = composeBookingHint(hint));
+    } catch (_) {
+      if (mounted && token == _hintReq) setState(() => _hint = null);
+    }
   }
 
   Future<void> _submit(Patient patient) async {
@@ -257,6 +302,10 @@ class _BookAppointmentScreenState extends ConsumerState<BookAppointmentScreen> {
               color: HealynColors.textSecondary,
             ),
           ),
+          if (_hint != null) ...[
+            const SizedBox(height: HealynSpacing.s3),
+            BookingAvailabilityNote(message: _hint!),
+          ],
           const SizedBox(height: HealynSpacing.s4),
           AppTextField(
             label: 'Reason (optional)',

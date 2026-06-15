@@ -22,6 +22,7 @@ import com.healyn.patients.repository.AccountAddressRepository;
 import com.healyn.patients.repository.AccountPatientRepository;
 import com.healyn.patients.repository.PatientRepository;
 import com.healyn.physio.repository.PhysioProfileRepository;
+import com.healyn.promotions.repository.PromotionRepository;
 import com.healyn.treatmentnotes.repository.TreatmentNoteRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -58,6 +59,7 @@ class ApplicationBootSmokeTest {
     @MockBean FileObjectRepository fileObjectRepository;
     @MockBean TreatmentNoteRepository treatmentNoteRepository;
     @MockBean PhysioProfileRepository physioProfileRepository;
+    @MockBean PromotionRepository promotionRepository;
     @MockBean NotificationOutboxRepository notificationOutboxRepository;
     @MockBean FcmTokenRepository fcmTokenRepository;
     @MockBean NotificationPreferencesRepository notificationPreferencesRepository;
