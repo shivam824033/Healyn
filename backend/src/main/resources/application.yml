@@ -51,7 +51,11 @@ management:
   endpoints:
     web:
       exposure:
-        include: health, info, prometheus
+        # Secure default: only health + info reach the public HTTP port. prod
+        # (application-prod.yml) moves Actuator to an internal-only management port.
+        # A real /actuator/prometheus endpoint additionally needs the
+        # micrometer-registry-prometheus dependency, which is not on the classpath yet.
+        include: health, info
   endpoint:
     health:
       probes:
@@ -59,9 +63,13 @@ management:
       show-details: never
 
 springdoc:
+  # Secure default (audit S-2): the OpenAPI spec and Swagger UI are OFF unless a profile
+  # opts in. application-local.yml re-enables them for development; prod keeps them off.
   api-docs:
+    enabled: false
     path: /v3/api-docs
   swagger-ui:
+    enabled: false
     path: /swagger-ui.html
     operationsSorter: method
     tagsSorter: alpha
