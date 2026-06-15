@@ -49,6 +49,7 @@ Architecture in Phase 1 must **enable** Phase 2 and Phase 3 without rewrites. It
 | F1.20 | Mobile app offline read cache (today's schedule, last 5 appointments) | P2 | `mobile-core` |
 | F1.21 | Unified appointment + treatment timeline (physiotherapist & patient) | P1 | `appointments` |
 | F1.22 | Global appointment search (by Appointment Number) | P2 | `appointments` |
+| F1.23 | Clinic promotions surface (physio-managed service cards / banners / announcements / health tips on patient Home) | P2 | `promotions` |
 
 **Priority legend:** P0 = must ship to release Phase 1. P1 = strongly desired but releasable without. P2 = nice to have.
 
@@ -72,6 +73,37 @@ Architecture in Phase 1 must **enable** Phase 2 and Phase 3 without rewrites. It
 > [API_STANDARDS.md §9.6](./API_STANDARDS.md).
 >
 > **Identifiers & lifecycle note (F1.5–F1.6, F1.9–F1.13, F1.21–F1.22):** appointments and patients carry human-readable **business IDs** (Appointment Number `PHY-YYYYMMDD-NNNN`, Patient ID `PAT-NNNNNN`) alongside their UUID primary keys; the UUID is never exposed to users. Appointments gain **parent-child lineage** (reschedules / follow-ups / reviews link to a lineage root) and an append-only **`appointment_events`** timeline. The ID and lineage work refines existing P0 features; the events table is the realization of the §4 Phase-3 enabler *"all clinical writes already produce a domain event"* (pulled forward, **not** new scope). The unified timeline (F1.21) and Appointment-Number search (F1.22) are new P1/P2 surfaces over that data. See [APPOINTMENT_FLOW.md](./APPOINTMENT_FLOW.md).
+
+> **Compliance surface note (F1.1, F1.5–F1.6):** lawful processing of health data requires a
+> consent + legal surface that the original inventory left implicit. A `compliance` module adds
+> versioned Privacy Policy / Terms, **demonstrable consent capture** at registration (Terms,
+> Privacy, Health-data processing) and **family-member authority** attestation at family-add, plus
+> account deletion / **right-to-erasure** (anonymize-and-retain — clinical data is kept de-identified
+> per Hard Rule #7). This is a Phase-1 **launch prerequisite** identified by the production-readiness
+> audit (§5/§11 item 6), not new product scope: it underpins the existing P0 auth (F1.1) and patient
+> (F1.5–F1.6) features. The mobile surface is delivered: consent capture at registration (Terms /
+> Privacy / Health-data, with in-app legal readers), the family-member authority attestation at
+> family-add, a read-only consent-history screen, and a password-confirmed account-deletion /
+> erasure screen — reached from both the patient and physiotherapist Profile. See
+> [SECURITY_GUIDELINES.md §11.1](./SECURITY_GUIDELINES.md) and
+> [API_STANDARDS.md §9.9](./API_STANDARDS.md).
+
+> **Clinic promotions note (F1.23):** the single physiotherapist can publish
+> **first-party clinic content** — service cards, promotional banners, clinic
+> announcements, and health tips — surfaced as a carousel + sections on the patient
+> Home and openable to a details screen. This is **not** third-party advertising, an ad
+> network, or marketing automation (those remain out of scope, §2.3 / CLAUDE.md §13);
+> it is the clinic describing its own services, mirroring the existing physio-profile
+> "Your clinic" surface (F-physio). Management lives **inside the physiotherapist's
+> in-app role** (the same role that already edits availability and profile) — it is **not**
+> the separate web "admin dashboard" forbidden by §2.3. Content is single-clinic and
+> physio-authored; the schema carries a nullable `clinic_id` and a content-ordering/
+> scheduling model so Phase-3 multi-clinic (F3.4) and audience targeting slot in without
+> rewrite, but **no** multi-clinic UI, no cross-clinic APIs, and **no** patient-group
+> targeting ship in Phase 1 (the column is always null; the patient query is unscoped).
+> P2: built only once P0 is code-complete, first to be cut if scope slips. See
+> [SYSTEM_ARCHITECTURE.md §3](./SYSTEM_ARCHITECTURE.md) and
+> [API_STANDARDS.md §9.10](./API_STANDARDS.md).
 
 ### 2.2 Phase 1 Acceptance Criteria
 

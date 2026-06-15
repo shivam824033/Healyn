@@ -14,6 +14,7 @@ import com.healyn.patients.domain.Patient;
 import com.healyn.patients.domain.PatientRelationship;
 import com.healyn.patients.policy.AccessMode;
 import com.healyn.patients.policy.PatientAccessPolicy;
+import com.healyn.patients.port.ConsentRecorderPort;
 import com.healyn.patients.repository.AccountPatientRepository;
 import com.healyn.patients.repository.PatientRepository;
 import org.springframework.stereotype.Service;
@@ -39,13 +40,16 @@ public class PatientService {
     private final AccountPatientRepository links;
     private final PatientAccessPolicy policy;
     private final AccountAddressService addresses;
+    private final ConsentRecorderPort consents;
 
     public PatientService(PatientRepository patients, AccountPatientRepository links,
-                          PatientAccessPolicy policy, AccountAddressService addresses) {
+                          PatientAccessPolicy policy, AccountAddressService addresses,
+                          ConsentRecorderPort consents) {
         this.patients = patients;
         this.links = links;
         this.policy = policy;
         this.addresses = addresses;
+        this.consents = consents;
     }
 
     @Transactional
@@ -59,15 +63,41 @@ public class PatientService {
 
     @Transactional
     public Patient addFamilyMember(UUID accountId, PatientRelationship relationship,
-                                   NewPatientProfile profile) {
+                                   NewPatientProfile profile, boolean authorityAttested,
+                                   String ipAddress, String userAgent) {
         if (relationship == PatientRelationship.SELF) {
             throw new UnprocessableException(ErrorCode.UNPROCESSABLE,
                     "Family member relationship cannot be SELF");
         }
+        if (!authorityAttested) {
+            // Managing another person's health data requires the account holder's attested
+            // authority (guardian / authorised representative) — DPDP Act 2023.
+            throw new UnprocessableException(ErrorCode.PATIENTS_AUTHORITY_REQUIRED,
+                    "Authority to manage this family member's health data must be attested");
+        }
         Patient patient = newPatient(profile);
         patients.save(patient);
         links.save(new AccountPatient(accountId, patient.getId(), relationship, false, true));
+        // Record the family-member authority consent in the same transaction so a managed
+        // patient never exists without its authority attestation.
+        consents.recordFamilyAuthority(accountId, patient.getId(), ipAddress, userAgent);
         return patient;
+    }
+
+    /// Right-to-erasure: redacts identifying and health PII from every patient managed solely
+    /// by this account and removes the account's links. A patient still managed by another
+    /// account (cross-account sharing) keeps its identity; only this account's link is dropped.
+    /// The account's household address is deleted. Clinical records that reference the patients
+    /// are retained, now de-identified (Hard Rule #7).
+    @Transactional
+    public void anonymizeAccountPatients(UUID accountId, Instant when) {
+        for (Patient p : links.findActivePatientsForAccount(accountId)) {
+            links.findLink(accountId, p.getId()).ifPresent(links::delete);
+            if (links.countLinksForPatient(p.getId()) == 0) {
+                p.anonymize(when);
+            }
+        }
+        addresses.deleteForAccount(accountId);
     }
 
     @Transactional(readOnly = true)

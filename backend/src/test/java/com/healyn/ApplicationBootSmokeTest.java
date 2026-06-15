@@ -8,6 +8,9 @@ import com.healyn.appointments.repository.AppointmentRepository;
 import com.healyn.audit.repository.AuditLogRepository;
 import com.healyn.availability.repository.AvailabilityRuleRepository;
 import com.healyn.availability.repository.BlackoutWindowRepository;
+import com.healyn.compliance.repository.AccountDeletionRequestRepository;
+import com.healyn.compliance.repository.ConsentRecordRepository;
+import com.healyn.compliance.repository.LegalDocumentRepository;
 import com.healyn.discussion.repository.DiscussionMessageAttachmentRepository;
 import com.healyn.discussion.repository.DiscussionMessageRepository;
 import com.healyn.discussion.repository.DiscussionReadMarkerRepository;
@@ -58,6 +61,9 @@ class ApplicationBootSmokeTest {
     @MockBean NotificationOutboxRepository notificationOutboxRepository;
     @MockBean FcmTokenRepository fcmTokenRepository;
     @MockBean NotificationPreferencesRepository notificationPreferencesRepository;
+    @MockBean ConsentRecordRepository consentRecordRepository;
+    @MockBean AccountDeletionRequestRepository accountDeletionRequestRepository;
+    @MockBean LegalDocumentRepository legalDocumentRepository;
     @MockBean AuditLogRepository auditLogRepository;
     @MockBean StringRedisTemplate stringRedisTemplate;
     // DataSource auto-config is excluded above, so the JdbcTemplate that

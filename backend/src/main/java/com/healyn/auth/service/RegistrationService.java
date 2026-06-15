@@ -5,6 +5,7 @@ import com.healyn.auth.domain.AccountRole;
 import com.healyn.auth.domain.OtpChallenge;
 import com.healyn.auth.domain.OtpChannel;
 import com.healyn.auth.domain.OtpPurpose;
+import com.healyn.auth.port.RegistrationConsentRecorder;
 import com.healyn.auth.repository.AccountRepository;
 import com.healyn.common.error.ConflictException;
 import com.healyn.common.error.ErrorCode;
@@ -28,16 +29,19 @@ public class RegistrationService {
     private final DeviceSessionService sessions;
     private final PatientService patients;
     private final AccountAddressService addresses;
+    private final RegistrationConsentRecorder consents;
 
     public RegistrationService(AccountRepository accounts, OtpService otp,
                                PasswordHasher passwordHasher, DeviceSessionService sessions,
-                               PatientService patients, AccountAddressService addresses) {
+                               PatientService patients, AccountAddressService addresses,
+                               RegistrationConsentRecorder consents) {
         this.accounts = accounts;
         this.otp = otp;
         this.passwordHasher = passwordHasher;
         this.sessions = sessions;
         this.patients = patients;
         this.addresses = addresses;
+        this.consents = consents;
     }
 
     @Transactional
@@ -76,6 +80,10 @@ public class RegistrationService {
         // Household address captured at signup, shared across the account's
         // patients. Same transaction: no account without its address.
         addresses.upsert(account.getId(), address);
+        // Record the account-level consents accepted at signup (Terms, Privacy Policy,
+        // Health-data processing) against the current legal-document versions — same
+        // transaction, so an account never exists without its consent trail.
+        consents.recordRegistrationConsents(account.getId(), device.ipAddress(), device.userAgent());
         return sessions.issue(account, device);
     }
 

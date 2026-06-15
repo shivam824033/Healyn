@@ -2,6 +2,7 @@ package com.healyn.patients.web;
 
 import com.healyn.patients.domain.PatientRelationship;
 import com.healyn.patients.domain.PatientSex;
+import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -54,7 +55,10 @@ public final class PatientDtos {
             @Email @Size(max = 254) String email,
             @Size(max = 3) String bloodGroup,
             @Size(max = 4000) String allergies,
-            @Size(max = 4000) String notes) {}
+            @Size(max = 4000) String notes,
+            // The account holder must attest authority to manage this person's health data
+            // (guardian / authorised representative) — DPDP Act 2023. Must be true.
+            @AssertTrue(message = "AUTHORITY_REQUIRED") boolean authorityAttested) {}
 
     public record UpdatePatientRequest(
             @Size(max = 160) String fullName,

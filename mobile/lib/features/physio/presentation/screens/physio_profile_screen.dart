@@ -46,6 +46,12 @@ class PhysioProfileScreen extends ConsumerWidget {
                 label: 'Edit profile & clinic details',
                 onTap: () => context.push('/physio/profile/edit'),
               ),
+              const SizedBox(height: HealynSpacing.s3),
+              NavCard(
+                icon: Icons.campaign_outlined,
+                label: 'Clinic promotions',
+                onTap: () => context.push('/physio/promotions'),
+              ),
               const SizedBox(height: HealynSpacing.s6),
               const HealynSectionHeader(title: 'Settings'),
               const SizedBox(height: HealynSpacing.s3),
@@ -54,6 +60,23 @@ class PhysioProfileScreen extends ConsumerWidget {
                 label: 'Notifications',
                 onTap: () => context.push('/notifications/preferences'),
               ),
+              const SizedBox(height: HealynSpacing.s6),
+              const HealynSectionHeader(title: 'Privacy & data'),
+              const SizedBox(height: HealynSpacing.s3),
+              NavCard(
+                icon: Icons.privacy_tip_outlined,
+                label: 'Privacy Policy',
+                onTap: () => context.push('/legal/privacy_policy'),
+              ),
+              const SizedBox(height: HealynSpacing.s3),
+              NavCard(
+                icon: Icons.description_outlined,
+                label: 'Terms of Service',
+                onTap: () => context.push('/legal/terms_of_service'),
+              ),
+              // Consent capture and account deletion are patient (data-subject)
+              // surfaces and are intentionally omitted for the physio owner, who
+              // is the clinic operator. Deletion is also blocked server-side.
               const SizedBox(height: HealynSpacing.s6),
               const SignedInDevicesSection(),
               const SizedBox(height: HealynSpacing.s6),

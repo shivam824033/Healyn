@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:healyn/features/shared/design/colors.dart';
 
 import '../../../shared/design/spacing.dart';
@@ -51,6 +52,9 @@ class _RegisterVerifyScreenState extends ConsumerState<RegisterVerifyScreen> {
   String? _error;
   DateTime? _dob;
   PatientSex? _sex;
+  bool _terms = false;
+  bool _privacy = false;
+  bool _health = false;
 
   @override
   void dispose() {
@@ -96,6 +100,12 @@ class _RegisterVerifyScreenState extends ConsumerState<RegisterVerifyScreen> {
       setState(() => _error = 'Select your date of birth.');
       return;
     }
+    if (!_terms || !_privacy || !_health) {
+      setState(
+        () => _error = 'Please accept the terms and consents to continue.',
+      );
+      return;
+    }
     setState(() {
       _submitting = true;
       _error = null;
@@ -121,6 +131,11 @@ class _RegisterVerifyScreenState extends ConsumerState<RegisterVerifyScreen> {
               country: _country.text.trim().isEmpty
                   ? 'India'
                   : _country.text.trim(),
+            ),
+            consents: RegistrationConsents(
+              termsAccepted: _terms,
+              privacyAccepted: _privacy,
+              healthDataProcessingAccepted: _health,
             ),
           );
       if (!mounted) return;
@@ -297,7 +312,44 @@ class _RegisterVerifyScreenState extends ConsumerState<RegisterVerifyScreen> {
                       ? 'Enter your country'
                       : null,
                 ),
-                const SizedBox(height: HealynSpacing.s7),
+                const SizedBox(height: HealynSpacing.s6),
+                const Text('Consent', style: HealynTypography.h3),
+                const SizedBox(height: HealynSpacing.s1),
+                const Text(
+                  'We need your agreement to process health data lawfully.',
+                  style: HealynTypography.caption,
+                ),
+                const SizedBox(height: HealynSpacing.s3),
+                _ConsentCheck(
+                  value: _terms,
+                  enabled: !_submitting,
+                  onChanged: (v) => setState(() => _terms = v),
+                  label: const _ConsentLabel(
+                    lead: 'I agree to the ',
+                    linkText: 'Terms of Service',
+                    kindPath: 'terms_of_service',
+                  ),
+                ),
+                _ConsentCheck(
+                  value: _privacy,
+                  enabled: !_submitting,
+                  onChanged: (v) => setState(() => _privacy = v),
+                  label: const _ConsentLabel(
+                    lead: 'I have read the ',
+                    linkText: 'Privacy Policy',
+                    kindPath: 'privacy_policy',
+                  ),
+                ),
+                _ConsentCheck(
+                  value: _health,
+                  enabled: !_submitting,
+                  onChanged: (v) => setState(() => _health = v),
+                  label: const _ConsentLabel(
+                    lead: 'I consent to Healyn processing my health data to '
+                        'provide care.',
+                  ),
+                ),
+                const SizedBox(height: HealynSpacing.s6),
                 PrimaryButton(
                   label: 'Create account',
                   loading: _submitting,
@@ -308,6 +360,89 @@ class _RegisterVerifyScreenState extends ConsumerState<RegisterVerifyScreen> {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// A consent checkbox row: a leading [Checkbox] and a tappable label.
+class _ConsentCheck extends StatelessWidget {
+  const _ConsentCheck({
+    required this.value,
+    required this.enabled,
+    required this.onChanged,
+    required this.label,
+  });
+
+  final bool value;
+  final bool enabled;
+  final ValueChanged<bool> onChanged;
+  final Widget label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: HealynSpacing.s1),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            height: 24,
+            width: 24,
+            child: Checkbox(
+              value: value,
+              activeColor: HealynColors.brandPrimary,
+              onChanged: enabled ? (v) => onChanged(v ?? false) : null,
+            ),
+          ),
+          const SizedBox(width: HealynSpacing.s3),
+          Expanded(
+            child: GestureDetector(
+              onTap: enabled ? () => onChanged(!value) : null,
+              behavior: HitTestBehavior.opaque,
+              child: Padding(
+                padding: const EdgeInsets.only(top: 2),
+                child: label,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// A consent label: plain [lead] text with an optional inline link that opens a
+/// legal document ([kindPath] is e.g. `terms_of_service`).
+class _ConsentLabel extends StatelessWidget {
+  const _ConsentLabel({required this.lead, this.linkText, this.kindPath});
+
+  final String lead;
+  final String? linkText;
+  final String? kindPath;
+
+  @override
+  Widget build(BuildContext context) {
+    final link = linkText;
+    final path = kindPath;
+    if (link == null || path == null) {
+      return Text(lead, style: HealynTypography.body);
+    }
+    return Wrap(
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        Text(lead, style: HealynTypography.body),
+        InkWell(
+          onTap: () => context.push('/legal/$path'),
+          child: Text(
+            link,
+            style: HealynTypography.body.copyWith(
+              color: HealynColors.brandPrimary,
+              decoration: TextDecoration.underline,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

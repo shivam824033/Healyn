@@ -274,8 +274,25 @@ Every clinical resource access produces an `audit.audit_log` row (see [DATABASE_
 | `SOFT_DELETE` | Soft deletes |
 | `DOWNLOAD` | Presigned URL minted for a file |
 | `EXPORT` | (Phase 2) bulk data export |
+| `CONSENT_GRANT` / `CONSENT_WITHDRAW` | A consent recorded or withdrawn (see §11.1) |
+| `ANONYMIZE` | Right-to-erasure anonymization of an account (see §11.1) |
+| `PURGE` | (gated) Hard-purge of de-identified scaffolding after retention |
 
 The audit log lives in the `audit` schema with `INSERT, SELECT` grants only. There is no `UPDATE` or `DELETE` privilege for the application role.
+
+### 11.1 Consent & Data Lifecycle (Erasure)
+
+The `compliance` module (see [SYSTEM_ARCHITECTURE.md §3.1](./SYSTEM_ARCHITECTURE.md#3-module-breakdown)) carries the legal/consent surface required to lawfully process health data (DPDP Act 2023).
+
+- **Versioned legal documents.** Privacy Policy and Terms are stored as immutable versioned rows (`legal_documents`, one current per kind/locale) and served publicly at `GET /legal/{kind}`. Consent rows snapshot the exact version agreed to.
+- **Demonstrable consent.** `consent_records` is an append-only trail — a grant and a withdrawal are separate rows, each capturing IP + user agent. Three account-level consents (Terms, Privacy, Health-data processing) are mandatory at registration; a **Family-Member Authority** consent is required (and recorded) whenever a family member is added — the account holder's attestation that they may manage that person's health data.
+- **Right-to-erasure = anonymize-and-retain.** A password-confirmed `POST /me/deletion-request` sets the account to `PENDING_DELETION`, revokes all sessions, and opens a cancellable grace window (`healyn.compliance.grace-days`, default 30). When it elapses, a scheduled sweep:
+  - **Anonymizes the account** — email replaced by a non-identifying tombstone (the `accounts_email_or_phone` check needs one contact column), phone cleared, password hash made unusable, status `DISABLED`, soft-deleted; device-session and OTP rows dropped.
+  - **Redacts patient identity PII** for patients managed solely by the account; a patient still shared with another account keeps its identity.
+  - **Drops device push tokens.**
+  - **Retains clinical records** (`appointments`, `discussion_messages`, `treatment_notes`, `file_objects`) de-identified — **Hard Rule #7 forbids hard-deleting them.**
+- **Purge is gated.** Hard-purge of the retained, de-identified scaffolding after a retention window is config-gated **OFF** (`healyn.compliance.purge-enabled`) and requires an explicit, documented retention policy + human sign-off before it may delete clinical-table rows (Hard Rules #7/#8).
+- **Auditing.** Consent grants/withdrawals and anonymization are written to the audit log (IDs only — Hard Rule #3).
 
 ---
 

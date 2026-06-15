@@ -60,9 +60,20 @@ class _FakeMessaging implements FcmMessaging {
 class _RecordingTokenApi extends FcmTokenApi {
   _RecordingTokenApi() : super(Dio());
   final List<FcmTokenRegistration> calls = [];
+  final List<String> unregistered = [];
 
   @override
   Future<void> register(FcmTokenRegistration body) async => calls.add(body);
+
+  @override
+  Future<void> unregister(String deviceId) async => unregistered.add(deviceId);
+}
+
+class _ThrowingTokenApi extends FcmTokenApi {
+  _ThrowingTokenApi() : super(Dio());
+  @override
+  Future<void> unregister(String deviceId) async =>
+      throw DioException(requestOptions: RequestOptions(path: '/auth/fcm_tokens'));
 }
 
 class _FakeDeviceIdentity extends DeviceIdentity {
@@ -71,7 +82,7 @@ class _FakeDeviceIdentity extends DeviceIdentity {
   Future<String> getOrCreate() async => 'device-1';
 }
 
-PushService _service(_FakeMessaging messaging, _RecordingTokenApi api) =>
+PushService _service(_FakeMessaging messaging, FcmTokenApi api) =>
     PushService(messaging, api, _FakeDeviceIdentity(), 'android');
 
 void main() {
@@ -103,9 +114,18 @@ void main() {
     expect(api.calls, isEmpty);
   });
 
-  test('unregister deletes the token (best-effort)', () async {
+  test('unregister unlinks the token on the backend then deletes it locally', () async {
     final messaging = _FakeMessaging();
-    await _service(messaging, _RecordingTokenApi()).unregister();
+    final api = _RecordingTokenApi();
+    await _service(messaging, api).unregister();
+
+    expect(api.unregistered, ['device-1']);
+    expect(messaging.deleted, isTrue);
+  });
+
+  test('unregister still deletes the local token when the backend unlink fails', () async {
+    final messaging = _FakeMessaging();
+    await _service(messaging, _ThrowingTokenApi()).unregister();
     expect(messaging.deleted, isTrue);
   });
 

@@ -33,7 +33,9 @@ class AuthInterceptor extends Interceptor {
   };
 
   static bool _isPublic(String path) =>
-      _publicPaths.any((p) => path.endsWith(p));
+      // Legal documents are public (readable during registration, before any
+      // token exists) — never attach a bearer or trigger refresh-on-401.
+      path.contains('/legal/') || _publicPaths.any((p) => path.endsWith(p));
 
   @override
   Future<void> onRequest(

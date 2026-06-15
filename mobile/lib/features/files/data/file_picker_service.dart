@@ -34,6 +34,13 @@ class PluginFilePickerService implements FilePickerService {
 
   final ImagePicker _imagePicker;
 
+  // Downscale + recompress at the source so neither camera capture nor gallery
+  // pick ships full-resolution bytes: this is the resize/compress step before a
+  // photo is merged into a PDF (cuts S3 storage and upload time) while keeping a
+  // scanned report's text legible. Applied to both image paths so they match.
+  static const _maxImageWidth = 2400.0;
+  static const _imageQuality = 85;
+
   @override
   Future<PickedFile?> pick(PickSource source) async {
     switch (source) {
@@ -57,11 +64,9 @@ class PluginFilePickerService implements FilePickerService {
 
   @override
   Future<List<PickedFile>> pickImages() async {
-    // Downscale at the source so several photos merge into a PDF that stays under
-    // the 20 MB cap, while keeping scanned text legible.
     final picked = await _imagePicker.pickMultiImage(
-      maxWidth: 2400,
-      imageQuality: 85,
+      maxWidth: _maxImageWidth,
+      imageQuality: _imageQuality,
     );
     final files = <PickedFile>[];
     for (final image in picked) {
@@ -71,7 +76,11 @@ class PluginFilePickerService implements FilePickerService {
   }
 
   Future<PickedFile?> _fromImage(ImageSource source) async {
-    final picked = await _imagePicker.pickImage(source: source);
+    final picked = await _imagePicker.pickImage(
+      source: source,
+      maxWidth: _maxImageWidth,
+      imageQuality: _imageQuality,
+    );
     if (picked == null) return null;
     return PickedFile(bytes: await picked.readAsBytes(), filename: picked.name);
   }

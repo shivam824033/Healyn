@@ -99,6 +99,10 @@ abstract class CreateFamilyMemberRequest with _$CreateFamilyMemberRequest {
     required String fullName,
     @LocalDateConverter() required DateTime dateOfBirth,
     required PatientRelationship relationship,
+    // The account holder's attestation that they are authorised to manage this
+    // person's health data (DPDP Act 2023). Must be true; the backend rejects a
+    // false/missing flag (API_STANDARDS §9.2).
+    required bool authorityAttested,
     PatientSex? sex,
     String? phoneE164,
     String? email,

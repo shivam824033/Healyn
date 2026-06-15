@@ -38,6 +38,7 @@ class AuthRepository {
     required String password,
     required PrimaryPatientProfile profile,
     required Address address,
+    required RegistrationConsents consents,
   }) async {
     await _guard(() async {
       final token = await _api.registerComplete(
@@ -48,6 +49,7 @@ class AuthRepository {
           device: await _device(),
           profile: profile,
           address: address,
+          consents: consents,
         ),
       );
       await _persist(token);

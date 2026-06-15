@@ -56,10 +56,32 @@ class PushService {
     _messageSub ??= _messaging.onMessage.listen(showPushNotification);
   }
 
-  /// Stops push to this install (best-effort) — called on logout.
+  /// Tears down push for this install on logout. Order matters: unlink the token
+  /// on the backend *first* (while the session is still authenticated) so the
+  /// signed-out device stops resolving as a delivery target, then stop local
+  /// delivery. The account's other devices are untouched (the backend keys off
+  /// this device id). Every step is best-effort — logout must never be blocked.
   Future<void> unregister() async {
     await _refreshSub?.cancel();
     _refreshSub = null;
+    await _messageSub?.cancel();
+    _messageSub = null;
+
+    final deviceId = await _deviceIdentity.getOrCreate();
+    try {
+      await _api.unregister(deviceId);
+    } catch (_) {
+      // A failed backend unlink must not strand logout: the FCM token deletion
+      // below still stops delivery, and the dispatcher retires the row lazily
+      // on its next failed send.
+    }
+
+    try {
+      await clearAllNotifications();
+    } catch (_) {
+      // Best-effort: clearing shown banners must not surface on logout.
+    }
+
     if (!await _messaging.ensureInitialized()) return;
     try {
       await _messaging.deleteToken();

@@ -54,6 +54,7 @@ class DocumentUploadScreen extends ConsumerStatefulWidget {
 
 class _DocumentUploadScreenState extends ConsumerState<DocumentUploadScreen> {
   static const _maxPdfBytes = 20 * 1024 * 1024;
+  static const _maxImageBytes = 10 * 1024 * 1024;
 
   FileKind _kind = FileKind.report;
   bool _uploading = false;
@@ -69,6 +70,13 @@ class _DocumentUploadScreenState extends ConsumerState<DocumentUploadScreen> {
   @override
   void initState() {
     super.initState();
+    // Bound the set so the merged PDF stays under the cap and conversion stays
+    // responsive; an over-large selection is trimmed rather than silently lost.
+    if (_images.length > maxImagesPerUpload) {
+      _images.removeRange(maxImagesPerUpload, _images.length);
+      _error =
+          'Only the first $maxImagesPerUpload images were kept (limit per document).';
+    }
     _nameController = TextEditingController(text: _defaultNameStem());
   }
 
@@ -118,6 +126,11 @@ class _DocumentUploadScreenState extends ConsumerState<DocumentUploadScreen> {
   }
 
   Future<void> _addMore() async {
+    if (_images.length >= maxImagesPerUpload) {
+      setState(() => _error =
+          'You can add up to $maxImagesPerUpload images per document.');
+      return;
+    }
     final source = await showModalBottomSheet<PickSource>(
       context: context,
       builder: (ctx) => SafeArea(
@@ -145,7 +158,15 @@ class _DocumentUploadScreenState extends ConsumerState<DocumentUploadScreen> {
           ? [?await service.pick(PickSource.camera)]
           : await service.pickImages();
       if (added.isEmpty || !mounted) return;
-      setState(() => _images.addAll(added));
+      // Keep only what fits under the cap; tell the user if some were dropped.
+      final room = maxImagesPerUpload - _images.length;
+      final kept = added.length > room ? added.sublist(0, room) : added;
+      setState(() {
+        _images.addAll(kept);
+        _error = kept.length < added.length
+            ? 'Added $room of ${added.length}; the limit is $maxImagesPerUpload images.'
+            : null;
+      });
     } catch (_) {
       if (mounted) setState(() => _error = "Couldn't open the picker.");
     }
@@ -183,6 +204,12 @@ class _DocumentUploadScreenState extends ConsumerState<DocumentUploadScreen> {
       _fail('That file is not a supported PDF.');
       return;
     }
+    // Verify the bytes actually are a PDF, not just a .pdf name on an empty or
+    // damaged file — the extension alone is not trusted (server re-checks too).
+    if (file.bytes.isEmpty || !hasPdfMagic(file.bytes)) {
+      _fail("That PDF appears to be empty or damaged and can't be uploaded.");
+      return;
+    }
     if (file.bytes.length > type.maxBytes) {
       _fail('That PDF is too large (max 20 MB).');
       return;
@@ -203,7 +230,7 @@ class _DocumentUploadScreenState extends ConsumerState<DocumentUploadScreen> {
     final mime = (type != null && type.mimeType != 'application/pdf')
         ? type.mimeType
         : 'image/jpeg';
-    if (image.bytes.length > 10 * 1024 * 1024) {
+    if (image.bytes.length > _maxImageBytes) {
       _fail('That image is too large (max 10 MB).');
       return;
     }
@@ -218,7 +245,15 @@ class _DocumentUploadScreenState extends ConsumerState<DocumentUploadScreen> {
   }
 
   Future<void> _uploadImagesAsPdf(FilesRepository repo) async {
-    final bytes = await imagesToPdf(_images);
+    for (final image in _images) {
+      if (image.bytes.length > _maxImageBytes) {
+        _fail('One image is too large (max 10 MB each). Remove it and try again.');
+        return;
+      }
+    }
+    // Runs on a background isolate so a large multi-image merge doesn't freeze
+    // the UI; the Upload button already shows its progress spinner meanwhile.
+    final bytes = await imagesToPdfInBackground(_images);
     if (bytes.length > _maxPdfBytes) {
       _fail('The combined PDF is too large. Try selecting fewer images.');
       return;

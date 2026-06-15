@@ -72,8 +72,10 @@ Each module is a top-level Java package: `com.healyn.<module>`.
 | `files` | Presigned upload/download URLs, file validation | `FileObject` | S3 adapter, `discussion`, `treatment-notes` |
 | `treatment-notes` | Physiotherapist's clinical notes per appointment | `TreatmentNote` | `appointments`, `files` |
 | `physio` | The single physiotherapist's public profile: personal/clinic/social details + avatar (read by patients, edited by the physiotherapist). Avatar reuses the S3 presign mechanism under its own key prefix | `PhysioProfile` | `auth` (physio account), S3 adapter (`files.port` / `files.domain`) |
+| `promotions` | First-party clinic content the physiotherapist publishes to patients: service cards, promotional banners, clinic announcements, health tips. Active + in-window content is read by every patient (Home carousel/sections → details screen); CRUD, display-order, schedule windows, and active toggle are physio-only. Cover images reuse the S3 presign + magic-byte pipeline under a `promotions/<id>/cover/` key prefix. Carries a nullable `clinicId` (Phase-3 multi-clinic enabler) — null and unexposed in Phase 1 | `Promotion` | `auth` (physio account), S3 adapter (`files.port` / `files.domain`) |
 | `notifications` | Outbound notification dispatch (FCM in Phase 1) | `NotificationOutbox`, `FcmToken` | FCM adapter, all modules (via events) |
 | `audit` | Clinical access audit log (append-only) | `AuditLogEntry` | Called explicitly by modules via `AuditLogger` (REQUIRES_NEW); a web interceptor for READ paths is a later add |
+| `compliance` | Versioned legal documents (Privacy Policy / Terms), demonstrable consent capture (incl. family-member authority), and the account deletion / right-to-erasure flow (anonymize-and-retain) | `LegalDocument`, `ConsentRecord`, `AccountDeletionRequest` | `auth` + `patients` (erasure orchestration), `notifications` (token cleanup), `audit`. Records consent for `auth` (registration) and `patients` (family-add) via ports those modules own (`RegistrationConsentRecorder`, `ConsentRecorderPort`) so the dependency points one way: `compliance` → others |
 | `common` | Shared types, exception mapper, JSON config, validation | (cross-cutting) | — |
 
 ### 3.2 Mobile Modules (Flutter features)
@@ -92,7 +94,8 @@ features/
   files/
   notifications/
   treatment_notes/
-  home/          # Patient landing (greeting, upcoming, unread roll-up)
+  home/          # Patient landing (greeting, upcoming, unread roll-up, promotions carousel)
+  promotions/    # Patient: promotions carousel + details screen. Physio: manage/editor screens
   patient_shell/ # Patient 4-tab bottom-nav frame
   physio/        # Physiotherapist app: shell + Today/Patients/Availability/Profile
   shared/        # Design system, network, auth/JWT, error handling

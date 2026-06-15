@@ -38,6 +38,20 @@ spring:
       add-mappings: false
   jackson:
     default-property-inclusion: non_null
+  # SMTP transport for OTP email. Blank host (the default) means no JavaMailSender is
+  # auto-configured; SmtpOtpSender then fails fast outside local/test. local/test use the
+  # console LoggingOtpSender and need none of this.
+  mail:
+    host: ${HEALYN_SMTP_HOST:}
+    port: ${HEALYN_SMTP_PORT:587}
+    username: ${HEALYN_SMTP_USERNAME:}
+    password: ${HEALYN_SMTP_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: ${HEALYN_SMTP_AUTH:true}
+          starttls:
+            enable: ${HEALYN_SMTP_STARTTLS:true}
 
 server:
   port: ${HEALYN_HTTP_PORT:8080}
@@ -51,7 +65,11 @@ management:
   endpoints:
     web:
       exposure:
-        include: health, info, prometheus
+        # Secure default: only health + info reach the public HTTP port. prod
+        # (application-prod.yml) moves Actuator to an internal-only management port.
+        # A real /actuator/prometheus endpoint additionally needs the
+        # micrometer-registry-prometheus dependency, which is not on the classpath yet.
+        include: health, info
   endpoint:
     health:
       probes:
@@ -59,9 +77,13 @@ management:
       show-details: never
 
 springdoc:
+  # Secure default (audit S-2): the OpenAPI spec and Swagger UI are OFF unless a profile
+  # opts in. application-local.yml re-enables them for development; prod keeps them off.
   api-docs:
+    enabled: false
     path: /v3/api-docs
   swagger-ui:
+    enabled: false
     path: /swagger-ui.html
     operationsSorter: method
     tagsSorter: alpha
@@ -71,6 +93,12 @@ springdoc:
   show-actuator: false
 
 healyn:
+  # OTP delivery. EMAIL goes over spring.mail.* SMTP (SmtpOtpSender); SMS is not wired yet
+  # and fails fast (SmsOtpSender) until a provider adapter is added. local/test log to console.
+  otp:
+    email:
+      from: ${HEALYN_OTP_EMAIL_FROM:}
+      subject: ${HEALYN_OTP_EMAIL_SUBJECT:Your Healyn verification code}
   # Single-clinic reference frame (Phase 1). Used to derive clinic-local calendar days,
   # e.g. the YYYYMMDD stem of an Appointment Number. Instants are still stored as UTC.
   clinic:
@@ -102,6 +130,16 @@ healyn:
     physio:
       email: ${HEALYN_DEV_PHYSIO_EMAIL:physio@healyn.local}
       password: ${HEALYN_DEV_PHYSIO_PASSWORD:Physio!Dev123}
+  # Prod provisioning of the single ROLE_PHYSIO login (README §5.2). Off by default. The
+  # operator enables it once with a temporary email/password secret, boots, then turns it
+  # back off and removes the password secret; the physio rotates via the reset flow on first
+  # login. Hashing must run in-process (PasswordHasher mixes a server pepper) — offline SQL
+  # inserts cannot produce a matching hash. Idempotent (PhysioBootstrapRunner).
+  bootstrap:
+    physio:
+      enabled: ${HEALYN_BOOTSTRAP_PHYSIO_ENABLED:false}
+      email: ${HEALYN_BOOTSTRAP_PHYSIO_EMAIL:}
+      password: ${HEALYN_BOOTSTRAP_PHYSIO_PASSWORD:}
   notifications:
     poller-enabled: ${HEALYN_NOTIFICATIONS_POLLER_ENABLED:true}
     poll-interval-ms: ${HEALYN_NOTIFICATIONS_POLL_INTERVAL_MS:2000}
@@ -114,3 +152,13 @@ healyn:
   # profile so a misconfigured prod deploy can't silently drop all push.
   fcm:
     credentials-path: ${HEALYN_FCM_CREDENTIALS_PATH:}
+  # Compliance surface: consent capture + account deletion / right-to-erasure (audit §11 item 6).
+  # grace-days is the cancellable window before anonymization. purge-enabled gates the hard-purge
+  # of de-identified clinical scaffolding and stays OFF by default (Hard Rule #7 — needs sign-off).
+  compliance:
+    poller-enabled: ${HEALYN_COMPLIANCE_POLLER_ENABLED:true}
+    poll-interval-ms: ${HEALYN_COMPLIANCE_POLL_INTERVAL_MS:60000}
+    grace-days: ${HEALYN_COMPLIANCE_GRACE_DAYS:30}
+    default-locale: ${HEALYN_COMPLIANCE_DEFAULT_LOCALE:en}
+    purge-enabled: ${HEALYN_COMPLIANCE_PURGE_ENABLED:false}
+    retention-days: ${HEALYN_COMPLIANCE_RETENTION_DAYS:2920}
