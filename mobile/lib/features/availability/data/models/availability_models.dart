@@ -59,6 +59,36 @@ abstract class CreateRuleRequest with _$CreateRuleRequest {
       _$CreateRuleRequestFromJson(json);
 }
 
+/// A single computed open slot from `GET /availability` — working hours minus
+/// blackouts (booked appointments are intentionally not subtracted, since
+/// booking is request-first and the physiotherapist finalises the time).
+/// [startsAt]/[endsAt] are instants (UTC on the wire); call `.toLocal()` before
+/// comparing against a locally-picked date or time.
+@freezed
+abstract class AvailabilitySlot with _$AvailabilitySlot {
+  const factory AvailabilitySlot({
+    required DateTime startsAt,
+    required DateTime endsAt,
+    required int durationMinutes,
+  }) = _AvailabilitySlot;
+
+  factory AvailabilitySlot.fromJson(Map<String, dynamic> json) =>
+      _$AvailabilitySlotFromJson(json);
+}
+
+/// Response of `GET /availability` — the open slots for one physiotherapist over
+/// the requested date range.
+@freezed
+abstract class SlotListResponse with _$SlotListResponse {
+  const factory SlotListResponse({
+    required String physiotherapistId,
+    required List<AvailabilitySlot> slots,
+  }) = _SlotListResponse;
+
+  factory SlotListResponse.fromJson(Map<String, dynamic> json) =>
+      _$SlotListResponseFromJson(json);
+}
+
 /// A one-off block of time the physiotherapist is unavailable (holiday, leave).
 /// [startsAt]/[endsAt] are instants (UTC on the wire); call `.toLocal()` before
 /// formatting. [reason] is optional free text — short, non-clinical.

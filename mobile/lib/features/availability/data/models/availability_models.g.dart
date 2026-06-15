@@ -66,6 +66,34 @@ Map<String, dynamic> _$CreateRuleRequestToJson(_CreateRuleRequest instance) =>
       'effective_to': ?instance.effectiveTo,
     };
 
+_AvailabilitySlot _$AvailabilitySlotFromJson(Map<String, dynamic> json) =>
+    _AvailabilitySlot(
+      startsAt: DateTime.parse(json['starts_at'] as String),
+      endsAt: DateTime.parse(json['ends_at'] as String),
+      durationMinutes: (json['duration_minutes'] as num).toInt(),
+    );
+
+Map<String, dynamic> _$AvailabilitySlotToJson(_AvailabilitySlot instance) =>
+    <String, dynamic>{
+      'starts_at': instance.startsAt.toIso8601String(),
+      'ends_at': instance.endsAt.toIso8601String(),
+      'duration_minutes': instance.durationMinutes,
+    };
+
+_SlotListResponse _$SlotListResponseFromJson(Map<String, dynamic> json) =>
+    _SlotListResponse(
+      physiotherapistId: json['physiotherapist_id'] as String,
+      slots: (json['slots'] as List<dynamic>)
+          .map((e) => AvailabilitySlot.fromJson(e as Map<String, dynamic>))
+          .toList(),
+    );
+
+Map<String, dynamic> _$SlotListResponseToJson(_SlotListResponse instance) =>
+    <String, dynamic>{
+      'physiotherapist_id': instance.physiotherapistId,
+      'slots': instance.slots.map((e) => e.toJson()).toList(),
+    };
+
 _BlackoutWindow _$BlackoutWindowFromJson(Map<String, dynamic> json) =>
     _BlackoutWindow(
       id: json['id'] as String,
